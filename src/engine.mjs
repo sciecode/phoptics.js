@@ -4,17 +4,16 @@ export class Engine {
   constructor(adapter, device) {
     this.adapter = adapter;
     this.device = device;
-    
     this.resources = new ResourceManager(this.device);
   }
 
   render_target(render_pass_handle, shader_handle) {
 
-    let aspect;
     const render_pass = this.resources.get_render_pass(render_pass_handle);
-
-    const pass_descriptor = render_pass.get_descriptor();
+    
+    let aspect;
     const pass_formats = [];
+    const pass_descriptor = render_pass.get_descriptor();
     for (let i = 0, il = pass_descriptor.colorAttachments.length; i < il; i++) {
       const rt = this.resources.get_canvas_target(pass_descriptor.colorAttachments[i].view);
       pass_descriptor.colorAttachments[i].view = rt.get_view();

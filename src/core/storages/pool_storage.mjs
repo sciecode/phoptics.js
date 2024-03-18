@@ -2,8 +2,7 @@ export class PoolStorage {
 
   constructor(capacity = 1024) {
     this.count = 0;
-    this.capacity = capacity;
-    this.data = new Array(this.count);
+    this.data = new Array(capacity);
     this.freelist = [];
   }
 
@@ -15,7 +14,7 @@ export class PoolStorage {
     } else {
       idx = this.count++;
 
-      if (this.count == this.capacity) this.grow();
+      if (this.count == this.data.length) this.grow();
     }
 
     this.data[idx] = data;
@@ -24,7 +23,6 @@ export class PoolStorage {
   }
 
   grow () {
-    this.capacity *= 2;
     this.data.length *= 2;
   }
 

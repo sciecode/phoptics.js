@@ -1,4 +1,4 @@
-import { PoolStorage } from "./resources/pool_storage.mjs";
+import { PoolStorage } from "./storages/pool_storage.mjs";
 import { CanvasTarget } from "./resources/canvas_target.mjs";
 import { RenderPass } from "./resources/render_pass.mjs";
 import { Shader } from "./resources/shader.mjs"
