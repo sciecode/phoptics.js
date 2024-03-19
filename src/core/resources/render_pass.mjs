@@ -1,32 +1,40 @@
 export class RenderPass {
   constructor(options = {}) {
-    this.colorAttachments = [];
-
-    for (let i = 0, il = options.color.length; i < il; i++) {
-      const entry = options.color[i];
-      this.colorAttachments.push({
-        // type: entry.type,
-        target: entry.target,
-        // clear: entry.clear
-      });
-    }
+    this.color = options.color;
   }
 
-  get_descriptor() {
-    const descriptor = {
-      colorAttachments: []
-    };
+  get_render_info(resources) {
+    const formats = [];
+    const colorAttachments = [];
 
-    for (let i = 0, il = this.colorAttachments.length; i < il; i++) {
-      const entry = this.colorAttachments[i];
-      descriptor.colorAttachments.push({
-        view: entry.target,
-        clearValue: [.3, .3, .3, 1],
-        loadOp: 'clear',
+    for (let i = 0, il = this.color.length; i < il; i++) {
+      const entry = this.color[i];
+      const rt = resources.get_render_target(entry.target);
+
+      formats.push({format: rt.format});
+
+      let state, clear;
+
+      if (!!entry.clear) {
+        state = 'clear';
+        clear = entry.clear;
+      } else {
+        state = 'load';
+      }
+
+      colorAttachments.push({
+        view: rt.get_view(),
+        clearValue: clear,
+        loadOp: state,
         storeOp: 'store',
       });
     }
 
-    return descriptor;
+    return {
+      descriptor: {
+        colorAttachments: colorAttachments
+      },
+      formats: formats
+    }
   }
 }

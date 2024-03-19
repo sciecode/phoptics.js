@@ -6,7 +6,7 @@ import { Shader } from "./resources/shader.mjs"
 export class ResourceManager {
   constructor(device) {
     this.device = device;
-    this.canvas_targets = new PoolStorage(8);
+    this.render_targets = new PoolStorage();
     this.render_passes = new PoolStorage();
     this.shaders = new PoolStorage();
   }
@@ -26,15 +26,19 @@ export class ResourceManager {
   
   create_canvas_target(options) {
     const entry = new CanvasTarget(this.device, options);
-    return this.canvas_targets.allocate(entry);
+    return this.render_targets.allocate(entry);
+  }
+
+  get_render_target(idx) {
+    return this.render_targets.get(idx);
   }
   
-  get_canvas_target(idx) {
-    return this.canvas_targets.get(idx);
+  destroy_render_target(idx) {
+    return this.render_targets.delete(idx);
   }
-  
-  destroy_canvas_target(idx) {
-    return this.canvas_targets.delete(idx);
+
+  create_group_layout(options) {
+    return this.device.createBindGroupLayout(options);
   }
 
   create_shader(options) {
@@ -44,5 +48,9 @@ export class ResourceManager {
 
   get_shader(idx) {
     return this.shaders.get(idx);
+  }
+
+  destroy_shader(idx) {
+    return this.shaders.delete(idx);
   }
 }
