@@ -1,4 +1,4 @@
-import { GPUBackend } from "./src/core/gpu_backend.mjs";
+import { GPUBackend } from "./src/backend/gpu_backend.mjs";
 import { shader } from "./material_shader.mjs";
 
 let backend, canvas, render_target, render_pass, shader_module;

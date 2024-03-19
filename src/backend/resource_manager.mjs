@@ -8,6 +8,7 @@ export class ResourceManager {
     this.device = device;
     this.render_targets = new PoolStorage();
     this.render_passes = new PoolStorage();
+    this.buffers = new PoolStorage();
     this.shaders = new PoolStorage();
   }
   
@@ -39,6 +40,20 @@ export class ResourceManager {
 
   create_group_layout(options) {
     return this.device.createBindGroupLayout(options);
+  }
+
+  create_buffer(options) {
+    const entry = device.createBuffer(options);
+    return this.buffers.allocate(entry);
+  }
+
+  get_buffer(idx) {
+    return this.buffers.get(idx);
+  }
+
+  destroy_buffer(idx) {
+    this.buffers.get(idx).destroy();
+    this.buffers.delete(idx);
   }
 
   create_shader(options) {
