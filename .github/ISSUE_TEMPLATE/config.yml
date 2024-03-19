@@ -2,4 +2,4 @@ blank_issues_enabled: false
 contact_links:
   - name: Bugs, Feature Requests & Help
     url: https://github.com/sciecode/phoptics.js/discussions
-    about: Bugs, feature request & help.
+    about: Discussions Board
