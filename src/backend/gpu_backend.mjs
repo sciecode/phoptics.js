@@ -29,7 +29,7 @@ export class GPUBackend {
     };
 
     for (let i = 0, il = draw_stream.count; i < il; i++)
-      this.render_object(draw_info, pass, formats);
+      this.render_packet(draw_info, pass, formats);
 
     pass.end();
  
@@ -37,12 +37,11 @@ export class GPUBackend {
     this.device.queue.submit([commandBuffer]);
   }
 
-
-  render_object(draw_packet) {
+  render_packet(draw_packet) {
     const pass = draw_packet.pass, formats = draw_packet.formats,
       stream = draw_packet.stream, metadata = draw_packet.stream[draw_packet.offset++];
 
-
+    // shader
     if (metadata & (1 << BITS.shader)) {
       const shader_handle = stream[draw_packet.offset++];
       const shader = this.resources.get_shader(shader_handle);
@@ -52,12 +51,30 @@ export class GPUBackend {
       pass.setPipeline(pipeline);
     }
 
+    // bind groups
     for (let i = 0; i < 3; i++) {
       if (metadata & (1 << (BITS.bind_group + i))) {
         const group_handle = stream[draw_packet.offset++];
         if (group_handle !== NULL_HANDLE)
           pass.setBindGroup(i, this.resources.get_bind_group(group_handle).group);
       }
+    }
+
+    // vertex buffers
+    for (let i = 0; i < 8; i++) {
+      if (metadata & (1 << (BITS.vertex + i))) {
+        const vertex_handle = stream[draw_packet.offset++];
+        if (vertex_handle !== NULL_HANDLE) {
+          const buffer = this.resources.get_buffer(vertex_handle);
+          pass.setVertexBuffer(i, buffer);
+        }
+      }
+    }
+
+    // index buffer
+    if (metadata & (1 << BITS.index)) {
+      const index_handle = stream[draw_packet.offset++];
+      pass.setIndexBuffer(index_handle, "uint32");
     }
 
     pass.draw(3);

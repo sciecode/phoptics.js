@@ -8,6 +8,7 @@ export class Shader {
     this.vertex_entry = options.vertex_entry || 'vs';
     this.frag_entry = options.vertex_entry || 'fs';
 
+    this.vertex_buffers = options.vertex_buffers;
     this.layout = (!options.group_layouts || !options.group_layouts.length) ? 
       'auto' :
       device.createPipelineLayout({
@@ -21,6 +22,7 @@ export class Shader {
       vertex: {
         module: this.module,
         entryPoint: this.vertex_entry,
+        buffers: this.vertex_buffers,
       },
       fragment: {
         module: this.module,

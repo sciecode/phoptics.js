@@ -2,8 +2,8 @@ import { GPUBackend } from "./src/backend/gpu_backend.mjs";
 import { DrawStream } from "./src/backend/draw_stream.mjs";
 import { shader } from "./material_shader.mjs";
 
-let backend, canvas, render_target, render_pass, shader_module;
-let draw_stream, global_buffer, global_bind_group, global_data = new Float32Array(1);
+let backend, canvas, render_target, render_pass;
+let draw_stream, global_buffer, global_data = new Float32Array(1);
 let viewport = { x: window.innerWidth, y: window.innerHeight };
 
 (async () => {
@@ -13,6 +13,7 @@ let viewport = { x: window.innerWidth, y: window.innerHeight };
   const adapter = await navigator.gpu.requestAdapter({
     powerPreference: 'high-performance'
   });
+
   const device = await adapter.requestDevice();
   backend = new GPUBackend(adapter, device);
 
@@ -51,7 +52,7 @@ let viewport = { x: window.innerWidth, y: window.innerHeight };
   global_data[0] = window.innerWidth / window.innerHeight;
   backend.write_buffer(global_buffer, 0, global_data);
 
-  global_bind_group = backend.resources.create_bind_group({
+  const global_bind_group = backend.resources.create_bind_group({
     layout: global_layout,
     entries: [
       {
@@ -63,15 +64,35 @@ let viewport = { x: window.innerWidth, y: window.innerHeight };
     ]
   });
 
-  shader_module = backend.resources.create_shader({
+  const shader_module = backend.resources.create_shader({
     code: shader,
     group_layouts: [global_layout],
+    vertex_buffers: [
+      {
+        arrayStride: 8,
+        attributes: [
+          {shaderLocation: 0, offset: 0, format: 'float32x2'},
+        ],
+      },
+    ]
   });
+
+  const vertex_buffer = backend.resources.create_buffer({
+    size: 24,
+    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+  });
+
+  backend.write_buffer(vertex_buffer, 0, new Float32Array([
+    0.0, 0.5,
+    -0.5, -0.5,
+    0.5, -0.5
+  ]));
 
   draw_stream = new DrawStream();
   draw_stream.reset();
-  draw_stream.shader = shader_module;
+  draw_stream.set_shader(shader_module);
   draw_stream.set_bind_group(0, global_bind_group);
+  draw_stream.set_vertex(0, vertex_buffer);
   draw_stream.commit();
 
   animate();

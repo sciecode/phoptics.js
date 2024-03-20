@@ -1,10 +1,12 @@
 
-const METADATA_BITS = 4;
+const METADATA_BITS = 13;
 export const NULL_HANDLE = -1 >>> 0;
 
 export const BITS = {
-  shader:       0,
-  bind_group:   1, // size: 3
+  shader:       0,  // size: 1
+  bind_group:   1,  // size: 3
+  vertex:       4,  // size: 8
+  index:        12, // size: 1
 }
 
 export class DrawStream {
@@ -35,17 +37,27 @@ export class DrawStream {
     for (let i = 0; i < METADATA_BITS; i++)
       if (metadata & (1 << i))
         this.buffer[++this.offset] = this.state[i];
-
+    
     this.count++;
+    
+    // reset next metadata
+    this.buffer[++this.offset] = 0;
   }
 
-  set shader(handle) {
+  set_shader(handle) {
     this.validate(BITS.shader, handle);
   }
 
   set_bind_group(idx, handle) {
-    const group = handle === undefined ? NULL_HANDLE : handle;
-    this.validate(BITS.bind_group + idx, group);
+    this.validate(BITS.bind_group + idx, handle);
+  }
+
+  set_vertex(idx, handle) {
+    this.validate(BITS.vertex + idx, handle);
+  }
+
+  set_index(handle) {
+    this.validate(BITS.index, handle);
   }
   
 }
