@@ -1,7 +1,9 @@
 import { GPUBackend } from "./src/backend/gpu_backend.mjs";
+import { DrawStream } from "./src/backend/draw_stream.mjs";
 import { shader } from "./material_shader.mjs";
 
 let backend, canvas, render_target, render_pass, shader_module;
+let draw_stream, global_buffer, global_bind_group, global_data = new Float32Array(1);
 let viewport = { x: window.innerWidth, y: window.innerHeight };
 
 (async () => {
@@ -11,9 +13,7 @@ let viewport = { x: window.innerWidth, y: window.innerHeight };
   const adapter = await navigator.gpu.requestAdapter({
     powerPreference: 'high-performance'
   });
-
   const device = await adapter.requestDevice();
-
   backend = new GPUBackend(adapter, device);
 
   render_target = backend.resources.create_canvas_target({
@@ -43,10 +43,36 @@ let viewport = { x: window.innerWidth, y: window.innerHeight };
     ],
   });
 
+  global_buffer = backend.resources.create_buffer({
+    size: 4,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+  });
+
+  global_data[0] = window.innerWidth / window.innerHeight;
+  backend.write_buffer(global_buffer, 0, global_data);
+
+  global_bind_group = backend.resources.create_bind_group({
+    layout: global_layout,
+    entries: [
+      {
+        binding: 0,
+        resource: {
+          buffer: global_buffer
+        }
+      }
+    ]
+  });
+
   shader_module = backend.resources.create_shader({
     code: shader,
     group_layouts: [global_layout],
   });
+
+  draw_stream = new DrawStream();
+  draw_stream.reset();
+  draw_stream.shader = shader_module;
+  draw_stream.set_bind_group(0, global_bind_group);
+  draw_stream.commit();
 
   animate();
 })();
@@ -59,6 +85,8 @@ const auto_resize = () => {
   if (viewport.x != newW || viewport.y != newH) {
     viewport.x = newW; viewport.y = newH;
     backend.resources.get_render_target(render_target).set_size(newW, newH);
+    global_data[0] = newW / newH;
+    backend.write_buffer(global_buffer, 0, global_data);
   }
 }
 
@@ -66,7 +94,7 @@ const animate = () => {
   requestAnimationFrame(animate);
   
   auto_resize();
-  backend.render_target(render_pass, shader_module);
+  backend.render_pass(render_pass, draw_stream);
 }
 
 

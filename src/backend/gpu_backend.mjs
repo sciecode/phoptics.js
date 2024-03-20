@@ -1,4 +1,5 @@
 import { ResourceManager } from "./resource_manager.mjs";
+import { BITS, NULL_HANDLE } from "./draw_stream.mjs";
 
 export class GPUBackend {
   constructor(adapter, device) {
@@ -7,52 +8,59 @@ export class GPUBackend {
     this.resources = new ResourceManager(this.device);
   }
 
-  render_target(render_pass_handle, shader_handle) {
+  write_buffer(buffer_handle, buffer_offset, data, data_offset, data_size) {
+    const buffer = this.resources.get_buffer(buffer_handle);
+    this.device.queue.writeBuffer(buffer, buffer_offset, data, data_offset, data_size);
+  }
 
+  render_pass(render_pass_handle, draw_stream) {
     const { descriptor, formats } = this.resources
       .get_render_pass(render_pass_handle)
       .get_render_info(this.resources);
-    
-    // let aspect;
-    // const pass_formats = [];
-    // const pass_descriptor = render_pass.get_descriptor();
-    // for (let i = 0, il = pass_descriptor.colorAttachments.length; i < il; i++) {
-    //   const rt = this.resources.get_canvas_target(pass_descriptor.colorAttachments[i].view);
-    //   pass_descriptor.colorAttachments[i].view = rt.get_view();
-    //   pass_formats.push({format: rt.format});
-    //   // aspect = rt.width / rt.height;
-    // }
-
-    // const uniformBufferSize = 4;
-    // const uniformBuffer = this.device.createBuffer({
-    //   size: uniformBufferSize,
-    //   usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    // });
-    // const uniformValues = new Float32Array(uniformBufferSize / 4);
-    // uniformValues[0] = aspect;
-
-    // this.device.queue.writeBuffer(uniformBuffer, 0, uniformValues);
-    
-    // const bindGroup = this.device.createBindGroup({
-    //   layout: pipeline.getBindGroupLayout(0),
-    //   entries: [
-    //     { binding: 0, resource: { buffer: uniformBuffer }},
-    //   ],
-    // });
 
     const encoder = this.device.createCommandEncoder();
     const pass = encoder.beginRenderPass(descriptor);
 
-    const shader = this.resources.get_shader(shader_handle);
-    const pipeline_descriptor = shader.get_pipeline_descriptor(formats);
-    const pipeline = this.device.createRenderPipeline(pipeline_descriptor);
-    
-    pass.setPipeline(pipeline);
-    pass.draw(3);
+    let draw_info = {
+      offset: 0,
+      stream: draw_stream.buffer,
+      formats: formats,
+      pass: pass,
+    };
+
+    for (let i = 0, il = draw_stream.count; i < il; i++)
+      this.render_object(draw_info, pass, formats);
+
     pass.end();
  
     const commandBuffer = encoder.finish();
     this.device.queue.submit([commandBuffer]);
+  }
+
+
+  render_object(draw_packet) {
+    const pass = draw_packet.pass, formats = draw_packet.formats,
+      stream = draw_packet.stream, metadata = draw_packet.stream[draw_packet.offset++];
+
+
+    if (metadata & (1 << BITS.shader)) {
+      const shader_handle = stream[draw_packet.offset++];
+      const shader = this.resources.get_shader(shader_handle);
+
+      const pipeline_descriptor = shader.get_pipeline_descriptor(formats);
+      const pipeline = this.device.createRenderPipeline(pipeline_descriptor);
+      pass.setPipeline(pipeline);
+    }
+
+    for (let i = 0; i < 3; i++) {
+      if (metadata & (1 << (BITS.bind_group + i))) {
+        const group_handle = stream[draw_packet.offset++];
+        if (group_handle !== NULL_HANDLE)
+          pass.setBindGroup(i, this.resources.get_bind_group(group_handle).group);
+      }
+    }
+
+    pass.draw(3);
   }
 
 }

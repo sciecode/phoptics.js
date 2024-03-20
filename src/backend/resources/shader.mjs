@@ -8,10 +8,10 @@ export class Shader {
     this.vertex_entry = options.vertex_entry || 'vs';
     this.frag_entry = options.vertex_entry || 'fs';
 
-    this.layout = (!options.bindings || !options.bindings.length) ? 
+    this.layout = (!options.group_layouts || !options.group_layouts.length) ? 
       'auto' :
       device.createPipelineLayout({
-        bindGroupLayouts: options.bindings,
+        bindGroupLayouts: options.group_layouts,
       });
   }
 

@@ -1,4 +1,10 @@
-export const shader = `        
+export const shader = `
+struct GlobalUniforms {
+  aspect : f32,
+}
+
+@group(0) @binding(0) var<storage, read> globals: GlobalUniforms;
+
 @vertex fn vs( @builtin(vertex_index) vertexIndex : u32 ) -> @builtin(position) vec4f {
   let pos = array(
     vec2f( 0.0,  0.5),  // top center
@@ -6,7 +12,7 @@ export const shader = `
     vec2f( 0.5, -0.5)   // bottom right
   );
 
-  return vec4f(pos[vertexIndex], 0.0, 1.0);
+  return vec4f(pos[vertexIndex] / vec2f(globals.aspect, 1), 0.0, 1.0);
 }
 
 @fragment fn fs() -> @location(0) vec4f {
