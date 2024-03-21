@@ -60,13 +60,14 @@ export class GPUBackend {
       }
     }
 
-    // vertex buffers
+    // vertex attributes
     for (let i = 0; i < 8; i++) {
-      if (metadata & (1 << (BITS.vertex + i))) {
-        const vertex_handle = stream[draw_packet.offset++];
-        if (vertex_handle !== NULL_HANDLE) {
-          const buffer = this.resources.get_buffer(vertex_handle);
-          pass.setVertexBuffer(i, buffer);
+      if (metadata & (1 << (BITS.attributes + i))) {
+        const attrib_handle = stream[draw_packet.offset++];
+        if (attrib_handle !== NULL_HANDLE) {
+          const attrib = this.resources.get_attribute(attrib_handle);
+          const buffer = this.resources.get_buffer(attrib.buffer);
+          pass.setVertexBuffer(i, buffer, attrib.byte_offset, attrib.byte_size);
         }
       }
     }

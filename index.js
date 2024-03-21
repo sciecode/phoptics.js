@@ -74,25 +74,49 @@ let viewport = { x: window.innerWidth, y: window.innerHeight };
           {shaderLocation: 0, offset: 0, format: 'float32x2'},
         ],
       },
+      {
+        arrayStride: 12,
+        attributes: [
+          {shaderLocation: 1, offset: 0, format: 'float32x3'},
+        ],
+      },
     ]
   });
 
   const vertex_buffer = backend.resources.create_buffer({
-    size: 24,
+    size: 60,
     usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
   });
 
-  backend.write_buffer(vertex_buffer, 0, new Float32Array([
+  const data = new Float32Array([
     0.0, 0.5,
     -0.5, -0.5,
-    0.5, -0.5
-  ]));
+    0.5, -0.5,
+    0, 1, 0,
+    1, 0, 0,
+    0, 0, 1,
+  ]);
+
+  backend.write_buffer(vertex_buffer, 0, data);
+
+  const pos_attrib = backend.resources.create_attribute({
+    buffer: vertex_buffer,
+    byte_offset: 0,
+    byte_size: 24,
+  });
+
+  const color_attrib = backend.resources.create_attribute({
+    buffer: vertex_buffer,
+    byte_offset: 24,
+    byte_size: 36
+  });
 
   draw_stream = new DrawStream();
   draw_stream.reset();
   draw_stream.set_shader(shader_module);
   draw_stream.set_bind_group(0, global_bind_group);
-  draw_stream.set_vertex(0, vertex_buffer);
+  draw_stream.set_attribute(0, pos_attrib);
+  draw_stream.set_attribute(1, color_attrib);
   draw_stream.commit();
 
   animate();

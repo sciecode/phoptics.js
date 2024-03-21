@@ -3,6 +3,7 @@ import { CanvasTarget } from "./resources/canvas_target.mjs";
 import { RenderPass } from "./resources/render_pass.mjs";
 import { Shader } from "./resources/shader.mjs"
 import { BindGroup } from "./resources/bind_group.mjs";
+import { Attribute } from "./resources/attribute.mjs";
 
 export class ResourceManager {
   constructor(device) {
@@ -12,11 +13,11 @@ export class ResourceManager {
     this.shaders = new PoolStorage();
     this.groups = new PoolStorage();
     this.buffers = new PoolStorage();
+    this.attributes = new PoolStorage();
   }
   
   create_render_pass(options) {
-    const entry = new RenderPass(options);
-    return this.render_passes.allocate(entry);
+    return this.render_passes.allocate(new RenderPass(options));
   }
   
   get_render_pass(idx) {
@@ -28,8 +29,7 @@ export class ResourceManager {
   }
   
   create_canvas_target(options) {
-    const entry = new CanvasTarget(this.device, options);
-    return this.render_targets.allocate(entry);
+    return this.render_targets.allocate(new CanvasTarget(this.device, options));
   }
 
   get_render_target(idx) {
@@ -45,8 +45,7 @@ export class ResourceManager {
   }
 
   create_bind_group(options) {
-    const entry = new BindGroup(this.device, this, options);
-    return this.groups.allocate(entry);
+    return this.groups.allocate(new BindGroup(this.device, this, options));
   }
 
   get_bind_group(idx) {
@@ -58,8 +57,7 @@ export class ResourceManager {
   }
 
   create_buffer(options) {
-    const entry = this.device.createBuffer(options);
-    return this.buffers.allocate(entry);
+    return this.buffers.allocate(this.device.createBuffer(options));
   }
 
   get_buffer(idx) {
@@ -71,9 +69,20 @@ export class ResourceManager {
     this.buffers.delete(idx);
   }
 
+  create_attribute(options) {
+    return this.attributes.allocate(new Attribute(options));
+  }
+
+  get_attribute(idx) {
+    return this.attributes.get(idx);
+  }
+
+  destroy_attribute(idx) {
+    this.attributes.delete(idx);
+  }
+
   create_shader(options) {
-    const entry = new Shader(this.device, options);
-    return this.shaders.allocate(entry);
+    return this.shaders.allocate(new Shader(this.device, options));
   }
 
   get_shader(idx) {

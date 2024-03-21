@@ -5,7 +5,7 @@ export const NULL_HANDLE = -1 >>> 0;
 export const BITS = {
   shader:       0,  // size: 1
   bind_group:   1,  // size: 3
-  vertex:       4,  // size: 8
+  attribute:    4,  // size: 8
   index:        12, // size: 1
 }
 
@@ -52,8 +52,8 @@ export class DrawStream {
     this.validate(BITS.bind_group + idx, handle);
   }
 
-  set_vertex(idx, handle) {
-    this.validate(BITS.vertex + idx, handle);
+  set_attribute(idx, handle) {
+    this.validate(BITS.attribute + idx, handle);
   }
 
   set_index(handle) {
