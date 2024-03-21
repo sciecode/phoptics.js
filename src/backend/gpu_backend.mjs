@@ -21,15 +21,20 @@ export class GPUBackend {
     const encoder = this.device.createCommandEncoder();
     const pass = encoder.beginRenderPass(descriptor);
 
-    let draw_info = {
+    let draw_packet = {
       offset: 0,
       stream: draw_stream.buffer,
       formats: formats,
       pass: pass,
+      draw: {
+        draw_count: 0,
+        vertex_offset: 0,
+        index_offset: 0,
+      }
     };
 
     for (let i = 0, il = draw_stream.count; i < il; i++)
-      this.render_packet(draw_info, pass, formats);
+      this.render_packet(draw_packet);
 
     pass.end();
  
@@ -62,7 +67,7 @@ export class GPUBackend {
 
     // vertex attributes
     for (let i = 0; i < 8; i++) {
-      if (metadata & (1 << (BITS.attributes + i))) {
+      if (metadata & (1 << (BITS.attribute + i))) {
         const attrib_handle = stream[draw_packet.offset++];
         if (attrib_handle !== NULL_HANDLE) {
           const attrib = this.resources.get_attribute(attrib_handle);
@@ -75,10 +80,30 @@ export class GPUBackend {
     // index buffer
     if (metadata & (1 << BITS.index)) {
       const index_handle = stream[draw_packet.offset++];
-      pass.setIndexBuffer(index_handle, "uint32");
+      const buffer = this.resources.get_buffer(index_handle);
+      pass.setIndexBuffer(buffer, "uint32");
     }
 
-    pass.draw(3);
-  }
+    // draw count
+    if (metadata & (1 << BITS.draw_count)) {
+      draw_packet.draw.draw_count = stream[draw_packet.offset++];
+    }
 
+    // vertex offset
+    if (metadata & (1 << BITS.vertex_offset)) {
+      draw_packet.draw.vertex_offset = stream[draw_packet.offset++];
+    }
+
+    // index offset
+    if (metadata & (1 << BITS.index_offset)) {
+      draw_packet.draw.index_offset = stream[draw_packet.offset++];
+    }
+
+    const info = draw_packet.draw;
+    if (info.index_offset < 0) {
+      pass.draw(info.draw_count, 1, info.vertex_offset);
+    } else {
+      pass.drawIndexed(info.draw_count, 1, info.index_offset, info.vertex_offset);
+    }
+  }
 }

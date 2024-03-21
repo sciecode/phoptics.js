@@ -1,18 +1,21 @@
 
-const METADATA_BITS = 13;
-export const NULL_HANDLE = -1 >>> 0;
+const METADATA_BITS = 16;
+export const NULL_HANDLE = 1 << 31;
 
 export const BITS = {
-  shader:       0,  // size: 1
-  bind_group:   1,  // size: 3
-  attribute:    4,  // size: 8
-  index:        12, // size: 1
+  shader:         0,  // size: 1
+  bind_group:     1,  // size: 3
+  attribute:      4,  // size: 8
+  index:          12, // size: 1
+  draw_count:     13, // size: 1
+  vertex_offset:  14, // size: 1
+  index_offset:   15, // size: 1
 }
 
 export class DrawStream {
   constructor() {
-    this.state = (new Uint32Array(32)).fill(NULL_HANDLE);
-    this.buffer = new Uint32Array(32 * 64 * 1024);
+    this.state = (new Int32Array(32)).fill(NULL_HANDLE);
+    this.buffer = new Int32Array(32 * 64 * 1024);
     this.count = 0;
     this.offset = 0;
   }
@@ -58,6 +61,18 @@ export class DrawStream {
 
   set_index(handle) {
     this.validate(BITS.index, handle);
+  }
+
+  set_draw_count(val) {
+    this.validate(BITS.draw_count, val);
+  }
+
+  set_vertex_offset(val) {
+    this.validate(BITS.vertex_offset, val);
+  }
+
+  set_index_offset(val) {
+    this.validate(BITS.index_offset, val);
   }
   
 }

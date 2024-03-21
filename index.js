@@ -69,54 +69,73 @@ let viewport = { x: window.innerWidth, y: window.innerHeight };
     group_layouts: [global_layout],
     vertex_buffers: [
       {
-        arrayStride: 8,
+        arrayStride: 20,
         attributes: [
           {shaderLocation: 0, offset: 0, format: 'float32x2'},
-        ],
-      },
-      {
-        arrayStride: 12,
-        attributes: [
-          {shaderLocation: 1, offset: 0, format: 'float32x3'},
+          {shaderLocation: 1, offset: 8, format: 'float32x3'},
         ],
       },
     ]
   });
 
-  const vertex_buffer = backend.resources.create_buffer({
-    size: 60,
-    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+  const geometry_buffer = backend.resources.create_buffer({
+    size: 160,
+    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
   });
 
-  const data = new Float32Array([
+  const data = new ArrayBuffer( 160 );
+
+  const vertex_data = new Float32Array(data, 0, 15);
+  vertex_data.set([
     0.0, 0.5,
-    -0.5, -0.5,
-    0.5, -0.5,
     0, 1, 0,
+    -0.5, -0.5,
     1, 0, 0,
+    0.5, -0.5,
     0, 0, 1,
   ]);
 
-  backend.write_buffer(vertex_buffer, 0, data);
+  const index_data = new Uint32Array(data, 60, 3);
+  index_data.set([
+    0, 1, 2
+  ]);
 
-  const pos_attrib = backend.resources.create_attribute({
-    buffer: vertex_buffer,
-    byte_offset: 0,
-    byte_size: 24,
-  });
+  const vertex_data2 = new Float32Array(data, 80, 15);
+  vertex_data2.set([
+    0.0, 0.5,
+    0, 1, 0,
+    0.5, -0.5,
+    0, 0, 1,
+    0.5, 0.5,
+    0, 1, 1,
+  ]);
+  const index_data2 = new Uint32Array(data, 140, 3);
+  index_data2.set([
+    0, 1, 2
+  ]);
 
-  const color_attrib = backend.resources.create_attribute({
-    buffer: vertex_buffer,
-    byte_offset: 24,
-    byte_size: 36
+  backend.write_buffer(geometry_buffer, 0, data);
+
+  const PX_attrib = backend.resources.create_attribute({
+    buffer: geometry_buffer,
+    // byte_offset: 0,
+    // byte_size: 60,
   });
 
   draw_stream = new DrawStream();
   draw_stream.reset();
+
   draw_stream.set_shader(shader_module);
   draw_stream.set_bind_group(0, global_bind_group);
-  draw_stream.set_attribute(0, pos_attrib);
-  draw_stream.set_attribute(1, color_attrib);
+  draw_stream.set_attribute(0, PX_attrib);
+  draw_stream.set_index(geometry_buffer);
+  draw_stream.set_draw_count(3);
+  draw_stream.set_vertex_offset(0);
+  draw_stream.set_index_offset(15);
+  draw_stream.commit();
+  
+  draw_stream.set_vertex_offset(4);
+  draw_stream.set_index_offset(35);
   draw_stream.commit();
 
   animate();
