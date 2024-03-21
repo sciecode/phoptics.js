@@ -1,78 +1,63 @@
+const NULL_HANDLE = -1 >>> 0;
 
-const METADATA_BITS = 16;
-export const NULL_HANDLE = 1 << 31;
+const Bits = {
+  shader:         0,
+  bind_group0:    1,
+  bind_group1:    2,
+  bind_group2:    3,
+  attribute0:     4,
+  attribute1:     5,
+  attribute2:     6,
+  attribute4:     7,
+  index:          8,
+  draw_count:     9,
+  vertex_offset:  10,
+  index_offset:   11,
+}
 
-export const BITS = {
-  shader:         0,  // size: 1
-  bind_group:     1,  // size: 3
-  attribute:      4,  // size: 8
-  index:          12, // size: 1
-  draw_count:     13, // size: 1
-  vertex_offset:  14, // size: 1
-  index_offset:   15, // size: 1
+export const DrawStreamFlags = {
+  shader:         1,
+  bind_group0:    2,
+  bind_group1:    4,
+  bind_group2:    8,
+  attribute0:     16,
+  attribute1:     32,
+  attribute2:     64,
+  attribute4:     128,
+  index:          256,
+  draw_count:     512,
+  vertex_offset:  1024,
+  index_offset:   2048,
 }
 
 export class DrawStream {
   constructor() {
-    this.state = (new Int32Array(32)).fill(NULL_HANDLE);
-    this.buffer = new Int32Array(32 * 64 * 1024);
+    this.state = (new Uint32Array(32)).fill(NULL_HANDLE);
+    this.stream = new Uint32Array(32 * 64 * 1024);
     this.count = 0;
     this.offset = 0;
   }
 
-  reset() {
-    this.offset = 0;
+  clear() {
     this.count = 0;
-    this.buffer[0] = 0;
+    this.offset = 0;
     this.state.fill(NULL_HANDLE);
   }
 
-  validate(bit, handle) {
-    if (this.state[bit] != handle) {
-      this.buffer[this.offset] |= 1 << bit;
-      this.state[bit] = handle;
+  draw(desc) {
+    let metadata = 0, draw_offset = this.offset;
+
+    for (let entry of Object.keys(Bits)) {
+      const bit = Bits[entry], data = desc[entry];
+      if (data !== undefined && this.state[bit] != data) {
+        metadata |= DrawStreamFlags[entry];
+        this.stream[++this.offset] = data;
+        this.state[bit] = data;
+      }
     }
-  }
 
-  commit() {
-    const metadata = this.buffer[this.offset];
-
-    for (let i = 0; i < METADATA_BITS; i++)
-      if (metadata & (1 << i))
-        this.buffer[++this.offset] = this.state[i];
-    
     this.count++;
-    
-    // reset next metadata
-    this.buffer[++this.offset] = 0;
+    this.offset++;
+    this.stream[draw_offset] = metadata;
   }
-
-  set_shader(handle) {
-    this.validate(BITS.shader, handle);
-  }
-
-  set_bind_group(idx, handle) {
-    this.validate(BITS.bind_group + idx, handle);
-  }
-
-  set_attribute(idx, handle) {
-    this.validate(BITS.attribute + idx, handle);
-  }
-
-  set_index(handle) {
-    this.validate(BITS.index, handle);
-  }
-
-  set_draw_count(val) {
-    this.validate(BITS.draw_count, val);
-  }
-
-  set_vertex_offset(val) {
-    this.validate(BITS.vertex_offset, val);
-  }
-
-  set_index_offset(val) {
-    this.validate(BITS.index_offset, val);
-  }
-  
 }

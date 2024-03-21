@@ -3,6 +3,7 @@ import { DrawStream } from "./src/backend/draw_stream.mjs";
 import { shader } from "./material_shader.mjs";
 
 let backend, canvas, render_target, render_pass;
+let shader_module, global_bind_group, attrib, geometry_buffer;
 let draw_stream, global_buffer, global_data = new Float32Array(1);
 let viewport = { x: window.innerWidth, y: window.innerHeight };
 
@@ -52,7 +53,7 @@ let viewport = { x: window.innerWidth, y: window.innerHeight };
   global_data[0] = window.innerWidth / window.innerHeight;
   backend.write_buffer(global_buffer, 0, global_data);
 
-  const global_bind_group = backend.resources.create_bind_group({
+  global_bind_group = backend.resources.create_bind_group({
     layout: global_layout,
     entries: [
       {
@@ -64,7 +65,7 @@ let viewport = { x: window.innerWidth, y: window.innerHeight };
     ]
   });
 
-  const shader_module = backend.resources.create_shader({
+  shader_module = backend.resources.create_shader({
     code: shader,
     group_layouts: [global_layout],
     vertex_buffers: [
@@ -78,12 +79,12 @@ let viewport = { x: window.innerWidth, y: window.innerHeight };
     ]
   });
 
-  const geometry_buffer = backend.resources.create_buffer({
+  geometry_buffer = backend.resources.create_buffer({
     size: 160,
     usage: GPUBufferUsage.VERTEX | GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
   });
 
-  const data = new ArrayBuffer( 160 );
+  const data = new ArrayBuffer(160);
 
   const vertex_data = new Float32Array(data, 0, 15);
   vertex_data.set([
@@ -116,30 +117,35 @@ let viewport = { x: window.innerWidth, y: window.innerHeight };
 
   backend.write_buffer(geometry_buffer, 0, data);
 
-  const PX_attrib = backend.resources.create_attribute({
+  attrib = backend.resources.create_attribute({
     buffer: geometry_buffer,
     // byte_offset: 0,
     // byte_size: 60,
   });
 
   draw_stream = new DrawStream();
-  draw_stream.reset();
-
-  draw_stream.set_shader(shader_module);
-  draw_stream.set_bind_group(0, global_bind_group);
-  draw_stream.set_attribute(0, PX_attrib);
-  draw_stream.set_index(geometry_buffer);
-  draw_stream.set_draw_count(3);
-  draw_stream.set_vertex_offset(0);
-  draw_stream.set_index_offset(15);
-  draw_stream.commit();
-  
-  draw_stream.set_vertex_offset(4);
-  draw_stream.set_index_offset(35);
-  draw_stream.commit();
 
   animate();
 })();
+
+const update_draw_stream = () => {
+  draw_stream.clear();
+
+  draw_stream.draw({
+    shader: shader_module,
+    bind_group0: global_bind_group,
+    attribute0: attrib,
+    index: geometry_buffer,
+    draw_count: 3,
+    vertex_offset: 0,
+    index_offset: 15,
+  });
+
+  draw_stream.draw({
+    vertex_offset: 4,
+    index_offset: 35
+  });
+}
 
 const auto_resize = () => {
   const dpr = window.devicePixelRatio;
@@ -158,6 +164,9 @@ const animate = () => {
   requestAnimationFrame(animate);
   
   auto_resize();
+
+  update_draw_stream();
+
   backend.render_pass(render_pass, draw_stream);
 }
 

@@ -1,5 +1,5 @@
 import { ResourceManager } from "./resource_manager.mjs";
-import { BITS, NULL_HANDLE } from "./draw_stream.mjs";
+import { DrawStreamFlags } from "./draw_stream.mjs";
 
 export class GPUBackend {
   constructor(adapter, device) {
@@ -23,7 +23,7 @@ export class GPUBackend {
 
     let draw_packet = {
       offset: 0,
-      stream: draw_stream.buffer,
+      stream: draw_stream.stream,
       formats: formats,
       pass: pass,
       draw: {
@@ -47,7 +47,7 @@ export class GPUBackend {
       stream = draw_packet.stream, metadata = draw_packet.stream[draw_packet.offset++];
 
     // shader
-    if (metadata & (1 << BITS.shader)) {
+    if (metadata & DrawStreamFlags.shader) {
       const shader_handle = stream[draw_packet.offset++];
       const shader = this.resources.get_shader(shader_handle);
 
@@ -58,44 +58,41 @@ export class GPUBackend {
 
     // bind groups
     for (let i = 0; i < 3; i++) {
-      if (metadata & (1 << (BITS.bind_group + i))) {
+      if (metadata & (DrawStreamFlags.bind_group0 << i)) {
         const group_handle = stream[draw_packet.offset++];
-        if (group_handle !== NULL_HANDLE)
-          pass.setBindGroup(i, this.resources.get_bind_group(group_handle).group);
+        pass.setBindGroup(i, this.resources.get_bind_group(group_handle).group);
       }
     }
 
     // vertex attributes
-    for (let i = 0; i < 8; i++) {
-      if (metadata & (1 << (BITS.attribute + i))) {
+    for (let i = 0; i < 4; i++) {
+      if (metadata & (DrawStreamFlags.attribute0 << i)) {
         const attrib_handle = stream[draw_packet.offset++];
-        if (attrib_handle !== NULL_HANDLE) {
-          const attrib = this.resources.get_attribute(attrib_handle);
-          const buffer = this.resources.get_buffer(attrib.buffer);
-          pass.setVertexBuffer(i, buffer, attrib.byte_offset, attrib.byte_size);
-        }
+        const attrib = this.resources.get_attribute(attrib_handle);
+        const buffer = this.resources.get_buffer(attrib.buffer);
+        pass.setVertexBuffer(i, buffer, attrib.byte_offset, attrib.byte_size);
       }
     }
 
     // index buffer
-    if (metadata & (1 << BITS.index)) {
+    if (metadata & DrawStreamFlags.index) {
       const index_handle = stream[draw_packet.offset++];
       const buffer = this.resources.get_buffer(index_handle);
       pass.setIndexBuffer(buffer, "uint32");
     }
 
     // draw count
-    if (metadata & (1 << BITS.draw_count)) {
+    if (metadata & DrawStreamFlags.draw_count) {
       draw_packet.draw.draw_count = stream[draw_packet.offset++];
     }
 
     // vertex offset
-    if (metadata & (1 << BITS.vertex_offset)) {
+    if (metadata & DrawStreamFlags.vertex_offset) {
       draw_packet.draw.vertex_offset = stream[draw_packet.offset++];
     }
 
     // index offset
-    if (metadata & (1 << BITS.index_offset)) {
+    if (metadata & DrawStreamFlags.index_offset) {
       draw_packet.draw.index_offset = stream[draw_packet.offset++];
     }
 
