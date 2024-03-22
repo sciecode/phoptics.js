@@ -1,6 +1,9 @@
 import { GPUBackend } from "./src/backend/gpu_backend.mjs";
 import { DrawStream } from "./src/backend/draw_stream.mjs";
 import { shader } from "./material_shader.mjs";
+import { Mat3x4 } from "./src/datatypes/mat34.mjs";
+
+window.Mat3x4 = Mat3x4;
 
 let backend, canvas, render_target, render_pass;
 let shader_module, global_bind_group, attrib, geometry_buffer;
