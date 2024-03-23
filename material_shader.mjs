@@ -1,6 +1,7 @@
 export const shader = `
 struct GlobalUniforms {
-  aspect : f32,
+  projection_matrix : mat4x4f,
+  view_matrix : mat3x4f,
 }
 
 struct Attributes {
@@ -17,13 +18,18 @@ struct vOutput {
 
 @vertex fn vs(attrib : Attributes) -> vOutput {
   var output : vOutput;
-  output.position = vec4f(attrib.position / vec2f(globals.aspect, 1), 0.0, 1.0);
+
+  var v_pos = vec4f(attrib.position, 0, 1) * globals.view_matrix;
+  var c_pos = vec4f(v_pos, 1) * globals.projection_matrix;
+
+  output.position = c_pos;
   output.color = attrib.color;
+
   return output;
 }
 
 @fragment fn fs(in : vOutput) -> @location(0) vec4f {
-
-  return vec4f(in.color * .5 + .5, 1.0);
+  var l_color = vec3f(in.color * .5 + .5);
+  return vec4f(l_color, 1.0);
 }
 `;

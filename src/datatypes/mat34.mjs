@@ -75,7 +75,6 @@ export class Mat3x4 {
     m[0] *= sx; m[4] *= sx; m[8] *= sx;
     m[1] *= sy; m[5] *= sy; m[9] *= sy;
     m[2] *= sz; m[6] *= sz; m[10] *= sz;
-
     return this.view();
   }
 }

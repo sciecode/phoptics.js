@@ -2,12 +2,12 @@ import { GPUBackend } from "./src/backend/gpu_backend.mjs";
 import { DrawStream } from "./src/backend/draw_stream.mjs";
 import { shader } from "./material_shader.mjs";
 import { Mat3x4 } from "./src/datatypes/mat34.mjs";
-
-window.Mat3x4 = Mat3x4;
+import { Mat4x4 } from "./src/datatypes/mat44.mjs";
 
 let backend, canvas, render_target, render_pass;
 let shader_module, global_bind_group, attrib, geometry_buffer;
-let draw_stream, global_buffer, global_data = new Float32Array(1);
+let draw_stream, global_buffer, global_data;
+let view_matrix = new Mat3x4(), projection_matrix = new Mat4x4();
 let viewport = { x: window.innerWidth, y: window.innerHeight };
 
 (async () => {
@@ -48,12 +48,18 @@ let viewport = { x: window.innerWidth, y: window.innerHeight };
     ],
   });
 
+  const uniforms_size = Mat4x4.byte_size + Mat3x4.byte_size;
   global_buffer = backend.resources.create_buffer({
-    size: 4,
+    size: Mat4x4.byte_size + Mat3x4.byte_size,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
   });
 
-  global_data[0] = window.innerWidth / window.innerHeight;
+  global_data = new Float32Array(uniforms_size / 4);
+
+  projection_matrix.projection(Math.PI / 3, window.innerWidth / window.innerHeight, 1, 100);
+  projection_matrix.to(global_data, 0);
+  view_matrix.data[11] = -2;
+  view_matrix.to(global_data, 16);
   backend.write_buffer(global_buffer, 0, global_data);
 
   global_bind_group = backend.resources.create_bind_group({
@@ -98,7 +104,6 @@ let viewport = { x: window.innerWidth, y: window.innerHeight };
     0.5, -0.5,
     0, 0, 1,
   ]);
-
   const index_data = new Uint32Array(data, 60, 3);
   index_data.set([
     0, 1, 2
@@ -158,15 +163,19 @@ const auto_resize = () => {
   if (viewport.x != newW || viewport.y != newH) {
     viewport.x = newW; viewport.y = newH;
     backend.resources.get_render_target(render_target).set_size(newW, newH);
-    global_data[0] = newW / newH;
-    backend.write_buffer(global_buffer, 0, global_data);
+    projection_matrix.projection(Math.PI / 3, newW / newH, 1, 100);
+    global_data[0] = projection_matrix.data[0];
   }
 }
 
 const animate = () => {
   requestAnimationFrame(animate);
-  
+
   auto_resize();
+  
+  view_matrix.data[3] = .5 * Math.sin( performance.now() / 400 );
+  view_matrix.to(global_data, 16);
+  backend.write_buffer(global_buffer, 0, global_data);
 
   update_draw_stream();
 
