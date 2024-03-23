@@ -8,10 +8,10 @@ export class Vec3 {
   get x() { return this.data[0]; }
   set x(v) { this.data[0] = v; }
 
-  get y() { return this.d[1]; }
+  get y() { return this.data[1]; }
   set y(v) { this.data[1] = v; }
 
-  get z() { return this.d[2]; }
+  get z() { return this.data[2]; }
   set z(v) { this.data[2] = v; }
 
   set(x = 0, y = 0, z = 0) {

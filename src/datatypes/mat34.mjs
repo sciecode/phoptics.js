@@ -3,7 +3,7 @@ export class Mat3x4 {
 
   constructor() {
     this.data = new Float32Array(12);
-    this.data[0] = this.d[5] = this.d[10] = 1;
+    this.data[0] = this.data[5] = this.data[10] = 1;
   }
 
   to(buf, offset) {
@@ -13,6 +13,14 @@ export class Mat3x4 {
 
   copy(mat) {
     this.data.set(mat.data);
+    return this;
+  }
+
+  transpose() {
+    const m = this.data;
+    let tmp = m[1]; m[1] = m[4]; m[4] = tmp;
+        tmp = m[2]; m[2] = m[8]; m[8] = tmp;
+        tmp = m[6]; m[6] = m[9]; m[9] = tmp; 
     return this;
   }
 
@@ -38,5 +46,36 @@ export class Mat3x4 {
     m[10]   = x * n[2] + y * n[6] + z * n[10];
     m[11]  += x * n[3] + y * n[7] + z * n[11];
     return this;
+  }
+
+  view() {
+    const m = this.data;
+
+    this.transpose();
+
+    const x = m[3], y = m[7], z = m[11];
+    m[3]  = -(x * m[0] + y * m[1] + z * m[2]);
+    m[7]  = -(x * m[4] + y * m[5] + z * m[6]);
+    m[11] = -(x * m[8] + y * m[9] + z * m[10]);
+    return this;
+  }
+
+  inverse() {
+    const m = this.data;
+
+    let x = m[0], y = m[4], z = m[8];
+    const sx = 1 / (x * x + y * y + z * z);
+    
+    x = m[1], y = m[5], z = m[9];
+    const sy = 1 / (x * x + y * y + z * z);
+
+    x = m[2], y = m[6], z = m[10];
+    const sz = 1 / (x * x + y * y + z * z);
+
+    m[0] *= sx; m[4] *= sx; m[8] *= sx;
+    m[1] *= sy; m[5] *= sy; m[9] *= sy;
+    m[2] *= sz; m[6] *= sz; m[10] *= sz;
+
+    return this.view();
   }
 }
