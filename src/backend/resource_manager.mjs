@@ -13,6 +13,7 @@ export class ResourceManager {
     this.shaders = new PoolStorage();
     this.groups = new PoolStorage();
     this.buffers = new PoolStorage();
+    this.textures = new PoolStorage();
     this.attributes = new PoolStorage();
   }
   
@@ -67,6 +68,19 @@ export class ResourceManager {
   destroy_buffer(idx) {
     this.buffers.get(idx).destroy();
     this.buffers.delete(idx);
+  }
+
+  create_texture(options) {
+    return this.textures.allocate(this.device.createTexture(options));
+  }
+
+  get_texture(idx) {
+    return this.textures.get(idx);
+  }
+
+  destroy_texture(idx) {
+    this.textures.get(idx).destroy();
+    this.textures.delete(idx);
   }
 
   create_attribute(options) {

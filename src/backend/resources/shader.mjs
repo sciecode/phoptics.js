@@ -27,8 +27,16 @@ export class Shader {
       fragment: {
         module: this.module,
         entryPoint: this.frag_entry,
-        targets: formats,
+        targets: formats.color,
       },
+      depthStencil: {
+        depthWriteEnabled: true,
+        depthCompare: "less",
+        format: formats.depth_stencil
+      },
+      primitive: {
+        cullMode: "back"
+      }
     } 
   }
 }
