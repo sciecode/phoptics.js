@@ -8,7 +8,6 @@ import { Attribute } from "./resources/attribute.mjs";
 export class ResourceManager {
   constructor(device) {
     this.device = device;
-    this.render_targets = new PoolStorage();
     this.render_passes = new PoolStorage();
     this.shaders = new PoolStorage();
     this.groups = new PoolStorage();
@@ -18,7 +17,7 @@ export class ResourceManager {
   }
   
   create_render_pass(options) {
-    return this.render_passes.allocate(new RenderPass(options));
+    return this.render_passes.allocate(new RenderPass(this.device, options));
   }
   
   get_render_pass(idx) {
@@ -27,18 +26,6 @@ export class ResourceManager {
   
   destroy_render_pass(idx) {
     return this.render_passes.delete(idx);
-  }
-  
-  create_canvas_target(options) {
-    return this.render_targets.allocate(new CanvasTarget(this.device, options));
-  }
-
-  get_render_target(idx) {
-    return this.render_targets.get(idx);
-  }
-  
-  destroy_render_target(idx) {
-    return this.render_targets.delete(idx);
   }
 
   create_group_layout(options) {

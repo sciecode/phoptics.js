@@ -1,52 +1,62 @@
+import { CanvasTarget } from "./canvas_target.mjs";
+import { TextureTarget } from "./texture_target.mjs";
+
 export class RenderPass {
-  constructor(options = {}) {
-    this.color = options.color;
-    this.depth_stencil = options.depth_stencil;
+  constructor(device, options = {}) {
+    this.device = device;
+
+    const width = options.width, height = options.height;
+
+    this.color = options.color.map( (texture) => {
+      return (
+        texture.canvas ? 
+          new CanvasTarget(device, width, height, texture) :
+          new TextureTarget(device, width, height, texture)
+      );
+    })
+
+    this.depth_stencil = new TextureTarget(device, width, height, options.depth_stencil);
   }
 
-  get_render_info(resources) {
-    const formats = [];
-    const colorAttachments = [];
+  set_size(width, height) {
+    for (let attachment of this.color)
+      attachment.set_size(width, height, this.device);
 
-    for (let i = 0, il = this.color.length; i < il; i++) {
-      const entry = this.color[i];
-      const rt = resources.get_render_target(entry.target);
+    if (this.depth_stencil)
+      this.depth_stencil.set_size(width, height, this.device);
+  }
 
-      formats.push({format: rt.format});
-
-      let state, clear;
-
-      if (!!entry.clear) {
-        state = 'clear';
-        clear = entry.clear;
-      } else {
-        state = 'load';
-      }
-
-      colorAttachments.push({
-        view: rt.get_view(),
-        clearValue: clear,
-        loadOp: state,
-        storeOp: 'store',
-      });
-    }
-
-    const ds_t = resources.get_texture(this.depth_stencil.target);
-
-    return {
+  get_render_info() {
+    const info = {
       descriptor: {
-        colorAttachments: colorAttachments,
-        depthStencilAttachment: {
-          view: ds_t.createView(),
-          depthClearValue: this.depth_stencil.clear,
-          depthLoadOp: !!this.depth_stencil.clear ? 'clear' : 'load',
-          depthStoreOp: 'discard'
-        }
+        colorAttachments: [],
       },
       formats: {
-        color: formats,
-        depth_stencil: ds_t.format
+        color: [],
       }
     }
+
+    for (let attachment of this.color) {
+      info.formats.color.push({ format: attachment.format });
+      info.descriptor.colorAttachments.push({
+        view: attachment.get_view(),
+        clearValue: attachment.clear,
+        loadOp: attachment.loadOp,
+        storeOp: attachment.storeOp
+      })
+    }
+
+    if (this.depth_stencil) {
+      info.formats.depth_stencil = this.depth_stencil.format;
+
+      info.descriptor.depthStencilAttachment = {
+        view: this.depth_stencil.get_view(),
+        depthClearValue: this.depth_stencil.clear,
+        depthLoadOp: this.depth_stencil.loadOp,
+        depthStoreOp: this.depth_stencil.storeOp
+      }
+    }
+
+    return info;
   }
 }

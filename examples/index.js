@@ -7,9 +7,8 @@ import { Mat4x4 } from "../src/datatypes/mat44.mjs";
 import { OBJLoader } from "../src/utils/loaders/obj_loader.mjs";
 import { shader } from "./shaders/material_shader.mjs";
 
-let backend, canvas, render_target, render_pass;
-let shader_module, global_bind_group, attrib0, attrib1, geometry_buffer;
-let index_offset;
+let backend, canvas, render_pass, shader_module, global_bind_group;
+let attrib0, attrib1, geometry_buffer, index_offset;
 let draw_stream, global_buffer, global_data, count;
 let view_matrix = new Mat3x4(), projection_matrix = new Mat4x4();
 let viewport = { x: window.innerWidth, y: window.innerHeight };
@@ -30,30 +29,14 @@ const init = async (geo) => {
 
   const device = await adapter.requestDevice();
   backend = new GPUBackend(adapter, device);
-
-  render_target = backend.resources.create_canvas_target({
-    canvas: canvas,
-    width: window.innerWidth,
-    height: window.innerHeight,
-  });
-
-  const depth_texture = backend.resources.create_texture({
-    format: "depth24plus",
-    size: [window.innerWidth, window.innerHeight],
-    usage: GPUTextureUsage.RENDER_ATTACHMENT
-  });
   
   render_pass = backend.resources.create_render_pass({
+    width: window.innerWidth,
+    height: window.innerHeight,
     color: [
-      {
-        target: render_target,
-        clear: [.3, .3, .3, 1],
-      }
+      { canvas: canvas, clear: [.3, .3, .3, 1] }
     ],
-    depth_stencil: {
-      target: depth_texture,
-      clear: 1.0,
-    }
+    depth_stencil: { format: "depth24plus", clear: 0 }
   });
 
   const global_layout = backend.resources.create_group_layout({
@@ -175,19 +158,7 @@ const auto_resize = () => {
   
   if (viewport.x != newW || viewport.y != newH) {
     viewport.x = newW; viewport.y = newH;
-
-    backend.resources.get_render_target(render_target).set_size(viewport.x, viewport.y);
-
-    const pass = backend.resources.get_render_pass(render_pass);
-    backend.resources.destroy_texture(pass.depth_stencil.target);
-
-    const depth_texture = backend.resources.create_texture({
-      format: "depth24plus",
-      size: [viewport.x, viewport.y],
-      usage: GPUTextureUsage.RENDER_ATTACHMENT
-    });
-    pass.depth_stencil.target = depth_texture;
-
+    backend.resources.get_render_pass(render_pass).set_size(viewport.x, viewport.y);
     projection_matrix.projection(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
     global_data[0] = projection_matrix.data[0];
   }
@@ -195,11 +166,11 @@ const auto_resize = () => {
 
 const animate = () => {
   requestAnimationFrame(animate);
+  
+  view_matrix.data[3] = 5 * Math.sin( performance.now() / 400 );
+  view_matrix.to(global_data, 16);
 
   auto_resize();
-  
-  view_matrix.data[3] = .5 * Math.sin( performance.now() / 400 );
-  view_matrix.to(global_data, 16);
   backend.write_buffer(global_buffer, 0, global_data);
 
   update_draw_stream();

@@ -16,7 +16,7 @@ export class GPUBackend {
   render_pass(render_pass_handle, draw_stream) {
     const { descriptor, formats } = this.resources
       .get_render_pass(render_pass_handle)
-      .get_render_info(this.resources);
+      .get_render_info();
 
     const encoder = this.device.createCommandEncoder();
     const pass = encoder.beginRenderPass(descriptor);

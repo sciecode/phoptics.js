@@ -31,7 +31,7 @@ export class Shader {
       },
       depthStencil: {
         depthWriteEnabled: true,
-        depthCompare: "less",
+        depthCompare: "greater",
         format: formats.depth_stencil
       },
       primitive: {
