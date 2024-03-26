@@ -7,7 +7,7 @@ import { Mat4x4 } from "../src/datatypes/mat44.mjs";
 import { OBJLoader } from "../src/utils/loaders/obj_loader.mjs";
 import { shader } from "./shaders/material_shader.mjs";
 
-let backend, canvas, render_pass, shader_module, global_bind_group;
+let backend, canvas, render_target, shader_module, global_bind_group;
 let attrib0, attrib1, geometry_buffer, index_offset;
 let draw_stream, global_buffer, global_data, count;
 let view_matrix = new Mat3x4(), projection_matrix = new Mat4x4();
@@ -19,7 +19,6 @@ let viewport = { x: window.innerWidth, y: window.innerHeight };
 })();
 
 const init = async (geo) => {
-
   canvas = document.createElement('canvas');
   document.body.append(canvas);
 
@@ -30,7 +29,7 @@ const init = async (geo) => {
   const device = await adapter.requestDevice();
   backend = new GPUBackend(adapter, device);
   
-  render_pass = backend.resources.create_render_pass({
+  render_target = backend.resources.create_render_target({
     width: window.innerWidth,
     height: window.innerHeight,
     color: [
@@ -106,7 +105,6 @@ const init = async (geo) => {
   });
 
   const data = new ArrayBuffer(geo_byte_size);
-
   const pos_data = new Float32Array(data, 0, vertex_count);
   const norm_data = new Float32Array(data, vertex_count * 4, vertex_count);
   const index_data = new Uint32Array(data, vertex_count * 8, index_count);
@@ -158,7 +156,7 @@ const auto_resize = () => {
   
   if (viewport.x != newW || viewport.y != newH) {
     viewport.x = newW; viewport.y = newH;
-    backend.resources.get_render_pass(render_pass).set_size(viewport.x, viewport.y);
+    backend.resources.get_render_target(render_target).set_size(viewport.x, viewport.y);
     projection_matrix.projection(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
     global_data[0] = projection_matrix.data[0];
   }
@@ -167,7 +165,7 @@ const auto_resize = () => {
 const animate = () => {
   requestAnimationFrame(animate);
   
-  view_matrix.data[3] = 5 * Math.sin( performance.now() / 400 );
+  view_matrix.data[3] = 20 * Math.sin( performance.now() / 400 );
   view_matrix.to(global_data, 16);
 
   auto_resize();
@@ -175,5 +173,5 @@ const animate = () => {
 
   update_draw_stream();
 
-  backend.render_pass(render_pass, draw_stream);
+  backend.render(render_target, draw_stream);
 }

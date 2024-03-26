@@ -1,6 +1,5 @@
 import { PoolStorage } from "./storages/pool_storage.mjs";
-import { CanvasTarget } from "./resources/canvas_target.mjs";
-import { RenderPass } from "./resources/render_pass.mjs";
+import { RenderTarget } from "./resources/render_target.mjs";
 import { Shader } from "./resources/shader.mjs"
 import { BindGroup } from "./resources/bind_group.mjs";
 import { Attribute } from "./resources/attribute.mjs";
@@ -8,7 +7,7 @@ import { Attribute } from "./resources/attribute.mjs";
 export class ResourceManager {
   constructor(device) {
     this.device = device;
-    this.render_passes = new PoolStorage();
+    this.render_targets = new PoolStorage();
     this.shaders = new PoolStorage();
     this.groups = new PoolStorage();
     this.buffers = new PoolStorage();
@@ -16,16 +15,17 @@ export class ResourceManager {
     this.attributes = new PoolStorage();
   }
   
-  create_render_pass(options) {
-    return this.render_passes.allocate(new RenderPass(this.device, options));
+  create_render_target(options) {
+    return this.render_targets.allocate(new RenderTarget(this.device, options));
   }
   
-  get_render_pass(idx) {
-    return this.render_passes.get(idx);
+  get_render_target(idx) {
+    return this.render_targets.get(idx);
   }
   
-  destroy_render_pass(idx) {
-    return this.render_passes.delete(idx);
+  destroy_render_target(idx) {
+    this.render_targets.get(idx).destroy();
+    return this.render_targets.delete(idx);
   }
 
   create_group_layout(options) {

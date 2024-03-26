@@ -1,7 +1,7 @@
 import { CanvasTarget } from "./canvas_target.mjs";
 import { TextureTarget } from "./texture_target.mjs";
 
-export class RenderPass {
+export class RenderTarget {
   constructor(device, options = {}) {
     this.device = device;
 
@@ -58,5 +58,10 @@ export class RenderPass {
     }
 
     return info;
+  }
+
+  destroy() {
+    for (let attachment of this.color) attachment.destroy();
+    if (this.depth_stencil) this.depth_stencil.destroy();
   }
 }

@@ -24,4 +24,8 @@ export class TextureTarget {
       usage: GPUTextureUsage.RENDER_ATTACHMENT
     });
   }
+
+  destroy() {
+    this.texture.destroy();
+  }
 }
