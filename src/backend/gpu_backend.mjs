@@ -13,10 +13,9 @@ export class GPUBackend {
     this.device.queue.writeBuffer(buffer, buffer_offset, data, data_offset, data_size);
   }
 
-  render(render_target_handle, draw_stream) {
-    const { descriptor, formats } = this.resources
-      .get_render_target(render_target_handle)
-      .get_render_info();
+  render(rt_handle, draw_stream) {
+    const rt = this.resources.get_render_target(rt_handle);
+    const { descriptor, formats } = rt.get_render_info(this.resources);
 
     const encoder = this.device.createCommandEncoder();
     const pass = encoder.beginRenderPass(descriptor);

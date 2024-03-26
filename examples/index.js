@@ -7,11 +7,13 @@ import { Mat4x4 } from "../src/datatypes/mat44.mjs";
 import { OBJLoader } from "../src/utils/loaders/obj_loader.mjs";
 import { shader } from "./shaders/material_shader.mjs";
 
+const dpr = window.devicePixelRatio;
+
 let backend, canvas, render_target, shader_module, global_bind_group;
 let attrib0, attrib1, geometry_buffer, index_offset;
-let draw_stream, global_buffer, global_data, count;
+let depth_texture, draw_stream, global_buffer, global_data, count;
 let view_matrix = new Mat3x4(), projection_matrix = new Mat4x4();
-let viewport = { x: window.innerWidth, y: window.innerHeight };
+let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
 
 (() => {
   const loader = new OBJLoader();
@@ -20,6 +22,7 @@ let viewport = { x: window.innerWidth, y: window.innerHeight };
 
 const init = async (geo) => {
   canvas = document.createElement('canvas');
+  canvas.width = viewport.x, canvas.height = viewport.y;
   document.body.append(canvas);
 
   const adapter = await navigator.gpu.requestAdapter({
@@ -28,14 +31,23 @@ const init = async (geo) => {
 
   const device = await adapter.requestDevice();
   backend = new GPUBackend(adapter, device);
+
+  const canvas_texture = backend.resources.create_texture({
+    canvas: canvas
+  });
+
+  depth_texture = backend.resources.create_texture({
+    width: viewport.x,
+    height: viewport.y,
+    format: "depth24plus",
+    usage: GPUTextureUsage.RENDER_ATTACHMENT
+  });
   
   render_target = backend.resources.create_render_target({
-    width: window.innerWidth,
-    height: window.innerHeight,
     color: [
-      { canvas: canvas, clear: [.3, .3, .3, 1] }
+      { target: canvas_texture, clear: [.3, .3, .3, 1] }
     ],
-    depth_stencil: { format: "depth24plus", clear: 0 }
+    depth_stencil: { target: depth_texture, clear: 0 }
   });
 
   const global_layout = backend.resources.create_group_layout({
@@ -155,8 +167,19 @@ const auto_resize = () => {
   const newH = (canvas.clientHeight * dpr) | 0;
   
   if (viewport.x != newW || viewport.y != newH) {
-    viewport.x = newW; viewport.y = newH;
-    backend.resources.get_render_target(render_target).set_size(viewport.x, viewport.y);
+    canvas.width = viewport.x = newW; 
+    canvas.height = viewport.y = newH;
+
+    const tex_obj = backend.resources.get_texture(depth_texture);
+    const tex_desc = {
+      width: viewport.x,
+      height: viewport.y,
+      format: tex_obj.texture.format,
+      usage: tex_obj.texture.usage,
+    }
+    backend.resources.destroy_texture(depth_texture);
+    depth_texture = backend.resources.create_texture(tex_desc);
+    
     projection_matrix.projection(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
     global_data[0] = projection_matrix.data[0];
   }

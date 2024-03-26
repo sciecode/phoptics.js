@@ -1,32 +1,20 @@
-import { CanvasTarget } from "./canvas_target.mjs";
-import { TextureTarget } from "./texture_target.mjs";
+const build_target = (desc) => {
+  return {
+    texture: desc.target,
+    clear: desc.clear,
+    view: desc.view,
+    load: desc.load || ((desc.clear !== undefined) ? 'clear' : 'load'),
+    store: desc.store || 'store',
+  }
+}
 
 export class RenderTarget {
-  constructor(device, options = {}) {
-    this.device = device;
-
-    const width = options.width, height = options.height;
-
-    this.color = options.color.map( (texture) => {
-      return (
-        texture.canvas ? 
-          new CanvasTarget(device, width, height, texture) :
-          new TextureTarget(device, width, height, texture)
-      );
-    })
-
-    this.depth_stencil = new TextureTarget(device, width, height, options.depth_stencil);
+  constructor(options = {}) {
+    this.color = options.color.map( (desc) => build_target(desc) );
+    this.depth_stencil = build_target(options.depth_stencil);
   }
 
-  set_size(width, height) {
-    for (let attachment of this.color)
-      attachment.set_size(width, height, this.device);
-
-    if (this.depth_stencil)
-      this.depth_stencil.set_size(width, height, this.device);
-  }
-
-  get_render_info() {
+  get_render_info(resources) {
     const info = {
       descriptor: {
         colorAttachments: [],
@@ -37,31 +25,28 @@ export class RenderTarget {
     }
 
     for (let attachment of this.color) {
-      info.formats.color.push({ format: attachment.format });
+      const texture = resources.get_texture(attachment.texture);
+      info.formats.color.push({ format: texture.get_format() });
       info.descriptor.colorAttachments.push({
-        view: attachment.get_view(),
+        view: texture.get_view(attachment.view),
         clearValue: attachment.clear,
-        loadOp: attachment.loadOp,
-        storeOp: attachment.storeOp
+        loadOp: attachment.load,
+        storeOp: attachment.store
       })
     }
 
     if (this.depth_stencil) {
-      info.formats.depth_stencil = this.depth_stencil.format;
+      const texture = resources.get_texture(this.depth_stencil.texture);
+      info.formats.depth_stencil = texture.get_format();
 
       info.descriptor.depthStencilAttachment = {
-        view: this.depth_stencil.get_view(),
+        view: texture.get_view(this.depth_stencil.view),
         depthClearValue: this.depth_stencil.clear,
-        depthLoadOp: this.depth_stencil.loadOp,
-        depthStoreOp: this.depth_stencil.storeOp
+        depthLoadOp: this.depth_stencil.load,
+        depthStoreOp: this.depth_stencil.store
       }
     }
 
     return info;
-  }
-
-  destroy() {
-    for (let attachment of this.color) attachment.destroy();
-    if (this.depth_stencil) this.depth_stencil.destroy();
   }
 }
