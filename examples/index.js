@@ -12,7 +12,8 @@ const dpr = window.devicePixelRatio;
 
 let backend, canvas, render_target, shader_module, global_bind_group;
 let attrib0, attrib1, geometry_buffer, index_offset;
-let depth_texture, draw_stream, global_buffer, global_data, count;
+let depth_texture, ms_texture;
+let draw_stream, global_buffer, global_data, count;
 let view_matrix = new Mat3x4(), projection_matrix = new Mat4x4(), camera_pos = new Vec3();
 let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
 
@@ -37,16 +38,25 @@ const init = async (geo) => {
     canvas: canvas
   });
 
+  ms_texture = backend.resources.create_texture({
+    width: viewport.x,
+    height: viewport.y,
+    format: navigator.gpu.getPreferredCanvasFormat(),
+    usage: GPUTextureUsage.RENDER_ATTACHMENT,
+    sampleCount: 4,
+  });
+
   depth_texture = backend.resources.create_texture({
     width: viewport.x,
     height: viewport.y,
     format: "depth24plus",
-    usage: GPUTextureUsage.RENDER_ATTACHMENT
+    usage: GPUTextureUsage.RENDER_ATTACHMENT,
+    sampleCount: 4,
   });
   
   render_target = backend.resources.create_render_target({
     color: [
-      { target: canvas_texture, clear: [.3, .3, .3, 1] }
+      { target: ms_texture, resolve: canvas_texture, clear: [.3, .3, .3, 1] }
     ],
     depth_stencil: { target: depth_texture, clear: 0 }
   });
@@ -109,7 +119,10 @@ const init = async (geo) => {
           {shaderLocation: 1, offset: 0, format: 'float32x3'},
         ],
       },
-    ]
+    ],
+    multisample: {
+      count: 4,
+    }
   });
 
   const vertex_count = geo.positions.length, index_count = geo.indices.length;
@@ -165,24 +178,41 @@ const update_draw_stream = () => {
   });
 }
 
+const resize_textures = () => {
+  canvas.width = viewport.x;
+  canvas.height = viewport.y;
+
+  const ms_obj = backend.resources.get_texture(ms_texture);
+  const ms_desc = {
+    width: viewport.x,
+    height: viewport.y,
+    format: ms_obj.texture.format,
+    usage: ms_obj.texture.usage,
+    sampleCount: ms_obj.texture.sampleCount,
+  }
+  backend.resources.destroy_texture(ms_texture);
+  ms_texture = backend.resources.create_texture(ms_desc);
+
+  const tex_obj = backend.resources.get_texture(depth_texture);
+  const tex_desc = {
+    width: viewport.x,
+    height: viewport.y,
+    format: tex_obj.texture.format,
+    usage: tex_obj.texture.usage,
+    sampleCount: tex_obj.texture.sampleCount,
+  }
+  backend.resources.destroy_texture(depth_texture);
+  depth_texture = backend.resources.create_texture(tex_desc);
+}
+
 const auto_resize = () => {
   const dpr = window.devicePixelRatio;
   const newW = (canvas.clientWidth * dpr) | 0;
   const newH = (canvas.clientHeight * dpr) | 0;
   
   if (viewport.x != newW || viewport.y != newH) {
-    canvas.width = viewport.x = newW; 
-    canvas.height = viewport.y = newH;
-
-    const tex_obj = backend.resources.get_texture(depth_texture);
-    const tex_desc = {
-      width: viewport.x,
-      height: viewport.y,
-      format: tex_obj.texture.format,
-      usage: tex_obj.texture.usage,
-    }
-    backend.resources.destroy_texture(depth_texture);
-    depth_texture = backend.resources.create_texture(tex_desc);
+    viewport.x = newW; viewport.y = newH;
+    resize_textures();
     
     projection_matrix.projection(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
     global_data[0] = projection_matrix.data[0];
@@ -192,12 +222,13 @@ const auto_resize = () => {
 const animate = () => {
   requestAnimationFrame(animate);
   
+  auto_resize();
+  
   camera_pos.x = 20 * Math.sin( performance.now() / 400 );
   view_matrix.compose_rigid(camera_pos);
   view_matrix.view_inverse();
   view_matrix.to(global_data, 16);
 
-  auto_resize();
   backend.write_buffer(global_buffer, 0, global_data);
 
   update_draw_stream();

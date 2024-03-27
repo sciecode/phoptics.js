@@ -14,6 +14,10 @@ export class Shader {
       device.createPipelineLayout({
         bindGroupLayouts: options.group_layouts,
       });
+
+    this.graphics_pipeline = {
+      multisample: options.multisample
+    };
   }
 
   get_pipeline_descriptor(formats) {
@@ -34,6 +38,7 @@ export class Shader {
         depthCompare: "greater",
         format: formats.depth_stencil
       },
+      multisample: this.graphics_pipeline.multisample,
       primitive: {
         cullMode: "back"
       }

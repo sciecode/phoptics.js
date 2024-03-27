@@ -4,6 +4,7 @@ export class Texture {
       format: options.format,
       size: [options.width, options.height],
       usage: options.usage,
+      sampleCount: options.sampleCount
     });
   }
 

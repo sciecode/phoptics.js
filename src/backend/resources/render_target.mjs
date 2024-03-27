@@ -1,6 +1,7 @@
 const build_target = (desc) => {
   return {
     texture: desc.target,
+    resolve: desc.resolve,
     clear: desc.clear,
     view: desc.view,
     load: desc.load || ((desc.clear !== undefined) ? 'clear' : 'load'),
@@ -26,9 +27,11 @@ export class RenderTarget {
 
     for (let attachment of this.color) {
       const texture = resources.get_texture(attachment.texture);
+      const resolve = attachment.resolve !== undefined ? resources.get_texture(attachment.resolve) : undefined;
       info.formats.color.push({ format: texture.get_format() });
       info.descriptor.colorAttachments.push({
         view: texture.get_view(attachment.view),
+        resolveTarget: resolve?.get_view(attachment.view),
         clearValue: attachment.clear,
         loadOp: attachment.load,
         storeOp: attachment.store
