@@ -10,11 +10,11 @@ import { shader } from "./shaders/material_shader.mjs";
 
 const dpr = window.devicePixelRatio;
 
-let backend, canvas, render_target, shader_module, global_bind_group;
+let backend, canvas, shader_module, global_bind_group;
+let depth_texture, ms_texture, render_target;
 let attrib0, attrib1, geometry_buffer, index_offset;
-let depth_texture, ms_texture;
 let draw_stream, global_buffer, global_data, count;
-let view_matrix = new Mat3x4(), projection_matrix = new Mat4x4(), camera_pos = new Vec3();
+let view_matrix = new Mat3x4(), projection_matrix = new Mat4x4(), camera_pos = new Vec3(), origin = new Vec3();
 let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
 
 (() => {
@@ -84,7 +84,8 @@ const init = async (geo) => {
   projection_matrix.projection(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 600);
   projection_matrix.to(global_data, 0);
 
-  camera_pos.set(0, 30, 100);
+  camera_pos.y = 30;
+  origin.set(0, 30, 0);
   view_matrix.compose_rigid(camera_pos);
   view_matrix.view_inverse();
   view_matrix.to(global_data, 16);
@@ -221,11 +222,14 @@ const auto_resize = () => {
 
 const animate = () => {
   requestAnimationFrame(animate);
-  
+
   auto_resize();
-  
-  camera_pos.x = 20 * Math.sin( performance.now() / 400 );
+
+  const angle = performance.now() / 600;
+  camera_pos.x = 150 * Math.sin( angle );
+  camera_pos.z = 150 * Math.cos( angle );
   view_matrix.compose_rigid(camera_pos);
+  view_matrix.look_at(origin);
   view_matrix.view_inverse();
   view_matrix.to(global_data, 16);
 

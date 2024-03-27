@@ -35,13 +35,59 @@ export class Vec3 {
   }
 
   add(v) {
-    this.data[0] += v.data[0]; this.data[1] += y.data[1]; this.data[2] += v.data[2];
+    this.data[0] += v.data[0]; this.data[1] += v.data[1]; this.data[2] += v.data[2];
     return this;
   }
 
   add_f32(v) {
-    this.data[0] += v; this.data[1] += y; this.data[2] += v;
+    this.data[0] += v; this.data[1] += v; this.data[2] += v;
     return this;
+  }
+
+  sub(v) {
+    this.data[0] -= v.data[0]; this.data[1] -= v.data[1]; this.data[2] -= v.data[2];
+    return this;
+  }
+
+  sub_f32(v) {
+    this.data[0] -= v; this.data[1] -= v; this.data[2] -= v;
+    return this;
+  }
+
+  mul(v) {
+    this.data[0] *= v.data[0]; this.data[1] *= v.data[1]; this.data[2] *= v.data[2];
+    return this;
+  }
+
+  mul_f32(v) {
+    this.data[0] *= v; this.data[1] *= v; this.data[2] *= v;
+    return this;
+  }
+
+  div(v) {
+    this.data[0] /= v.data[0]; this.data[1] /= v.data[1]; this.data[2] /= v.data[2];
+    return this;
+  }
+
+  div_f32(v) {
+    this.data[0] /= v; this.data[1] /= v; this.data[2] /= v;
+    return this;
+  }
+
+  normalize() {
+    const m = this.data, scale = Math.sqrt(m[0] * m[0] + m[1] * m[1] + m[2] * m[2]);
+    return this.div_f32(scale);
+  }
+
+  cross(v) {
+    const m = this.data, n = v.data;
+		const x = m[0], y = m[1], z =m[2];
+
+		m[0] = y * n[2] - z * n[1];
+		m[1] = z * n[0] - x * n[2];
+		m[2] = x * n[1] - y * n[0];
+
+		return this;
   }
 
   transform(mat) {
@@ -51,6 +97,7 @@ export class Vec3 {
     v[0] = x * m[0] + y * m[1] + z * m[2]  + m[3];
     v[1] = x * m[4] + y * m[5] + z * m[6]  + m[7];
     v[2] = x * m[8] + y * m[9] + z * m[10] + m[11];
+
     return this;
   }
 }
