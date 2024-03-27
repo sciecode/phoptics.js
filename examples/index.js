@@ -1,6 +1,7 @@
 import { GPUBackend } from "../src/backend/gpu_backend.mjs";
 import { DrawStream } from "../src/backend/draw_stream.mjs";
 
+import { Vec3 } from "../src/datatypes/vec3.mjs";
 import { Mat3x4 } from "../src/datatypes/mat34.mjs";
 import { Mat4x4 } from "../src/datatypes/mat44.mjs";
 
@@ -12,7 +13,7 @@ const dpr = window.devicePixelRatio;
 let backend, canvas, render_target, shader_module, global_bind_group;
 let attrib0, attrib1, geometry_buffer, index_offset;
 let depth_texture, draw_stream, global_buffer, global_data, count;
-let view_matrix = new Mat3x4(), projection_matrix = new Mat4x4();
+let view_matrix = new Mat3x4(), projection_matrix = new Mat4x4(), camera_pos = new Vec3();
 let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
 
 (() => {
@@ -72,9 +73,12 @@ const init = async (geo) => {
 
   projection_matrix.projection(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 600);
   projection_matrix.to(global_data, 0);
-  view_matrix.data[11] = -100;
-  view_matrix.data[7] = -30;
+
+  camera_pos.set(0, 30, 100);
+  view_matrix.compose_rigid(camera_pos);
+  view_matrix.view_inverse();
   view_matrix.to(global_data, 16);
+
   backend.write_buffer(global_buffer, 0, global_data);
 
   global_bind_group = backend.resources.create_bind_group({
@@ -188,7 +192,9 @@ const auto_resize = () => {
 const animate = () => {
   requestAnimationFrame(animate);
   
-  view_matrix.data[3] = 20 * Math.sin( performance.now() / 400 );
+  camera_pos.x = 20 * Math.sin( performance.now() / 400 );
+  view_matrix.compose_rigid(camera_pos);
+  view_matrix.view_inverse();
   view_matrix.to(global_data, 16);
 
   auto_resize();

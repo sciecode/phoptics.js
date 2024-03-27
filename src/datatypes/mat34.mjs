@@ -48,7 +48,12 @@ export class Mat3x4 {
     return this;
   }
 
-  view() {
+  compose_rigid(pos) {
+    const m = this.data, v = pos.data;
+    m[3] = v[0]; m[7] = v[1]; m[11] = v[2];
+  }
+
+  view_inverse() {
     const m = this.data;
 
     this.transpose();
