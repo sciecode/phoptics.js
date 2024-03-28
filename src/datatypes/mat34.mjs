@@ -23,7 +23,7 @@ export class Mat3x4 {
     let tmp = m[1]; m[1] = m[4]; m[4] = tmp;
         tmp = m[2]; m[2] = m[8]; m[8] = tmp;
         tmp = m[6]; m[6] = m[9]; m[9] = tmp; 
-        
+
     return this;
   }
 
@@ -52,11 +52,15 @@ export class Mat3x4 {
     return this;
   }
 
-  compose_rigid(pos) {
+  translate(pos) {
     const m = this.data, v = pos.data;
 
     m[3] = v[0]; m[7] = v[1]; m[11] = v[2];
     return this;
+  }
+
+  compose_rigid(pos) {
+    return this.translate(pos);
   }
 
   look_at(v) {

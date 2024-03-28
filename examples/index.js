@@ -8,13 +8,15 @@ import { Mat4x4 } from "../src/datatypes/mat44.mjs";
 import { OBJLoader } from "../src/utils/loaders/obj_loader.mjs";
 import { shader } from "./shaders/material_shader.mjs";
 
-const dpr = window.devicePixelRatio;
-
 let backend, canvas, shader_module, global_bind_group;
+let draw_stream, global_buffer, global_data, count;
+
 let depth_texture, ms_texture, render_target;
 let attrib0, attrib1, geometry_buffer, index_offset;
-let draw_stream, global_buffer, global_data, count;
-let view_matrix = new Mat3x4(), projection_matrix = new Mat4x4(), camera_pos = new Vec3(), origin = new Vec3();
+let view_matrix = new Mat3x4(), projection_matrix = new Mat4x4(), 
+    camera_pos = new Vec3(), target = new Vec3();
+
+const dpr = window.devicePixelRatio;
 let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
 
 (() => {
@@ -56,7 +58,7 @@ const init = async (geo) => {
   
   render_target = backend.resources.create_render_target({
     color: [
-      { target: ms_texture, resolve: canvas_texture, clear: [.3, .3, .3, 1] }
+      { target: ms_texture, resolve: canvas_texture, clear: [.05, .05, .05, 1] }
     ],
     depth_stencil: { target: depth_texture, clear: 0 }
   });
@@ -85,8 +87,8 @@ const init = async (geo) => {
   projection_matrix.to(global_data, 0);
 
   camera_pos.y = 30;
-  origin.set(0, 30, 0);
-  view_matrix.compose_rigid(camera_pos);
+  target.set(0, 30, 0);
+  view_matrix.translate(camera_pos);
   view_matrix.view_inverse();
   view_matrix.to(global_data, 16);
 
@@ -225,11 +227,11 @@ const animate = () => {
 
   auto_resize();
 
-  const angle = performance.now() / 600;
+  const angle = performance.now() / 1000;
   camera_pos.x = 150 * Math.sin( angle );
   camera_pos.z = 150 * Math.cos( angle );
-  view_matrix.compose_rigid(camera_pos);
-  view_matrix.look_at(origin);
+  view_matrix.translate(camera_pos);
+  view_matrix.look_at(target);
   view_matrix.view_inverse();
   view_matrix.to(global_data, 16);
 
