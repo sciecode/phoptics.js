@@ -13,6 +13,7 @@ export class ResourceManager {
     this.shaders = new PoolStorage();
     this.groups = new PoolStorage();
     this.buffers = new PoolStorage();
+    this.samplers = new PoolStorage();
     this.textures = new PoolStorage();
     this.attributes = new PoolStorage();
   }
@@ -56,6 +57,35 @@ export class ResourceManager {
   destroy_buffer(idx) {
     this.buffers.get(idx).destroy();
     this.buffers.delete(idx);
+  }
+
+  create_sampler(options) {
+    return this.samplers.allocate(this.device.createSampler(options));
+  }
+
+  get_sampler(idx) {
+    return this.samplers.get(idx);
+  }
+
+  destroy_sampler(idx) {
+    this.samplers.delete(idx);
+  }
+
+  create_texture(options) {
+    return this.textures.allocate(
+      options.canvas ? 
+        new CanvasTexture(this.device, options) :
+        new Texture(this.device, options)
+    );
+  }
+
+  get_texture(idx) {
+    return this.textures.get(idx);
+  }
+
+  destroy_texture(idx) {
+    this.textures.get(idx).destroy();
+    this.textures.delete(idx);
   }
 
   create_texture(options) {

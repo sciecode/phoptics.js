@@ -21,6 +21,7 @@ export class Shader {
   }
 
   get_pipeline_descriptor(formats) {
+    const has_depth = !!formats.depth_stencil;
     return {
       layout: this.layout,
       vertex: {
@@ -33,11 +34,11 @@ export class Shader {
         entryPoint: this.frag_entry,
         targets: formats.color,
       },
-      depthStencil: {
+      depthStencil: has_depth ? {
         depthWriteEnabled: true,
         depthCompare: "greater",
         format: formats.depth_stencil
-      },
+      } : undefined,
       multisample: this.graphics_pipeline.multisample,
       primitive: {
         cullMode: "back"

@@ -96,7 +96,7 @@ export class GPUBackend {
     }
 
     const info = draw_packet.draw;
-    if (info.index_offset < 0) {
+    if (info.index_offset === (-1 >>> 0)) {
       pass.draw(info.draw_count, 1, info.vertex_offset);
     } else {
       pass.drawIndexed(info.draw_count, 1, info.index_offset, info.vertex_offset);

@@ -1,13 +1,13 @@
-import { GPUBackend } from "../src/backend/gpu_backend.mjs";
-import { DrawStream } from "../src/backend/draw_stream.mjs";
+import { GPUBackend } from "../../src/backend/gpu_backend.mjs";
+import { DrawStream } from "../../src/backend/draw_stream.mjs";
 
-import { Vec3 } from "../src/datatypes/vec3.mjs";
-import { Vec4 } from "../src/datatypes/vec4.mjs";
-import { Mat3x4 } from "../src/datatypes/mat34.mjs";
-import { Mat4x4 } from "../src/datatypes/mat44.mjs";
+import { Vec3 } from "../../src/datatypes/vec3.mjs";
+import { Vec4 } from "../../src/datatypes/vec4.mjs";
+import { Mat3x4 } from "../../src/datatypes/mat34.mjs";
+import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 
-import { OBJLoader } from "../src/utils/loaders/obj_loader.mjs";
-import { shader } from "./shaders/material_shader.mjs";
+import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
+import { shader } from "../shaders/forward_shader.mjs";
 
 let backend, canvas, shader_module, global_bind_group;
 let draw_stream, global_buffer, global_data, count;
@@ -22,7 +22,7 @@ let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0}
 
 (() => {
   const loader = new OBJLoader();
-  loader.load('./models/walt.obj').then(geo => init(geo));
+  loader.load('../models/walt.obj').then(geo => init(geo));
 })();
 
 const init = async (geo) => {

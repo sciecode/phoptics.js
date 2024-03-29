@@ -1,4 +1,5 @@
 const build_target = (desc) => {
+  if (!desc) return undefined;
   return {
     texture: desc.target,
     resolve: desc.resolve,
