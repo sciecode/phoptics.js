@@ -2,6 +2,7 @@ import { GPUBackend } from "../src/backend/gpu_backend.mjs";
 import { DrawStream } from "../src/backend/draw_stream.mjs";
 
 import { Vec3 } from "../src/datatypes/vec3.mjs";
+import { Vec4 } from "../src/datatypes/vec4.mjs";
 import { Mat3x4 } from "../src/datatypes/mat34.mjs";
 import { Mat4x4 } from "../src/datatypes/mat44.mjs";
 
@@ -67,7 +68,7 @@ const init = async (geo) => {
     entries: [
       {
         binding: 0,
-        visibility: GPUShaderStage.VERTEX,
+        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
         buffer: {
           type: "read-only-storage",
         },
@@ -75,22 +76,27 @@ const init = async (geo) => {
     ],
   });
 
-  const uniforms_size = Mat4x4.byte_size + Mat3x4.byte_size;
+  const uniforms_size = Mat4x4.byte_size + Mat3x4.byte_size + Vec4.byte_size;
   global_buffer = backend.resources.create_buffer({
-    size: Mat4x4.byte_size + Mat3x4.byte_size,
+    size: uniforms_size,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
   });
 
   global_data = new Float32Array(uniforms_size / 4);
 
+  target.set(0, 30, 0);
+
+  camera_pos.y = 30;
+  camera_pos.to(global_data, 28);
+  global_data[31] = 250;
+
   projection_matrix.projection(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 600);
   projection_matrix.to(global_data, 0);
 
-  camera_pos.y = 30;
-  target.set(0, 30, 0);
   view_matrix.translate(camera_pos);
   view_matrix.view_inverse();
   view_matrix.to(global_data, 16);
+
 
   backend.write_buffer(global_buffer, 0, global_data);
 
@@ -228,8 +234,10 @@ const animate = () => {
   auto_resize();
 
   const angle = performance.now() / 1000;
-  camera_pos.x = 150 * Math.sin( angle );
-  camera_pos.z = 150 * Math.cos( angle );
+  camera_pos.x = 100 * Math.sin( angle );
+  camera_pos.z = 100 * Math.cos( angle );
+  camera_pos.to(global_data, 28);
+
   view_matrix.translate(camera_pos);
   view_matrix.look_at(target);
   view_matrix.view_inverse();

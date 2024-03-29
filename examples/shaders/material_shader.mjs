@@ -1,7 +1,11 @@
 export const shader = `
+const PI = 3.14159265359;
+
 struct GlobalUniforms {
   projection_matrix : mat4x4f,
   view_matrix : mat3x4f,
+  camera_pos : vec3f,
+  nits : f32,
 }
 
 struct Attributes {
@@ -9,7 +13,7 @@ struct Attributes {
   @location(1) normal: vec3f,
 }
 
-struct vOutput {
+struct FragInput {
   @builtin(position) position : vec4f,
   @location(0) w_pos : vec3f,
   @location(1) w_normal : vec3f,
@@ -17,8 +21,8 @@ struct vOutput {
 
 @group(0) @binding(0) var<storage, read> globals: GlobalUniforms;
 
-@vertex fn vs(attrib : Attributes) -> vOutput {
-  var output : vOutput;
+@vertex fn vs(attrib : Attributes) -> FragInput {
+  var output : FragInput;
 
   var v_pos = vec4f(attrib.position, 1) * globals.view_matrix;
   var c_pos = vec4f(v_pos, 1) * globals.projection_matrix;
@@ -30,46 +34,64 @@ struct vOutput {
   return output;
 }
 
-fn point_light(in : vOutput, l_pos : vec3f, l_color : vec3f, l_intensity : f32) -> vec3f {
-
-  let l = l_pos - in.w_pos;
-  let d2 = pow(length(l) / 100., 2.);
-
-  let dotNL = clamp(dot(in.w_normal, normalize(l)), 0., 1.);
-  let perp_illuminance = l_intensity * l_color / d2;
-
-  const BRDF_diff = .5 / 3.141592;
-
-  return BRDF_diff * perp_illuminance * dotNL;
-
+struct RenderInfo {
+  Ldd   : vec3f,
+  pos   : vec3f,
+  V     : vec3f,
+  N     : vec3f,
+  cosNV : f32
 }
 
-@fragment fn fs(in : vOutput) -> @location(0) vec4f {
+fn F_Schlick(cos : f32, f0 : f32, f90 : f32) -> f32 {
+  return f0 + (f90 - f0) * pow(1.0 - cos, 5.0);
+}
 
-  var luminance = vec3f();
+fn Fd_Lambert() -> f32 {
+  return 1.0 / PI;
+}
+
+fn point_light(info : ptr<function, RenderInfo>, l_pos : vec3f, l_color : vec3f, Il : f32) {
+  let l = l_pos - (*info).pos;
+  let d2 = pow(length(l) / 100., 2.);
+  let Ep = Il * l_color / d2;
   
-  luminance += point_light(in, 
+  let L = normalize(l);
+  // let H = normalize((*info).V + L);
+
+  let cosNL = max(dot((*info).N, L), 0.);
+  // let cosLH = max(dot(L, H), 0.);
+  
+  (*info).Ldd += Ep * Fd_Lambert() * cosNL;
+}
+
+@fragment fn fs(in : FragInput) -> @location(0) vec4f {
+  var info : RenderInfo;
+  info.pos = in.w_pos;
+  info.V = normalize(globals.camera_pos - info.pos);
+  info.N = normalize(in.w_normal);
+  info.cosNV = max(dot(info.V, info.N), 0.);
+  
+  point_light(&info, 
     vec3f(0, 100, 100),   // position
     vec3f(1),             // color
     400.                  // intensity
   );
 
-  luminance += point_light(in,
+  point_light(&info,
     vec3f(60, 0, 20),     // position
     vec3f(0, .1, 1),      // color
     200.                  // intensity
   );
 
-  luminance += point_light(in, 
+  point_light(&info, 
     vec3f(-100, 30, -20), // position
     vec3f(1, .3, .2),     // color 
     500.                  // intensity
   );
 
-  let l_color = pow(luminance / 250., vec3f(1./2.4));
-
-  // var l_color = vec3f(in.w_normal * .5 + .5);
-
-  return vec4f(l_color, 1);
+  let albedo = .5;
+  let L = albedo * info.Ldd;
+  let Lf = pow(L / globals.nits, vec3f(1./2.2));
+  return vec4f(Lf, 1);
 }
 `;
