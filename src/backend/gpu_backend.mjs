@@ -59,7 +59,8 @@ export class GPUBackend {
     for (let i = 0; i < 3; i++) {
       if (metadata & (DrawStreamFlags.bind_group0 << i)) {
         const group_handle = stream[draw_packet.offset++];
-        pass.setBindGroup(i, this.resources.get_bind_group(group_handle).group);
+        const group = this.resources.get_bind_group(group_handle).get_group(this.device, this.resources);
+        pass.setBindGroup(i, group);
       }
     }
 

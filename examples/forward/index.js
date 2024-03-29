@@ -1,4 +1,5 @@
 import { GPUBackend } from "../../src/backend/gpu_backend.mjs";
+import { GPUResource } from "../../src/backend/constants.mjs";
 import { DrawStream } from "../../src/backend/draw_stream.mjs";
 
 import { Vec3 } from "../../src/datatypes/vec3.mjs";
@@ -105,9 +106,8 @@ const init = async (geo) => {
     entries: [
       {
         binding: 0,
-        resource: {
-          buffer: global_buffer
-        }
+        type: GPUResource.BUFFER,
+        resource: global_buffer
       }
     ]
   });
@@ -191,27 +191,8 @@ const resize_textures = () => {
   canvas.width = viewport.x;
   canvas.height = viewport.y;
 
-  const ms_obj = backend.resources.get_texture(ms_texture);
-  const ms_desc = {
-    width: viewport.x,
-    height: viewport.y,
-    format: ms_obj.texture.format,
-    usage: ms_obj.texture.usage,
-    sampleCount: ms_obj.texture.sampleCount,
-  }
-  backend.resources.destroy_texture(ms_texture);
-  ms_texture = backend.resources.create_texture(ms_desc);
-
-  const tex_obj = backend.resources.get_texture(depth_texture);
-  const tex_desc = {
-    width: viewport.x,
-    height: viewport.y,
-    format: tex_obj.texture.format,
-    usage: tex_obj.texture.usage,
-    sampleCount: tex_obj.texture.sampleCount,
-  }
-  backend.resources.destroy_texture(depth_texture);
-  depth_texture = backend.resources.create_texture(tex_desc);
+  backend.resources.get_texture(ms_texture).set_size(viewport.x, viewport.y);
+  backend.resources.get_texture(depth_texture).set_size(viewport.x, viewport.y);;
 }
 
 const auto_resize = () => {

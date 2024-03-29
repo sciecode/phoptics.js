@@ -1,4 +1,5 @@
 import { GPUBackend } from "../../src/backend/gpu_backend.mjs";
+import { GPUResource } from "../../src/backend/constants.mjs";
 import { DrawStream } from "../../src/backend/draw_stream.mjs";
 
 import { Vec3 } from "../../src/datatypes/vec3.mjs";
@@ -154,9 +155,8 @@ const init = async (geo) => {
     entries: [
       {
         binding: 0,
-        resource: {
-          buffer: global_buffer
-        }
+        type: GPUResource.BUFFER,
+        resource: global_buffer,
       }
     ]
   });
@@ -166,15 +166,18 @@ const init = async (geo) => {
     entries: [
       {
         binding: 0,
-        resource: backend.resources.get_sampler(sampler),
+        type: GPUResource.SAMPLER,
+        resource: sampler,
       },
       {
         binding: 1,
-        resource: backend.resources.get_texture(gbuffer_pos).get_view(),
+        type: GPUResource.TEXTURE,
+        resource: gbuffer_pos,
       },
       {
         binding: 2,
-        resource: backend.resources.get_texture(gbuffer_norm).get_view(),
+        type: GPUResource.TEXTURE,
+        resource: gbuffer_norm,
       }
     ]
   });
@@ -275,65 +278,10 @@ const resize_textures = () => {
   canvas.width = viewport.x;
   canvas.height = viewport.y;
 
-  const pos_obj = backend.resources.get_texture(gbuffer_pos);
-  const pos_desc = {
-    width: viewport.x,
-    height: viewport.y,
-    format: pos_obj.texture.format,
-    usage: pos_obj.texture.usage,
-  }
-  backend.resources.destroy_texture(gbuffer_pos);
-  gbuffer_pos = backend.resources.create_texture(pos_desc);
-
-  const norm_obj = backend.resources.get_texture(gbuffer_norm);
-  const norm_desc = {
-    width: viewport.x,
-    height: viewport.y,
-    format: norm_obj.texture.format,
-    usage: norm_obj.texture.usage,
-  }
-  backend.resources.destroy_texture(gbuffer_norm);
-  gbuffer_norm = backend.resources.create_texture(norm_desc);
-
-  const ms_obj = backend.resources.get_texture(ms_texture);
-  const ms_desc = {
-    width: viewport.x,
-    height: viewport.y,
-    format: ms_obj.texture.format,
-    usage: ms_obj.texture.usage,
-    sampleCount: ms_obj.texture.sampleCount,
-  }
-  backend.resources.destroy_texture(ms_texture);
-  ms_texture = backend.resources.create_texture(ms_desc);
-
-  const tex_obj = backend.resources.get_texture(depth_texture);
-  const tex_desc = {
-    width: viewport.x,
-    height: viewport.y,
-    format: tex_obj.texture.format,
-    usage: tex_obj.texture.usage,
-  }
-  backend.resources.destroy_texture(depth_texture);
-  depth_texture = backend.resources.create_texture(tex_desc);
-
-  backend.resources.destroy_bind_group(lighting_bind_group);
-  lighting_bind_group = backend.resources.create_bind_group({
-    layout: lighting_layout,
-    entries: [
-      {
-        binding: 0,
-        resource: backend.resources.get_sampler(sampler),
-      },
-      {
-        binding: 1,
-        resource: backend.resources.get_texture(gbuffer_pos).get_view(),
-      },
-      {
-        binding: 2,
-        resource: backend.resources.get_texture(gbuffer_norm).get_view(),
-      }
-    ]
-  });
+  backend.resources.get_texture(gbuffer_pos).set_size(viewport.x, viewport.y);
+  backend.resources.get_texture(gbuffer_norm).set_size(viewport.x, viewport.y);
+  backend.resources.get_texture(ms_texture).set_size(viewport.x, viewport.y);
+  backend.resources.get_texture(depth_texture).set_size(viewport.x, viewport.y);
 }
 
 const auto_resize = () => {
