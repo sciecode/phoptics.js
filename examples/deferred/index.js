@@ -274,16 +274,6 @@ const update_lighting_stream = () => {
   });
 }
 
-const resize_textures = () => {
-  canvas.width = viewport.x;
-  canvas.height = viewport.y;
-
-  backend.resources.get_texture(gbuffer_pos).set_size(viewport.x, viewport.y);
-  backend.resources.get_texture(gbuffer_norm).set_size(viewport.x, viewport.y);
-  backend.resources.get_texture(ms_texture).set_size(viewport.x, viewport.y);
-  backend.resources.get_texture(depth_texture).set_size(viewport.x, viewport.y);
-}
-
 const auto_resize = () => {
   const dpr = window.devicePixelRatio;
   const newW = (canvas.clientWidth * dpr) | 0;
@@ -291,7 +281,13 @@ const auto_resize = () => {
   
   if (viewport.x != newW || viewport.y != newH) {
     viewport.x = newW; viewport.y = newH;
-    resize_textures();
+
+    canvas.width = viewport.x;
+    canvas.height = viewport.y;
+    backend.resources.get_texture(gbuffer_pos).set_size(viewport.x, viewport.y);
+    backend.resources.get_texture(gbuffer_norm).set_size(viewport.x, viewport.y);
+    backend.resources.get_texture(ms_texture).set_size(viewport.x, viewport.y);
+    backend.resources.get_texture(depth_texture).set_size(viewport.x, viewport.y);
     
     projection_matrix.projection(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
     global_data[0] = projection_matrix.data[0];

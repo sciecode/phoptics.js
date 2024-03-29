@@ -15,7 +15,7 @@ export class GPUBackend {
 
   render(rt_handle, draw_stream) {
     const rt = this.resources.get_render_target(rt_handle);
-    const { descriptor, formats } = rt.get_render_info(this.resources);
+    const descriptor = rt.get_render_info(this.resources);
 
     const encoder = this.device.createCommandEncoder();
     const pass = encoder.beginRenderPass(descriptor);
@@ -23,7 +23,7 @@ export class GPUBackend {
     let draw_packet = {
       offset: 0,
       stream: draw_stream.stream,
-      formats: formats,
+      target: rt,
       pass: pass,
       draw: {
         draw_count: 0,
@@ -42,16 +42,14 @@ export class GPUBackend {
   }
 
   render_packet(draw_packet) {
-    const pass = draw_packet.pass, formats = draw_packet.formats,
+    const pass = draw_packet.pass, target = draw_packet.target,
       stream = draw_packet.stream, metadata = draw_packet.stream[draw_packet.offset++];
 
     // shader
     if (metadata & DrawStreamFlags.shader) {
       const shader_handle = stream[draw_packet.offset++];
       const shader = this.resources.get_shader(shader_handle);
-
-      const pipeline_descriptor = shader.get_pipeline_descriptor(formats);
-      const pipeline = this.device.createRenderPipeline(pipeline_descriptor);
+      const pipeline = target.get_pipeline(this.device, shader);
       pass.setPipeline(pipeline);
     }
 

@@ -19,7 +19,7 @@ export class ResourceManager {
   }
   
   create_render_target(options) {
-    return this.render_targets.allocate(new RenderTarget(options));
+    return this.render_targets.allocate(new RenderTarget(this, options));
   }
   
   get_render_target(idx) {
