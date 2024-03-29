@@ -50,47 +50,47 @@ fn Fd_Lambert() -> f32 {
   return 1.0 / PI;
 }
 
-fn point_light(info : ptr<function, RenderInfo>, l_pos : vec3f, l_color : vec3f, Il : f32) {
-  let l = l_pos - (*info).pos;
+fn point_light(frag : ptr<function, RenderInfo>, l_pos : vec3f, l_color : vec3f, Il : f32) {
+  let l = l_pos - (*frag).pos;
   let d2 = pow(length(l) / 100., 2.);
   let Ep = Il * l_color / d2;
   
   let L = normalize(l);
-  // let H = normalize((*info).V + L);
+  // let H = normalize((*frag).V + L);
 
-  let cosNL = max(dot((*info).N, L), 0.);
+  let cosNL = max(dot((*frag).N, L), 0.);
   // let cosLH = max(dot(L, H), 0.);
   
-  (*info).Ldd += Ep * Fd_Lambert() * cosNL;
+  (*frag).Ldd += Ep * Fd_Lambert() * cosNL;
 }
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
-  var info : RenderInfo;
-  info.pos = in.w_pos;
-  info.V = normalize(globals.camera_pos - info.pos);
-  info.N = normalize(in.w_normal);
-  info.cosNV = max(dot(info.V, info.N), 0.);
+  var frag : RenderInfo;
+  frag.pos = in.w_pos;
+  frag.V = normalize(globals.camera_pos - frag.pos);
+  frag.N = normalize(in.w_normal);
+  frag.cosNV = max(dot(frag.V, frag.N), 0.);
   
-  point_light(&info, 
+  point_light(&frag, 
     vec3f(0, 100, 100),   // position
     vec3f(1),             // color
     400.                  // intensity
   );
 
-  point_light(&info,
+  point_light(&frag,
     vec3f(60, 0, 20),     // position
     vec3f(0, .1, 1),      // color
     200.                  // intensity
   );
 
-  point_light(&info, 
+  point_light(&frag, 
     vec3f(-100, 30, -20), // position
     vec3f(1, .3, .2),     // color 
     500.                  // intensity
   );
 
   let albedo = .5;
-  let L = albedo * info.Ldd;
+  let L = albedo * frag.Ldd;
   let Lf = pow(L / globals.nits, vec3f(1./2.2));
   return vec4f(Lf, 1);
 }
