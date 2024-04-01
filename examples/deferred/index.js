@@ -253,6 +253,9 @@ const update_gbuffer_stream = () => {
   draw_stream.draw({
     shader: shader_module,
     bind_group0: global_bind_group,
+    // dynamic_group: 0,
+    // dynamic_offset0: 0,
+    // dynamic_offset1: 2,
     attribute0: attrib0,
     attribute1: attrib1,
     index: geometry_buffer,

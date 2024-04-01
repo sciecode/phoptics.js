@@ -1,34 +1,46 @@
 const NULL_HANDLE = -1 >>> 0;
 
 const Bits = {
-  shader:         0,
-  bind_group0:    1,
-  bind_group1:    2,
-  bind_group2:    3,
-  attribute0:     4,
-  attribute1:     5,
-  attribute2:     6,
-  attribute4:     7,
-  index:          8,
-  draw_count:     9,
-  vertex_offset:  10,
-  index_offset:   11,
+  shader:           0,
+  bind_group0:      1,
+  bind_group1:      2,
+  bind_group2:      3,
+  dynamic_group:    4,
+  dynamic_offset0:  5,
+  dynamic_offset1:  6,
+  dynamic_offset2:  7,
+  dynamic_offset3:  8,
+  attribute0:       9,
+  attribute1:       10,
+  attribute2:       11,
+  attribute4:       12,
+  index:            13,
+  draw_count:       14,
+  vertex_offset:    15,
+  index_offset:     16,
 }
 
 export const DrawStreamFlags = {
-  shader:         1,
-  bind_group0:    2,
-  bind_group1:    4,
-  bind_group2:    8,
-  attribute0:     16,
-  attribute1:     32,
-  attribute2:     64,
-  attribute4:     128,
-  index:          256,
-  draw_count:     512,
-  vertex_offset:  1024,
-  index_offset:   2048,
+  shader:           1,
+  bind_group0:      2,
+  bind_group1:      4,
+  bind_group2:      8,
+  dynamic_group:    16,
+  dynamic_offset0:  32,
+  dynamic_offset1:  64,
+  dynamic_offset2:  128,
+  dynamic_offset3:  256,
+  attribute0:       512,
+  attribute1:       1024,
+  attribute2:       2048,
+  attribute4:       4096,
+  index:            8192,
+  draw_count:       16384,
+  vertex_offset:    32768,
+  index_offset:     65536,
 }
+
+const is_dynamic = (bit) => bit >= Bits.dynamic_group && bit <= Bits.dynamic_offset3;
 
 export class DrawStream {
   constructor() {
@@ -49,7 +61,7 @@ export class DrawStream {
 
     for (let entry of Object.keys(Bits)) {
       const bit = Bits[entry], data = desc[entry];
-      if (data !== undefined && this.state[bit] != data) {
+      if (data !== undefined && (this.state[bit] != data || is_dynamic(bit))) {
         metadata |= DrawStreamFlags[entry];
         this.stream[++this.offset] = data;
         this.state[bit] = data;

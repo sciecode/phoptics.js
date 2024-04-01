@@ -26,6 +26,7 @@ export class GPUBackend {
       target: rt,
       pass: pass,
       draw: {
+        dynamic_cache: [],
         draw_count: 0,
         vertex_offset: 0,
         index_offset: 0,
@@ -60,6 +61,21 @@ export class GPUBackend {
         const group = this.resources.get_bind_group(group_handle).get_group(this.device, this.resources);
         pass.setBindGroup(i, group);
       }
+    }
+
+    // dynamic group
+    if ((metadata >> 4) & 31) {
+      const group_handle = stream[draw_packet.offset++];
+      const group = this.resources.get_bind_group(group_handle).group;
+      
+      const offsets = draw_packet.draw.dynamic_cache;
+      offsets.length = 0;
+      for (let i = 0; i < 4; i++) {
+        if (metadata & (DrawStreamFlags.dynamic_offset0 << i)) {
+          offsets.push(stream[draw_packet.offset++]);
+        }
+      }
+      pass.setBindGroup(3, group, offsets);
     }
 
     // vertex attributes
