@@ -16,6 +16,12 @@ export class ResourceManager {
     this.samplers = new PoolStorage();
     this.textures = new PoolStorage();
     this.attributes = new PoolStorage();
+
+    this.empty_layout = device.createBindGroupLayout({entries:[]});
+    this.create_bind_group({
+      layout: this.empty_layout,
+      entries: []
+    });
   }
   
   create_render_target(options) {
@@ -118,7 +124,7 @@ export class ResourceManager {
   }
 
   create_shader(options) {
-    return this.shaders.allocate(new Shader(this.device, options));
+    return this.shaders.allocate(new Shader(this.device, this.empty_layout, options));
   }
 
   get_shader(idx) {

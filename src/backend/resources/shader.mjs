@@ -1,6 +1,6 @@
 
 export class Shader {
-  constructor(device, options = {}) {
+  constructor(device, empty_layout, options = {}) {
     this.module = device.createShaderModule({
       code: options.code
     });
@@ -9,11 +9,15 @@ export class Shader {
     this.frag_entry = options.vertex_entry || 'fs';
 
     this.vertex_buffers = options.vertex_buffers;
-    this.layout = (!options.group_layouts || !options.group_layouts.length) ? 
-      'auto' :
-      device.createPipelineLayout({
-        bindGroupLayouts: options.group_layouts,
-      });
+
+    const groups = new Array(4);
+    for (let i = 0; i < 3; i++)
+      groups[i] = options.group_layouts[i] || empty_layout;
+    groups[3] = options.dynamic_layout || empty_layout;
+
+    this.layout = device.createPipelineLayout({
+      bindGroupLayouts: groups,
+    });
 
     this.graphics_pipeline = {
       multisample: options.multisample

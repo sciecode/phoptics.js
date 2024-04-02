@@ -253,9 +253,9 @@ const update_gbuffer_stream = () => {
   draw_stream.draw({
     shader: shader_module,
     bind_group0: global_bind_group,
-    // dynamic_group: 0,
-    // dynamic_offset0: 0,
-    // dynamic_offset1: 2,
+    bind_group1: 0,
+    bind_group2: 0,
+    dynamic_group: 0,
     attribute0: attrib0,
     attribute1: attrib1,
     index: geometry_buffer,
@@ -272,6 +272,8 @@ const update_lighting_stream = () => {
     shader: shader_module1,
     bind_group0: global_bind_group,
     bind_group1: lighting_bind_group,
+    bind_group2: 0,
+    dynamic_group: 0,
     draw_count: 3,
     index_offset: -1,
   });

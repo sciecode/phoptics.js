@@ -10,13 +10,13 @@ import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import { shader } from "../shaders/forward_shader.mjs";
 
-let backend, canvas, shader_module, global_bind_group;
-let draw_stream, global_buffer, global_data, count;
+let backend, canvas, shader_module, global_bind_group, uniform_bind_group;
+let draw_stream, global_buffer, uniform_buffer, global_data, uniform_data, count;
 
 let depth_texture, ms_texture, render_target;
 let attrib0, attrib1, geometry_buffer, index_offset;
-let view_matrix = new Mat3x4(), projection_matrix = new Mat4x4(), 
-    camera_pos = new Vec3(), target = new Vec3();
+let obj_matrix = new Mat3x4(), view_matrix = new Mat3x4(), projection_matrix = new Mat4x4(), 
+    obj_pos = new Vec3(), camera_pos = new Vec3(), target = new Vec3();
 
 const dpr = window.devicePixelRatio;
 let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
@@ -77,6 +77,19 @@ const init = async (geo) => {
     ],
   });
 
+  const uniforms_layout = backend.resources.create_group_layout({
+    entries: [
+      {
+        binding: 0,
+        visibility: GPUShaderStage.VERTEX,
+        buffer: {
+          hasDynamicOffset: true,
+          type: "read-only-storage",
+        },
+      },
+    ],
+  });
+
   const uniforms_size = Mat4x4.byte_size + Mat3x4.byte_size + Vec4.byte_size;
   global_buffer = backend.resources.create_buffer({
     size: uniforms_size,
@@ -98,7 +111,6 @@ const init = async (geo) => {
   view_matrix.view_inverse();
   view_matrix.to(global_data, 16);
 
-
   backend.write_buffer(global_buffer, 0, global_data);
 
   global_bind_group = backend.resources.create_bind_group({
@@ -112,9 +124,31 @@ const init = async (geo) => {
     ]
   });
 
+  uniform_buffer = backend.resources.create_buffer({
+    size: 256,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+  });
+
+  uniform_data = new Float32Array(Mat3x4.byte_size / 4);
+  uniform_data.set(obj_matrix.data);
+
+  backend.write_buffer(uniform_buffer, 0, uniform_data);
+
+  uniform_bind_group = backend.resources.create_bind_group({
+    layout: uniforms_layout,
+    entries: [
+      {
+        binding: 0,
+        type: GPUResource.BUFFER,
+        resource: uniform_buffer,
+      }
+    ]
+  });
+
   shader_module = backend.resources.create_shader({
     code: shader,
     group_layouts: [global_layout],
+    dynamic_layout: uniforms_layout,
     vertex_buffers: [
       {
         arrayStride: 12,
@@ -178,6 +212,10 @@ const update_draw_stream = () => {
   draw_stream.draw({
     shader: shader_module,
     bind_group0: global_bind_group,
+    bind_group1: 0,
+    bind_group2: 0,
+    dynamic_group: uniform_bind_group,
+    dynamic_offset0: 0,
     attribute0: attrib0,
     attribute1: attrib1,
     index: geometry_buffer,
@@ -221,6 +259,12 @@ const animate = () => {
   view_matrix.to(global_data, 16);
 
   backend.write_buffer(global_buffer, 0, global_data);
+
+  obj_pos.y = 20 * Math.sin( angle );
+  obj_matrix.translate(obj_pos);
+  obj_matrix.to(uniform_data);
+
+  backend.write_buffer(uniform_buffer, 0, uniform_data);
 
   update_draw_stream();
 

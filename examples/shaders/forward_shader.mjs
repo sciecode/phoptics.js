@@ -20,11 +20,12 @@ struct GlobalUniforms {
 }
 
 @group(0) @binding(0) var<storage, read> globals: GlobalUniforms;
+@group(3) @binding(0) var<storage, read> obj: mat3x4f; 
 
 @vertex fn vs(attrib : Attributes) -> FragInput {
   var output : FragInput;
 
-  var v_pos = vec4f(attrib.position, 1) * globals.view_matrix;
+  var v_pos = vec4(vec4f(attrib.position, 1) * obj, 1 ) * globals.view_matrix;
   var c_pos = vec4f(v_pos, 1) * globals.projection_matrix;
 
   output.position = c_pos;
