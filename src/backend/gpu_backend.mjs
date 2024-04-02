@@ -26,7 +26,8 @@ export class GPUBackend {
       target: rt,
       pass: pass,
       draw: {
-        dynamic_cache: [],
+        dynamic_group: null,
+        dynamic_cache: new Array(4),
         draw_count: 0,
         vertex_offset: 0,
         index_offset: 0,
@@ -58,23 +59,23 @@ export class GPUBackend {
     for (let i = 0; i < 3; i++) {
       if (metadata & (DrawStreamFlags.bind_group0 << i)) {
         const group_handle = stream[draw_packet.offset++];
-        const group = this.resources.get_bind_group(group_handle).get_group(this.device, this.resources);
+        const group = this.resources.get_bind_group(group_handle).group;
         pass.setBindGroup(i, group);
       }
     }
 
     // dynamic group
     if ((metadata >> 4) & 31) {
-      const group_handle = stream[draw_packet.offset++];
-      const group = this.resources.get_bind_group(group_handle).group;
-      
-      const offsets = draw_packet.draw.dynamic_cache;
-      offsets.length = 0;
-      for (let i = 0; i < 4; i++) {
-        if (metadata & (DrawStreamFlags.dynamic_offset0 << i)) {
-          offsets.push(stream[draw_packet.offset++]);
-        }
-      }
+      let group_handle = metadata & DrawStreamFlags.dynamic_group ?
+        stream[draw_packet.offset++] : draw_packet.draw.dynamic_group;
+      const bind_group = this.resources.get_bind_group(group_handle);
+      const group = bind_group.group;
+
+      const offsets = draw_packet.draw.dynamic_cache.slice(0, bind_group.dynamic_entries);
+      for (let i = 0; i < 4; i++)
+        if (metadata & (DrawStreamFlags.dynamic_offset0 << i))
+          draw_packet.draw.dynamic_cache[i] = offsets[i] = stream[draw_packet.offset++];
+
       pass.setBindGroup(3, group, offsets);
     }
 

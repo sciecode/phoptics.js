@@ -3,10 +3,11 @@ import { GPUResource } from "../constants.mjs";
 export class BindGroup {
   constructor(device, resources, options = {}) {
     this.info = options;
-    this.create_group(device, resources);
+    this.dynamic_entries = options.dynamic_entries || 0;
+    this.update_group(device, resources);
   }
 
-  create_group(device, resources) {
+  update_group(device, resources) {
     const desc = {
       layout: this.info.layout,
       entries: []
@@ -41,20 +42,5 @@ export class BindGroup {
     }
 
     this.group = device.createBindGroup(desc);
-  }
-
-  get_group(device, resources) {
-    for (let entry of this.info.entries) {
-      if (entry.type != GPUResource.TEXTURE) continue;
-
-      const tex = resources.get_texture(entry.resource);
-
-      if (tex.version != entry.version) {
-        this.create_group(device, resources);
-        break;
-      }
-    }
-
-    return this.group;
   }
 }

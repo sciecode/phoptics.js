@@ -40,8 +40,6 @@ export const DrawStreamFlags = {
   index_offset:     65536,
 }
 
-const is_dynamic = (bit) => bit >= Bits.dynamic_group && bit <= Bits.dynamic_offset3;
-
 export class DrawStream {
   constructor() {
     this.state = (new Uint32Array(32)).fill(NULL_HANDLE);
@@ -61,7 +59,7 @@ export class DrawStream {
 
     for (let entry of Object.keys(Bits)) {
       const bit = Bits[entry], data = desc[entry];
-      if (data !== undefined && (this.state[bit] != data || is_dynamic(bit))) {
+      if (data !== undefined && this.state[bit] != data) {
         metadata |= DrawStreamFlags[entry];
         this.stream[++this.offset] = data;
         this.state[bit] = data;

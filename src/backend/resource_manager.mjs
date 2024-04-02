@@ -44,6 +44,10 @@ export class ResourceManager {
     return this.groups.allocate(new BindGroup(this.device, this, options));
   }
 
+  update_bind_group(idx) {
+    return this.groups.get(idx).update_group(this.device, this);
+  }
+
   get_bind_group(idx) {
     return this.groups.get(idx);
   }
@@ -87,6 +91,10 @@ export class ResourceManager {
 
   get_texture(idx) {
     return this.textures.get(idx);
+  }
+
+  update_texture(idx, options) {
+    this.textures.get(idx).update_texture(this.device, options);
   }
 
   destroy_texture(idx) {

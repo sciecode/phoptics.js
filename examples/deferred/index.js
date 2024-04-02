@@ -289,10 +289,12 @@ const auto_resize = () => {
 
     canvas.width = viewport.x;
     canvas.height = viewport.y;
-    backend.resources.get_texture(gbuffer_pos).set_size(viewport.x, viewport.y);
-    backend.resources.get_texture(gbuffer_norm).set_size(viewport.x, viewport.y);
-    backend.resources.get_texture(ms_texture).set_size(viewport.x, viewport.y);
-    backend.resources.get_texture(depth_texture).set_size(viewport.x, viewport.y);
+    const options = { width: viewport.x, height: viewport.y };
+    backend.resources.update_texture(gbuffer_pos, options);
+    backend.resources.update_texture(gbuffer_norm, options);
+    backend.resources.update_texture(ms_texture, options);
+    backend.resources.update_texture(depth_texture, options);
+    backend.resources.update_bind_group(lighting_bind_group);
     
     projection_matrix.projection(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
     global_data[0] = projection_matrix.data[0];

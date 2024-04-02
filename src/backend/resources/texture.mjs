@@ -1,7 +1,6 @@
 export class Texture {
   constructor(device, options = {}) {
     this.version = 0;
-    this.device = device;
     this.texture = device.createTexture({
       format: options.format,
       size: [options.width, options.height],
@@ -10,9 +9,11 @@ export class Texture {
     });
   }
 
-  set_size(w, h) {
+  update_texture(device, options) {
     const current = this.texture;
-    this.texture = this.device.createTexture({
+    const w = options.width || current.width;
+    const h = options.height || current.height;
+    this.texture = device.createTexture({
       format: current.format,
       size: [w, h],
       usage: current.usage,

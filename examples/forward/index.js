@@ -136,6 +136,7 @@ const init = async (geo) => {
 
   uniform_bind_group = backend.resources.create_bind_group({
     layout: uniforms_layout,
+    dynamic_entries: 1,
     entries: [
       {
         binding: 0,
@@ -235,8 +236,9 @@ const auto_resize = () => {
 
     canvas.width = viewport.x;
     canvas.height = viewport.y;
-    backend.resources.get_texture(ms_texture).set_size(viewport.x, viewport.y);
-    backend.resources.get_texture(depth_texture).set_size(viewport.x, viewport.y);
+    const options = { width: viewport.x, height: viewport.y };
+    backend.resources.update_texture(ms_texture, options);
+    backend.resources.update_texture(depth_texture, options);
     
     projection_matrix.projection(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
     global_data[0] = projection_matrix.data[0];
