@@ -125,14 +125,11 @@ const init = async (geo) => {
   });
 
   uniform_buffer = backend.resources.create_buffer({
-    size: 256,
+    size: 512,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
   });
 
-  uniform_data = new Float32Array(Mat3x4.byte_size / 4);
-  uniform_data.set(obj_matrix.data);
-
-  backend.write_buffer(uniform_buffer, 0, uniform_data);
+  uniform_data = new Float32Array(512 / 4);
 
   uniform_bind_group = backend.resources.create_bind_group({
     layout: uniforms_layout,
@@ -142,6 +139,7 @@ const init = async (geo) => {
         binding: 0,
         type: GPUResource.BUFFER,
         resource: uniform_buffer,
+        size: 256,
       }
     ]
   });
@@ -224,6 +222,10 @@ const update_draw_stream = () => {
     vertex_offset: 0,
     index_offset: index_offset,
   });
+
+  draw_stream.draw({
+    dynamic_offset0: 256,
+  });
 }
 
 const auto_resize = () => {
@@ -251,8 +253,8 @@ const animate = () => {
   auto_resize();
 
   const angle = performance.now() / 1000;
-  camera_pos.x = 100 * Math.sin( angle );
-  camera_pos.z = 100 * Math.cos( angle );
+  camera_pos.x = 120 * Math.sin( angle );
+  camera_pos.z = 120 * Math.cos( angle );
   camera_pos.to(global_data, 28);
 
   view_matrix.translate(camera_pos);
@@ -262,9 +264,14 @@ const animate = () => {
 
   backend.write_buffer(global_buffer, 0, global_data);
 
-  obj_pos.y = 20 * Math.sin( angle );
+  obj_pos.x = -30;
+  obj_pos.y = 10 * Math.sin( angle );
   obj_matrix.translate(obj_pos);
   obj_matrix.to(uniform_data);
+
+  obj_pos.x = 30;
+  obj_matrix.translate(obj_pos);
+  obj_matrix.to(uniform_data, 64);
 
   backend.write_buffer(uniform_buffer, 0, uniform_data);
 

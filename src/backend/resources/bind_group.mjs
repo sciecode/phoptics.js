@@ -19,7 +19,7 @@ export class BindGroup {
         case GPUResource.BUFFER:
           res = {
             binding: entry.binding,
-            resource: { buffer: resources.get_buffer(entry.resource) },
+            resource: { buffer: resources.get_buffer(entry.resource), offset: entry.offset, size: entry.size },
           }
           break;
         case GPUResource.TEXTURE:

@@ -1,6 +1,8 @@
 import { ResourceManager } from "./resource_manager.mjs";
 import { DrawStreamFlags } from "./draw_stream.mjs";
 
+const NULL_HANDLE = -1 >>> 0;
+
 export class GPUBackend {
   constructor(adapter, device) {
     this.adapter = adapter;
@@ -66,7 +68,7 @@ export class GPUBackend {
 
     // dynamic group
     if ((metadata >> 4) & 31) {
-      let group_handle = metadata & DrawStreamFlags.dynamic_group ?
+      let group_handle = draw_packet.draw.dynamic_group = metadata & DrawStreamFlags.dynamic_group ?
         stream[draw_packet.offset++] : draw_packet.draw.dynamic_group;
       const bind_group = this.resources.get_bind_group(group_handle);
       const group = bind_group.group;
@@ -112,7 +114,7 @@ export class GPUBackend {
     }
 
     const info = draw_packet.draw;
-    if (info.index_offset === (-1 >>> 0)) {
+    if (info.index_offset === NULL_HANDLE) {
       pass.draw(info.draw_count, 1, info.vertex_offset);
     } else {
       pass.drawIndexed(info.draw_count, 1, info.index_offset, info.vertex_offset);

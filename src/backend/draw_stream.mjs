@@ -57,9 +57,9 @@ export class DrawStream {
   draw(desc) {
     let metadata = 0, draw_offset = this.offset;
 
-    for (let entry of Object.keys(Bits)) {
+    for (let entry of Object.keys(desc)) {
       const bit = Bits[entry], data = desc[entry];
-      if (data !== undefined && this.state[bit] != data) {
+      if (this.state[bit] != data) {
         metadata |= DrawStreamFlags[entry];
         this.stream[++this.offset] = data;
         this.state[bit] = data;
