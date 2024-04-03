@@ -184,6 +184,7 @@ const init = async (geo) => {
 
   shader_module = backend.resources.create_shader({
     code: gbuffer_shader,
+    render_target: gbuffer_target,
     group_layouts: [global_layout],
     vertex_buffers: [
       {
@@ -203,6 +204,7 @@ const init = async (geo) => {
 
   shader_module1 = backend.resources.create_shader({
     code: lighting_shader,
+    render_target: render_target,
     group_layouts: [global_layout, lighting_layout],
     multisample: {
       count: 4,

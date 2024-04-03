@@ -146,6 +146,7 @@ const init = async (geo) => {
 
   shader_module = backend.resources.create_shader({
     code: shader,
+    render_target: render_target,
     group_layouts: [global_layout],
     dynamic_layout: uniforms_layout,
     vertex_buffers: [

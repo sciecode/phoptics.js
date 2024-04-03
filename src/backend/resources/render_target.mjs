@@ -12,13 +12,9 @@ const build_target = (desc) => {
 
 export class RenderTarget {
   constructor(resources, options = {}) {
-    this.pipelines = new WeakMap();
     this.color = options.color.map( (desc) => build_target(desc) );
     this.depth_stencil = build_target(options.depth_stencil);
-    this.parse_formats(resources);
-  }
 
-  parse_formats(resources) {
     this.formats = {
       color: [],
     };
@@ -34,20 +30,7 @@ export class RenderTarget {
     }
   }
 
-  get_pipeline(device, shader) {
-    let pipeline = this.pipelines.get(shader);
-    if (pipeline) return pipeline;
-
-    const descriptor = shader.get_pipeline_descriptor(this.formats);
-    pipeline = device.createRenderPipeline(descriptor);
-    this.pipelines.set(shader, pipeline);
-
-    return pipeline;
-  }
-
   get_render_info(resources) {
-
-    // TODO: cache descriptor, validate if textures changed
 
     const descriptor = {
       colorAttachments: [],

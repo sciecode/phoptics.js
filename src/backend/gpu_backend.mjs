@@ -25,7 +25,6 @@ export class GPUBackend {
     let draw_packet = {
       offset: 0,
       stream: draw_stream.stream,
-      target: rt,
       pass: pass,
       draw: {
         dynamic_group: null,
@@ -46,14 +45,12 @@ export class GPUBackend {
   }
 
   render_packet(draw_packet) {
-    const pass = draw_packet.pass, target = draw_packet.target,
-      stream = draw_packet.stream, metadata = draw_packet.stream[draw_packet.offset++];
+    const pass = draw_packet.pass, stream = draw_packet.stream, metadata = draw_packet.stream[draw_packet.offset++];
 
     // shader
     if (metadata & DrawStreamFlags.shader) {
       const shader_handle = stream[draw_packet.offset++];
-      const shader = this.resources.get_shader(shader_handle);
-      const pipeline = target.get_pipeline(this.device, shader);
+      const pipeline = this.resources.get_shader(shader_handle).pipeline;
       pass.setPipeline(pipeline);
     }
 

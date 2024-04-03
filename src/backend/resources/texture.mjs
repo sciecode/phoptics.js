@@ -1,6 +1,5 @@
 export class Texture {
   constructor(device, options = {}) {
-    this.version = 0;
     this.texture = device.createTexture({
       format: options.format,
       size: [options.width, options.height],
@@ -20,7 +19,6 @@ export class Texture {
       sampleCount: current.sampleCount
     });
     current.destroy();
-    this.version++;
   }
 
   get_format() {

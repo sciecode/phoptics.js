@@ -24,9 +24,7 @@ export class BindGroup {
           break;
         case GPUResource.TEXTURE:
           const tex = resources.get_texture(entry.resource);
-          entry.version = tex.version,
           res = {
-            version: tex.version,
             binding: entry.binding,
             resource: tex.get_view(),
           }

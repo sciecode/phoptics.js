@@ -132,7 +132,7 @@ export class ResourceManager {
   }
 
   create_shader(options) {
-    return this.shaders.allocate(new Shader(this.device, this.empty_layout, options));
+    return this.shaders.allocate(new Shader(this.device, this, options));
   }
 
   get_shader(idx) {
