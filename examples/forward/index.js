@@ -146,25 +146,33 @@ const init = async (geo) => {
 
   shader_module = backend.resources.create_shader({
     code: shader,
-    render_target: render_target,
-    group_layouts: [global_layout],
-    dynamic_layout: uniforms_layout,
-    vertex_buffers: [
-      {
-        arrayStride: 12,
-        attributes: [
-          {shaderLocation: 0, offset: 0, format: 'float32x3'},
-        ],
-      },
-      {
-        arrayStride: 12,
-        attributes: [
-          {shaderLocation: 1, offset: 0, format: 'float32x3'},
-        ],
-      },
-    ],
-    multisample: {
-      count: 4,
+    layouts: {
+      bindings: [global_layout],
+      dynamic: uniforms_layout,
+    },
+    vertex: {
+      buffers: [
+        {
+          arrayStride: 12,
+          attributes: [
+            { shaderLocation: 0, offset: 0, format: 'float32x3' },
+          ],
+        },
+        {
+          arrayStride: 12,
+          attributes: [
+            { shaderLocation: 1, offset: 0, format: 'float32x3' },
+          ],
+        },
+      ],
+    },
+    fragment: {
+      target: render_target,
+    },
+    pipeline: {
+      multisample: {
+        count: 4,
+      }
     }
   });
 
@@ -253,7 +261,7 @@ const animate = () => {
 
   auto_resize();
 
-  const angle = performance.now() / 1000;
+  const angle = performance.now() / 2000;
   camera_pos.x = 120 * Math.sin( angle );
   camera_pos.z = 120 * Math.cos( angle );
   camera_pos.to(global_data, 28);

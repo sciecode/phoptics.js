@@ -184,30 +184,42 @@ const init = async (geo) => {
 
   shader_module = backend.resources.create_shader({
     code: gbuffer_shader,
-    render_target: gbuffer_target,
-    group_layouts: [global_layout],
-    vertex_buffers: [
-      {
-        arrayStride: 12,
-        attributes: [
-          {shaderLocation: 0, offset: 0, format: 'float32x3'},
-        ],
-      },
-      {
-        arrayStride: 12,
-        attributes: [
-          {shaderLocation: 1, offset: 0, format: 'float32x3'},
-        ],
-      },
-    ],
+    layouts: {
+      bindings: [global_layout],
+    },
+    fragment: {
+      target: gbuffer_target,
+    },
+    vertex: {
+      buffers: [
+        {
+          arrayStride: 12,
+          attributes: [
+            {shaderLocation: 0, offset: 0, format: 'float32x3'},
+          ],
+        },
+        {
+          arrayStride: 12,
+          attributes: [
+            {shaderLocation: 1, offset: 0, format: 'float32x3'},
+          ],
+        },
+      ],
+    },
   });
 
   shader_module1 = backend.resources.create_shader({
     code: lighting_shader,
-    render_target: render_target,
-    group_layouts: [global_layout, lighting_layout],
-    multisample: {
-      count: 4,
+    layouts: {
+      bindings: [global_layout, lighting_layout],
+    },
+    fragment: {
+      target: render_target,
+    },
+    pipeline: {
+      multisample: {
+        count: 4,
+      }
     }
   });
 
