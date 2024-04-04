@@ -1,10 +1,6 @@
 
 export class Shader {
   constructor(device, resources, options = {}) {
-    const module = device.createShaderModule({
-      code: options.code
-    });
-
     const formats = resources.get_render_target(options.render_target).formats;
     const empty_layout = resources.empty_layout;
 
@@ -17,29 +13,36 @@ export class Shader {
       bindGroupLayouts: groups,
     });
 
-    const graphics_pipeline = {
-      multisample: options.multisample
-    };
+    const module = device.createShaderModule({
+      code: options.code,
+      hints: {
+        vertexMain: { layout: layout },
+        fragmentMain: { layout: layout },
+      }
+    });
 
     const descriptor = {
       layout: layout,
       vertex: {
         module: module,
+        constants: options.constants,
         entryPoint: options.vertex_entry || 'vs',
         buffers: options.vertex_buffers,
       },
       fragment: {
         module: module,
+        constants: options.constants,
         entryPoint: options.frag_entry || 'fs',
         targets: formats.color,
       },
       depthStencil: !!formats.depth_stencil ? {
-        depthWriteEnabled: true,
-        depthCompare: "greater",
+        depthWriteEnabled: options.depthWrite || true,
+        depthCompare: options.depthTest || "greater-equal",
+        depthBias: options.depthBias,
         format: formats.depth_stencil
       } : undefined,
-        multisample: graphics_pipeline.multisample,
-          primitive: {
+      multisample: options.multisample,
+      primitive: {
         cullMode: "back"
       }
     } 
