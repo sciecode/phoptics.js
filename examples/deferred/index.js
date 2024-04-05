@@ -10,6 +10,9 @@ import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import { gbuffer_shader } from "../shaders/deferred_gbuffer.mjs";
 import { lighting_shader } from "../shaders/deferred_lighting.mjs";
+import { OffsetAllocator } from "../../src/renderers/allocators/offset_allocator.mjs";
+
+window.OA = OffsetAllocator;
 
 let backend, canvas, shader_module, shader_module1;
 let global_bind_group, lighting_bind_group, lighting_layout;

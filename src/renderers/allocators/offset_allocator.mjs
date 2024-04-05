@@ -4,21 +4,19 @@
 
 const UNUSED = (-1 >>> 0);
 const NODE_USED = (1 << 31);
-const NODE_UNUSED_MASK = ~(1 << 31);
+const NODE_UNUSED_MASK = ~NODE_USED;
+
+const NUM_ROWS = 32;
 const MANTISSA_BITS = 3;
 const MANTISSA_VALUE = (1 << MANTISSA_BITS);
 const MANTISSA_MASK = MANTISSA_VALUE - 1;
-const NUM_TOP_BINS = 32;
-const BINS_PER_LEAF = MANTISSA_VALUE;
-const TOP_BINS_INDEX_SHIFT = MANTISSA_BITS;
-const LEAF_BINS_INDEX_MASK = MANTISSA_MASK;
-const NUM_LEAF_BINS = NUM_TOP_BINS * BINS_PER_LEAF;
+const NUM_BINS = NUM_ROWS * MANTISSA_VALUE;
 
 const clz = (x) => Math.clz32(x);
 const ctz = (x) => 31 - Math.clz32(x & -x);
 
 const sm_up = (x) => {
-  if (x >= MANTISSA_VALUE) {
+  if (x > MANTISSA_MASK) {
     const fls = 31 - clz(x);
     const mantissa_start = fls - MANTISSA_BITS;
     const exp = mantissa_start + 1;
@@ -33,7 +31,7 @@ const sm_up = (x) => {
 }
 
 const sm_dn = (x) => {
-  if (x >= MANTISSA_VALUE) {
+  if (x > MANTISSA_MASK) {
     const fls = 31 - clz(x);
     const mantissa_start = fls - MANTISSA_BITS;
     const exp = mantissa_start + 1;
@@ -52,15 +50,16 @@ const sm_ffs = (mask, i) => {
 }
 
 export class OffsetAllocator {
-  constructor(size) {
+  constructor(size, max_alloc = 16 * 1024) {
     this.size = size;
+    this.max_alloc = Math.min(max_alloc, size);
 
     this.bins_top = 0;
-    this.bins = new Uint8Array(NUM_TOP_BINS);
-    this.indices = new Uint32Array(NUM_LEAF_BINS);
+    this.bins = new Uint8Array(NUM_ROWS);
+    this.indices = new Uint32Array(NUM_BINS);
 
-    this.nodes = new Uint32Array(size * 6);
-    this.free_nodes = new Uint32Array(size);
+    this.nodes = new Uint32Array(this.max_alloc * 6);
+    this.free_nodes = new Uint32Array(this.max_alloc);
 
     this.free_storage = 0;
     this.free_offset = 0;
@@ -75,11 +74,11 @@ export class OffsetAllocator {
     this.nodes.fill(UNUSED);
 
     this.free_storage = 0;
-    this.free_offset = this.size - 1;
+    this.free_offset = this.max_alloc - 1;
     
-    for (let i = 0; i < this.size; i++) {
+    for (let i = 0; i < this.max_alloc; i++) {
       const i6 = i * 6;
-      this.free_nodes[i] = this.size - i - 1;
+      this.free_nodes[i] = this.max_alloc - i - 1;
       this.nodes[i6] = 0;
       this.nodes[i6 + 1] = 0;
     }
@@ -91,8 +90,8 @@ export class OffsetAllocator {
     if (!this.free_offset) return undefined;
     
     const min_bin = sm_up(size);
-    const min_fl = min_bin >>> TOP_BINS_INDEX_SHIFT;
-    const min_sl = min_bin & LEAF_BINS_INDEX_MASK;
+    const min_fl = min_bin >>> MANTISSA_BITS;
+    const min_sl = min_bin & MANTISSA_MASK;
     
     let fl = min_fl;
     let sl = UNUSED;
@@ -105,7 +104,7 @@ export class OffsetAllocator {
       sl = ctz(this.bins[fl]);
     }
             
-    const bin = (fl << TOP_BINS_INDEX_SHIFT) | sl;
+    const bin = (fl << MANTISSA_BITS) | sl;
     const node_id = this.indices[bin], c6 = node_id * 6;
 
     const offset = this.nodes[c6];
@@ -114,19 +113,19 @@ export class OffsetAllocator {
     const neighbor_next = this.nodes[c6 + 5];
 
     this.nodes[c6 + 1] = size | NODE_USED;
+    this.free_storage -= total_size;
+
     this.indices[bin] = bin_next;
     if (bin_next != UNUSED) this.nodes[bin_next * 6 + 2] = UNUSED;
-
-    this.free_storage -= total_size;
 
     if (this.indices[bin] == UNUSED) {
       this.bins[fl] &= ~(1 << sl);
       if (this.bins[fl] == 0) this.bins_top &= ~(1 << fl);
     }
     
-    const reminder_size = total_size - size;
-    if (reminder_size > 0) {
-      const new_id = this.insert_node(reminder_size, offset + size), n6 = new_id * 6;
+    const remainder = total_size - size;
+    if (remainder > 0) {
+      const new_id = this.insert_node(remainder, offset + size), n6 = new_id * 6;
       if (neighbor_next != UNUSED) this.nodes[neighbor_next * 6 + 4] = new_id;
       this.nodes[n6 + 4] = node_id;
       this.nodes[n6 + 5] = neighbor_next;
@@ -147,36 +146,27 @@ export class OffsetAllocator {
       offset = this.nodes[p6];
       size += this.nodes[p6 + 1] & NODE_UNUSED_MASK;
       this.remove_node(neighbor_prev);
-      this.nodes[c6 + 4] = this.nodes[p6 + 4];
+
+      neighbor_prev = this.nodes[c6 + 4] = this.nodes[p6 + 4];
+      if (neighbor_prev != UNUSED) this.nodes[neighbor_prev * 6 + 5] = id;
     }
 
     if ((neighbor_next != UNUSED) && !(this.nodes[n6 + 1] & NODE_USED)) {
       size += this.nodes[n6 + 1] & NODE_UNUSED_MASK;
       this.remove_node(neighbor_next);
-      this.nodes[c6 + 5] = this.nodes[n6 + 5];
-    }
 
-    neighbor_prev = this.nodes[c6 + 4], p6 = neighbor_prev * 6;
-    neighbor_next = this.nodes[c6 + 5], n6 = neighbor_next * 6;
+      neighbor_next = this.nodes[c6 + 5] = this.nodes[n6 + 5];
+      if (neighbor_next != UNUSED) this.nodes[neighbor_next * 6 + 4] = id;
+    }
 
     this.free_nodes[++this.free_offset] = id;
-
-    const new_id = this.insert_node(size, offset), nn6 = new_id * 6;
-
-    if (neighbor_next != UNUSED) {
-      this.nodes[nn6 + 5] = neighbor_next;
-      this.nodes[n6 + 4] = new_id;
-    }
-    if (neighbor_prev != UNUSED) {
-      this.nodes[nn6 + 4] = neighbor_prev;
-      this.nodes[p6 + 5] = new_id;
-    }
+    this.insert_node(size, offset);
   }
 
   insert_node(size, offset) {
     const bin = sm_dn(size);
-    const fl = bin >>> TOP_BINS_INDEX_SHIFT;
-    const sl = bin & LEAF_BINS_INDEX_MASK;
+    const fl = bin >>> MANTISSA_BITS;
+    const sl = bin & MANTISSA_MASK;
 
     if (this.indices[bin] == UNUSED) {
       this.bins[fl] |= 1 << sl;
@@ -188,8 +178,8 @@ export class OffsetAllocator {
 
     this.nodes.set([offset, size, UNUSED, node_fl], node_id * 6);
     if (node_fl != UNUSED) this.nodes[node_fl * 6 + 2] = node_id;
+    
     this.indices[bin] = node_id;
-
     this.free_storage += size;
 
     return node_id;
@@ -207,8 +197,8 @@ export class OffsetAllocator {
       if (bin_next != UNUSED) this.nodes[bin_next * 6 + 2] = bin_prev;
     } else {
       const bin = sm_dn(size);
-      const fl = bin >>> TOP_BINS_INDEX_SHIFT;
-      const sl = bin & LEAF_BINS_INDEX_MASK;
+      const fl = bin >>> MANTISSA_BITS;
+      const sl = bin & MANTISSA_MASK;
       
       this.indices[bin] = bin_next;
       if (bin_next != UNUSED) this.nodes[bin_next * 6 + 2] = UNUSED;
