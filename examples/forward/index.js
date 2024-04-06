@@ -1,6 +1,7 @@
 import { GPUBackend } from "../../src/backend/gpu_backend.mjs";
 import { GPUResource } from "../../src/backend/constants.mjs";
 import { DrawStream } from "../../src/backend/draw_stream.mjs";
+import { DynamicBindings } from "../../src/backend/dynamic_bindings.mjs";
 
 import { Vec3 } from "../../src/datatypes/vec3.mjs";
 import { Vec4 } from "../../src/datatypes/vec4.mjs";
@@ -10,8 +11,10 @@ import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import { shader } from "../shaders/forward_shader.mjs";
 
-let backend, canvas, shader_module, global_bind_group, uniform_bind_group;
-let draw_stream, global_buffer, uniform_buffer, global_data, uniform_data, count;
+let backend, canvas, shader_module, global_bind_group;
+let draw_stream, global_buffer, global_data, count;
+
+let dynamic_bindings, uniform_binding;
 
 let depth_texture, ms_texture, render_target;
 let attrib0, attrib1, geometry_buffer, index_offset;
@@ -76,20 +79,12 @@ const init = async (geo) => {
       },
     ],
   });
-
-  const uniforms_layout = backend.resources.create_group_layout({
-    entries: [
-      {
-        binding: 0,
-        visibility: GPUShaderStage.VERTEX,
-        buffer: {
-          hasDynamicOffset: true,
-          type: "read-only-storage",
-        },
-      },
-    ],
-  });
-
+  
+  dynamic_bindings = new DynamicBindings(backend);
+  uniform_binding = dynamic_bindings.create_dynamic_binding([
+    { binding: 0, size: Mat3x4.byte_size },
+  ]);
+  
   const uniforms_size = Mat4x4.byte_size + Mat3x4.byte_size + Vec4.byte_size;
   global_buffer = backend.resources.create_buffer({
     size: uniforms_size,
@@ -124,31 +119,11 @@ const init = async (geo) => {
     ]
   });
 
-  uniform_buffer = backend.resources.create_buffer({
-    size: 512,
-    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-  });
-
-  uniform_data = new Float32Array(512 / 4);
-
-  uniform_bind_group = backend.resources.create_bind_group({
-    layout: uniforms_layout,
-    dynamic_entries: 1,
-    entries: [
-      {
-        binding: 0,
-        type: GPUResource.BUFFER,
-        resource: uniform_buffer,
-        size: 256,
-      }
-    ]
-  });
-
   shader_module = backend.resources.create_shader({
     code: shader,
     layouts: {
       bindings: [global_layout],
-      dynamic: uniforms_layout,
+      dynamic: dynamic_bindings.get_layout(uniform_binding),
     },
     vertex: {
       buffers: [
@@ -214,16 +189,24 @@ const init = async (geo) => {
   animate();
 }
 
-const update_draw_stream = () => {
+const update_draw_stream = (angle) => {
+  let bind_info;
+  dynamic_bindings.reset();
   draw_stream.clear();
+
+  obj_pos.x = -30;
+  obj_pos.y = 10 * Math.sin(angle);
+  obj_matrix.translate(obj_pos);
+  bind_info = dynamic_bindings.allocate(uniform_binding);
+  dynamic_bindings.writer.f32_array(obj_matrix.data, bind_info.offsets[0]);
 
   draw_stream.draw({
     shader: shader_module,
     bind_group0: global_bind_group,
     bind_group1: 0,
     bind_group2: 0,
-    dynamic_group: uniform_bind_group,
-    dynamic_offset0: 0,
+    dynamic_group: bind_info.group,
+    dynamic_offset0: bind_info.offsets[0],
     attribute0: attrib0,
     attribute1: attrib1,
     index: geometry_buffer,
@@ -232,9 +215,18 @@ const update_draw_stream = () => {
     index_offset: index_offset,
   });
 
+  obj_pos.x = 30;
+  obj_pos.y = -10 * Math.sin(angle);
+  obj_matrix.translate(obj_pos);
+  bind_info = dynamic_bindings.allocate(uniform_binding);
+  dynamic_bindings.writer.f32_array(obj_matrix.data, bind_info.offsets[0]);
+
   draw_stream.draw({
-    dynamic_offset0: 256,
+    dynamic_group: bind_info.group,
+    dynamic_offset0: bind_info.offsets[0],
   });
+
+  dynamic_bindings.write();
 }
 
 const auto_resize = () => {
@@ -273,18 +265,7 @@ const animate = () => {
 
   backend.write_buffer(global_buffer, 0, global_data);
 
-  obj_pos.x = -30;
-  obj_pos.y = 10 * Math.sin( angle );
-  obj_matrix.translate(obj_pos);
-  obj_matrix.to(uniform_data);
-
-  obj_pos.x = 30;
-  obj_matrix.translate(obj_pos);
-  obj_matrix.to(uniform_data, 64);
-
-  backend.write_buffer(uniform_buffer, 0, uniform_data);
-
-  update_draw_stream();
+  update_draw_stream(angle);
 
   backend.render(render_target, draw_stream);
 }
