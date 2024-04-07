@@ -1,9 +1,21 @@
 import { GPUResource } from "./constants.mjs";
-import { BufferWriter } from "./buffer_writer.mjs";
 
 const MASK = 255;
 const BUFFER_SIZE = 1024 * 1024 * 128;
 const calculate_size_aligned = (x) => (x + MASK) & ~MASK;
+
+class BufferWriter {
+  constructor(buffer) {
+    this.buffer = buffer;
+    this.f32 = new Float32Array(this.buffer);
+    this.u32 = new Uint32Array(this.buffer);
+    this.u8 = new Uint8Array(this.buffer);
+  }
+
+  f32_array(array, byte_offset) {
+    this.f32.set(array, byte_offset >> 2);
+  }
+}
 
 export class DynamicBindings {
   constructor(backend) {
@@ -93,7 +105,7 @@ export class DynamicBindings {
     this.offset = 0;
   }
 
-  write() {
+  commit() {
     this.backend.write_buffer(this.buffer, 0, this.writer.buffer, 0, this.offset);
   }
 }

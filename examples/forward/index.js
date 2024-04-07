@@ -85,16 +85,15 @@ const init = async (geo) => {
     { binding: 0, size: Mat3x4.byte_size },
   ]);
   
-  const uniforms_size = Mat4x4.byte_size + Mat3x4.byte_size + Vec4.byte_size;
+  const global_size = Mat4x4.byte_size + Mat3x4.byte_size + Vec4.byte_size;
   global_buffer = backend.resources.create_buffer({
-    size: uniforms_size,
+    size: global_size,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
   });
 
-  global_data = new Float32Array(uniforms_size / 4);
+  global_data = new Float32Array(global_size / 4);
 
   target.set(0, 30, 0);
-
   camera_pos.y = 30;
   camera_pos.to(global_data, 28);
   global_data[31] = 250;
@@ -198,7 +197,7 @@ const update_draw_stream = (angle) => {
   obj_pos.y = 10 * Math.sin(angle);
   obj_matrix.translate(obj_pos);
   bind_info = dynamic_bindings.allocate(uniform_binding);
-  dynamic_bindings.writer.f32_array(obj_matrix.data, bind_info.offsets[0]);
+  dynamic_bindings.writer.f32_array(obj_matrix, bind_info.offsets[0]);
 
   draw_stream.draw({
     shader: shader_module,
@@ -219,14 +218,14 @@ const update_draw_stream = (angle) => {
   obj_pos.y = -10 * Math.sin(angle);
   obj_matrix.translate(obj_pos);
   bind_info = dynamic_bindings.allocate(uniform_binding);
-  dynamic_bindings.writer.f32_array(obj_matrix.data, bind_info.offsets[0]);
+  dynamic_bindings.writer.f32_array(obj_matrix, bind_info.offsets[0]);
 
   draw_stream.draw({
     dynamic_group: bind_info.group,
     dynamic_offset0: bind_info.offsets[0],
   });
 
-  dynamic_bindings.write();
+  dynamic_bindings.commit();
 }
 
 const auto_resize = () => {
@@ -244,7 +243,7 @@ const auto_resize = () => {
     backend.resources.update_texture(depth_texture, options);
     
     projection_matrix.projection(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
-    global_data[0] = projection_matrix.data[0];
+    global_data[0] = projection_matrix[0];
   }
 }
 

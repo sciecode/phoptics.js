@@ -1,25 +1,25 @@
 import { Vec3 } from "./vec3.mjs";
 
-export class Mat3x4 {
+export class Mat3x4 extends Float32Array {
   static byte_size = 48;
 
   constructor() {
-    this.data = new Float32Array(12);
-    this.data[0] = this.data[5] = this.data[10] = 1;
+    super(12); 
+    this[0] = this[5] = this[10] = 1;
   }
 
   to(buf, offset) {
-    buf.set(this.data, offset);
+    buf.set(this, offset);
     return this;
   }
 
   copy(mat) {
-    this.data.set(mat.data);
+    super.set(mat);
     return this;
   }
 
   transpose() {
-    const m = this.data;
+    const m = this;
     let tmp = m[1]; m[1] = m[4]; m[4] = tmp;
         tmp = m[2]; m[2] = m[8]; m[8] = tmp;
         tmp = m[6]; m[6] = m[9]; m[9] = tmp; 
@@ -29,7 +29,7 @@ export class Mat3x4 {
 
   mul(mat) {
     let x, y, z;
-    const m = this.data, n = mat.data;
+    const m = this, n = mat;
 
     x = m[0], y = m[1], z = m[2];
     m[0]  = x * n[0] + y * n[4] + z * n[8];
@@ -53,7 +53,7 @@ export class Mat3x4 {
   }
 
   translate(pos) {
-    const m = this.data, v = pos.data;
+    const m = this, v = pos;
 
     m[3] = v[0]; m[7] = v[1]; m[11] = v[2];
     return this;
@@ -64,20 +64,20 @@ export class Mat3x4 {
   }
 
   look_at(v) {
-    const m = this.data;
+    const m = this;
     const _z = t0.set(m[3], m[7], m[11]).sub(v).normalize();
     const _x = t1.set(0, 1, 0).cross(_z);
     const _y = t2.copy(_z).cross(_x);
 
-    m[0] = _x.data[0], m[1] = _y.data[0], m[2]  = _z.data[0];
-    m[4] = _x.data[1], m[5] = _y.data[1], m[6]  = _z.data[1];
-    m[8] = _x.data[2], m[9] = _y.data[2], m[10] = _z.data[2];
+    m[0] = _x[0], m[1] = _y[0], m[2]  = _z[0];
+    m[4] = _x[1], m[5] = _y[1], m[6]  = _z[1];
+    m[8] = _x[2], m[9] = _y[2], m[10] = _z[2];
 
     return this;
   }
 
   view_inverse() {
-    const m = this.data;
+    const m = this;
 
     this.transpose();
 
@@ -90,7 +90,7 @@ export class Mat3x4 {
   }
 
   inverse() {
-    const m = this.data;
+    const m = this;
 
     let x = m[0], y = m[4], z = m[8];
     const sx = 1 / (x * x + y * y + z * z);

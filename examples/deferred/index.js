@@ -314,7 +314,7 @@ const auto_resize = () => {
     backend.resources.update_bind_group(lighting_bind_group);
     
     projection_matrix.projection(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
-    global_data[0] = projection_matrix.data[0];
+    global_data[0] = projection_matrix[0];
   }
 }
 
