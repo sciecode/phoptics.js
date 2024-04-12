@@ -51,16 +51,14 @@ const init = async (geo) => {
   }
 
   ms_texture = backend.resources.create_texture({
-    width: viewport.x,
-    height: viewport.y,
+    size: { width: viewport.x, height: viewport.y },
     format: render_pass_formats.color[0],
     usage: GPUTextureUsage.RENDER_ATTACHMENT,
     sampleCount: 4,
   });
 
   depth_texture = backend.resources.create_texture({
-    width: viewport.x,
-    height: viewport.y,
+    size: { width: viewport.x, height: viewport.y },
     format: render_pass_formats.depth,
     usage: GPUTextureUsage.RENDER_ATTACHMENT,
     sampleCount: 4,
@@ -202,15 +200,16 @@ const update_draw_stream = (angle) => {
   bind_info = dynamic_bindings.allocate(uniform_binding);
   dynamic_bindings.writer.f32_array(obj_matrix, bind_info.offsets[0]);
 
+  draw_stream.set_shader(shader_module);
+  draw_stream.set_globals(global_bind_group);
+  draw_stream.set_variant(0);
+  draw_stream.set_material(0);
+  draw_stream.set_dynamic(bind_info.group);
+  draw_stream.set_dynamic_offset(0, bind_info.offsets[0]);
+  draw_stream.set_attribute(0, attrib0);
+  draw_stream.set_attribute(1, attrib1);
+
   draw_stream.draw({
-    shader: shader_module,
-    bind_group0: global_bind_group,
-    bind_group1: 0,
-    bind_group2: 0,
-    dynamic_group: bind_info.group,
-    dynamic_offset0: bind_info.offsets[0],
-    attribute0: attrib0,
-    attribute1: attrib1,
     index: geometry_buffer,
     draw_count: count,
     vertex_offset: 0,
@@ -223,10 +222,9 @@ const update_draw_stream = (angle) => {
   bind_info = dynamic_bindings.allocate(uniform_binding);
   dynamic_bindings.writer.f32_array(obj_matrix, bind_info.offsets[0]);
 
-  draw_stream.draw({
-    dynamic_group: bind_info.group,
-    dynamic_offset0: bind_info.offsets[0],
-  });
+  draw_stream.set_dynamic(bind_info.group);
+  draw_stream.set_dynamic_offset(0, bind_info.offsets[0]);
+  draw_stream.draw();
 
   dynamic_bindings.commit();
 }
@@ -241,7 +239,7 @@ const auto_resize = () => {
 
     canvas.width = viewport.x;
     canvas.height = viewport.y;
-    const options = { width: viewport.x, height: viewport.y };
+    const options = { size: { width: viewport.x, height: viewport.y } };
     backend.resources.update_texture(ms_texture, options);
     backend.resources.update_texture(depth_texture, options);
     

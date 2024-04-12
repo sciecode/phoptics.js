@@ -52,8 +52,7 @@ const init = async (geo) => {
   }
   
   ms_texture = backend.resources.create_texture({
-    width: viewport.x,
-    height: viewport.y,
+    size: { width: viewport.x, height: viewport.y },
     format: render_pass_formats.color[0],
     usage: GPUTextureUsage.RENDER_ATTACHMENT,
     sampleCount: 4,
@@ -65,22 +64,19 @@ const init = async (geo) => {
   }
 
   gbuffer_pos = backend.resources.create_texture({
-    width: viewport.x,
-    height: viewport.y,
+    size: { width: viewport.x, height: viewport.y },
     format: gbuffer_pass_formats.color[0],
     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
   });
 
   gbuffer_norm = backend.resources.create_texture({
-    width: viewport.x,
-    height: viewport.y,
+    size: { width: viewport.x, height: viewport.y },
     format: gbuffer_pass_formats.color[1],
     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
   });
 
   depth_texture = backend.resources.create_texture({
-    width: viewport.x,
-    height: viewport.y,
+    size: { width: viewport.x, height: viewport.y },
     format: gbuffer_pass_formats.depth,
     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
   });
@@ -272,14 +268,15 @@ const init = async (geo) => {
 const update_gbuffer_stream = () => {
   draw_stream.clear();
 
+  draw_stream.set_shader(shader_module);
+  draw_stream.set_globals(global_bind_group);
+  draw_stream.set_variant(0);
+  draw_stream.set_material(0);
+  draw_stream.set_dynamic(0);
+  draw_stream.set_attribute(0, attrib0);
+  draw_stream.set_attribute(1, attrib1);
+
   draw_stream.draw({
-    shader: shader_module,
-    bind_group0: global_bind_group,
-    bind_group1: 0,
-    bind_group2: 0,
-    dynamic_group: 0,
-    attribute0: attrib0,
-    attribute1: attrib1,
     index: geometry_buffer,
     draw_count: count,
     vertex_offset: 0,
@@ -290,12 +287,13 @@ const update_gbuffer_stream = () => {
 const update_lighting_stream = () => {
   draw_stream.clear();
 
+  draw_stream.set_shader(shader_module1);
+  draw_stream.set_globals(global_bind_group);
+  draw_stream.set_variant(lighting_bind_group);
+  draw_stream.set_material(0);
+  draw_stream.set_dynamic(0);
+
   draw_stream.draw({
-    shader: shader_module1,
-    bind_group0: global_bind_group,
-    bind_group1: lighting_bind_group,
-    bind_group2: 0,
-    dynamic_group: 0,
     draw_count: 3,
     index_offset: -1,
   });
@@ -311,7 +309,7 @@ const auto_resize = () => {
 
     canvas.width = viewport.x;
     canvas.height = viewport.y;
-    const options = { width: viewport.x, height: viewport.y };
+    const options = { size: { width: viewport.x, height: viewport.y } };
     backend.resources.update_texture(gbuffer_pos, options);
     backend.resources.update_texture(gbuffer_norm, options);
     backend.resources.update_texture(ms_texture, options);

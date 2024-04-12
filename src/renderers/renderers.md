@@ -1,4 +1,4 @@
-- [x] ShaderLayout
+- [ ] ShaderLayout
   - [ ] Receives RenderPass - formats & per_pass bind layout
   - [ ] Receives per_shader, per_material, per_draw binding layouts
   - [ ] Creates Pipeline Layout

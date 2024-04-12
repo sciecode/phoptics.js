@@ -2,10 +2,7 @@ export class Texture {
   constructor(device, options = {}) {
     this.texture = device.createTexture({
       format: options.format,
-      size: { 
-        width: options.width,
-        height: options.height, 
-      },
+      size: options.size,
       usage: options.usage,
       sampleCount: options.sampleCount,
       dimensions: options.dimensions,
@@ -17,10 +14,7 @@ export class Texture {
     const current = this.texture;
     this.texture = device.createTexture({
       format: current.format,
-      size: { 
-        width: options.width || current.width,
-        height: options.height || current.height,
-      },
+      size: options.size,
       usage: current.usage,
       sampleCount: current.sampleCount,
       dimensions: options.dimensions,
