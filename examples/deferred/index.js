@@ -47,33 +47,42 @@ const init = async (geo) => {
     canvas: canvas
   });
 
+  const render_pass_formats = {
+    color: [navigator.gpu.getPreferredCanvasFormat()]
+  }
+  
   ms_texture = backend.resources.create_texture({
     width: viewport.x,
     height: viewport.y,
-    format: navigator.gpu.getPreferredCanvasFormat(),
+    format: render_pass_formats.color[0],
     usage: GPUTextureUsage.RENDER_ATTACHMENT,
     sampleCount: 4,
   });
 
+  const gbuffer_pass_formats = {
+    color: ["rgba32float", "rgba32float"],
+    depth: "depth24plus"
+  }
+
   gbuffer_pos = backend.resources.create_texture({
     width: viewport.x,
     height: viewport.y,
-    format: "rgba32float",
+    format: gbuffer_pass_formats.color[0],
     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
   });
 
   gbuffer_norm = backend.resources.create_texture({
     width: viewport.x,
     height: viewport.y,
-    format: "rgba32float",
+    format: gbuffer_pass_formats.color[1],
     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
   });
 
   depth_texture = backend.resources.create_texture({
     width: viewport.x,
     height: viewport.y,
-    format: "depth24plus",
-    usage: GPUTextureUsage.RENDER_ATTACHMENT,
+    format: gbuffer_pass_formats.depth,
+    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
   });
   
   gbuffer_target = backend.resources.create_render_target({
@@ -187,11 +196,9 @@ const init = async (geo) => {
 
   shader_module = backend.resources.create_shader({
     code: gbuffer_shader,
+    formats: gbuffer_pass_formats,
     layouts: {
       bindings: [global_layout],
-    },
-    fragment: {
-      target: gbuffer_target,
     },
     vertex: {
       buffers: [
@@ -213,11 +220,9 @@ const init = async (geo) => {
 
   shader_module1 = backend.resources.create_shader({
     code: lighting_shader,
+    formats: render_pass_formats,
     layouts: {
       bindings: [global_layout, lighting_layout],
-    },
-    fragment: {
-      target: render_target,
     },
     pipeline: {
       multisample: {

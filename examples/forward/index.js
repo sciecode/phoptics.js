@@ -45,10 +45,15 @@ const init = async (geo) => {
     canvas: canvas
   });
 
+  const render_pass_formats = {
+    color: [navigator.gpu.getPreferredCanvasFormat()],
+    depth: "depth24plus",
+  }
+
   ms_texture = backend.resources.create_texture({
     width: viewport.x,
     height: viewport.y,
-    format: navigator.gpu.getPreferredCanvasFormat(),
+    format: render_pass_formats.color[0],
     usage: GPUTextureUsage.RENDER_ATTACHMENT,
     sampleCount: 4,
   });
@@ -56,7 +61,7 @@ const init = async (geo) => {
   depth_texture = backend.resources.create_texture({
     width: viewport.x,
     height: viewport.y,
-    format: "depth24plus",
+    format: render_pass_formats.depth,
     usage: GPUTextureUsage.RENDER_ATTACHMENT,
     sampleCount: 4,
   });
@@ -120,6 +125,7 @@ const init = async (geo) => {
 
   shader_module = backend.resources.create_shader({
     code: shader,
+    formats: render_pass_formats,
     layouts: {
       bindings: [global_layout],
       dynamic: dynamic_bindings.get_layout(uniform_binding),
@@ -139,9 +145,6 @@ const init = async (geo) => {
           ],
         },
       ],
-    },
-    fragment: {
-      target: render_target,
     },
     pipeline: {
       multisample: {

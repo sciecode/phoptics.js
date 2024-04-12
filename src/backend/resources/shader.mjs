@@ -1,7 +1,7 @@
 
 export class Shader {
   constructor(device, resources, options = {}) {
-    const formats = resources.get_render_target(options.fragment.target).formats;
+    const formats = options.formats;
 
     const vertex = options.vertex || {};
     const desc_pipeline = options.pipeline || {};
@@ -23,10 +23,6 @@ export class Shader {
 
     const module = device.createShaderModule({
       code: options.code,
-      hints: {
-        vertexMain: { layout: layout },
-        fragmentMain: { layout: layout },
-      }
     });
 
     const descriptor = {
@@ -40,19 +36,19 @@ export class Shader {
       fragment: {
         module: module,
         constants: options.constants,
-        entryPoint: options.fragment.entry || 'fs',
-        targets: formats.color.map( entry => { 
+        entryPoint: options.fragment?.entry || 'fs',
+        targets: formats.color.map( format => { 
           return {
-            format: entry.format,
+            format: format,
             blend: blend
           };
         }),
       },
-      depthStencil: !!formats.depth_stencil ? {
+      depthStencil: !!formats.depth ? {
         depthWriteEnabled: depth.write || true,
         depthCompare: depth.test || "greater-equal",
         depthBias: depth.bias,
-        format: formats.depth_stencil
+        format: formats.depth
       } : undefined,
       multisample: desc_pipeline.multisample,
       primitive: {

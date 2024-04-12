@@ -36,11 +36,11 @@ struct GlobalUniforms {
 }
 
 struct RenderInfo {
-  Ldd   : vec3f,
-  pos   : vec3f,
-  V     : vec3f,
-  N     : vec3f,
-  cosNV : f32
+  Ld_dif    : vec3f,
+  pos       : vec3f,
+  V         : vec3f,
+  N         : vec3f,
+  cosNV     : f32
 }
 
 fn Fd_Lambert() -> f32 {
@@ -58,7 +58,7 @@ fn point_light(frag : ptr<function, RenderInfo>, l_pos : vec3f, l_color : vec3f,
   let cosNL = max(dot((*frag).N, L), 0.);
   // let cosLH = max(dot(L, H), 0.);
   
-  (*frag).Ldd += Ep * Fd_Lambert() * cosNL;
+  (*frag).Ld_dif += Ep * Fd_Lambert() * cosNL;
 }
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
@@ -68,7 +68,7 @@ fn point_light(frag : ptr<function, RenderInfo>, l_pos : vec3f, l_color : vec3f,
   frag.N = normalize(in.w_normal);
   frag.cosNV = max(dot(frag.V, frag.N), 0.);
   
-  point_light(&frag, 
+  point_light(&frag,
     vec3f(0, 100, 100),   // position
     vec3f(1),             // color
     400.                  // intensity
@@ -80,14 +80,14 @@ fn point_light(frag : ptr<function, RenderInfo>, l_pos : vec3f, l_color : vec3f,
     200.                  // intensity
   );
 
-  point_light(&frag, 
+  point_light(&frag,
     vec3f(-100, 30, -20), // position
     vec3f(1, .3, .2),     // color 
     500.                  // intensity
   );
 
   let albedo = .5;
-  let L = albedo * frag.Ldd;
+  let L = albedo * frag.Ld_dif;
   let Lf = pow(L / globals.nits, vec3f(1./2.2));
   return vec4f(Lf, 1);
 }

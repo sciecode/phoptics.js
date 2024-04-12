@@ -38,11 +38,11 @@ struct GlobalUniforms {
 }
 
 struct RenderInfo {
-  Ldd   : vec3f,
-  pos   : vec3f,
-  V     : vec3f,
-  N     : vec3f,
-  cosNV : f32
+  Ld_dif    : vec3f,
+  pos       : vec3f,
+  V         : vec3f,
+  N         : vec3f,
+  cosNV     : f32
 }
 
 fn Fd_Lambert() -> f32 {
@@ -60,7 +60,7 @@ fn point_light(frag : ptr<function, RenderInfo>, l_pos : vec3f, l_color : vec3f,
   let cosNL = max(dot((*frag).N, L), 0.);
   // let cosLH = max(dot(L, H), 0.);
 
-  (*frag).Ldd += Ep * Fd_Lambert() * cosNL;
+  (*frag).Ld_dif += Ep * Fd_Lambert() * cosNL;
 }
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
@@ -94,7 +94,7 @@ fn point_light(frag : ptr<function, RenderInfo>, l_pos : vec3f, l_color : vec3f,
   );
 
   let albedo = .5;
-  let L = albedo * frag.Ldd;
+  let L = albedo * frag.Ld_dif;
   let Lf = pow(L / globals.nits, vec3f(1./2.2));
   return vec4f(Lf, 1);
 }
