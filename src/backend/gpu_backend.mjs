@@ -4,8 +4,7 @@ import { ResourceManager } from "./resource_manager.mjs";
 const NULL_HANDLE = -1 >>> 0;
 
 export class GPUBackend {
-  constructor(adapter, device) {
-    this.adapter = adapter;
+  constructor(device) {
     this.device = device;
     this.resources = new ResourceManager(this.device);
   }
@@ -15,9 +14,8 @@ export class GPUBackend {
     this.device.queue.writeBuffer(buffer, buffer_offset, data, data_offset, data_size);
   }
 
-  render(rt_handle, draw_stream) {
-    const rt = this.resources.get_render_target(rt_handle);
-    const descriptor = rt.get_render_info(this.resources);
+  render(rt, draw_stream) {
+    const descriptor = render_pass_info(this.resources, rt);
 
     const encoder = this.device.createCommandEncoder();
     const pass = encoder.beginRenderPass(descriptor);
@@ -117,4 +115,34 @@ export class GPUBackend {
       pass.drawIndexed(info.draw_count, 1, info.index_offset, info.vertex_offset);
     }
   }
+}
+
+const render_pass_info = (resources, rt) => {
+  const descriptor = {
+    colorAttachments: [],
+  };
+
+  for (let attachment of rt.attachments.color) {
+    const texture = resources.get_texture(attachment.texture);
+    const resolve = attachment.resolve !== undefined ? resources.get_texture(attachment.resolve) : undefined;
+    descriptor.colorAttachments.push({
+      view: texture.get_view(attachment.view),
+      resolveTarget: resolve?.get_view(attachment.view),
+      clearValue: attachment.clear,
+      loadOp: attachment.load,
+      storeOp: attachment.store
+    })
+  }
+
+  if (rt.attachments.depth) {
+    const texture = resources.get_texture(rt.attachments.depth.texture);
+    descriptor.depthStencilAttachment = {
+      view: texture.get_view(rt.attachments.depth.view),
+      depthClearValue: rt.attachments.depth.clear,
+      depthLoadOp: rt.attachments.depth.load,
+      depthStoreOp: rt.attachments.depth.store
+    }
+  }
+
+  return descriptor;
 }

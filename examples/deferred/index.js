@@ -1,6 +1,7 @@
 import { GPUBackend } from "../../src/backend/gpu_backend.mjs";
 import { GPUResource } from "../../src/backend/constants.mjs";
-import { DrawStream } from "../../src/renderers/common/draw_stream.mjs";
+import { Renderer } from "../../src/renderer/renderer.mjs";
+import { DrawStream } from "../../src/renderer/common/draw_stream.mjs";
 
 import { Vec3 } from "../../src/datatypes/vec3.mjs";
 import { Vec4 } from "../../src/datatypes/vec4.mjs";
@@ -10,15 +11,12 @@ import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import { gbuffer_shader } from "../shaders/deferred_gbuffer.mjs";
 import { lighting_shader } from "../shaders/deferred_lighting.mjs";
-import { OffsetAllocator } from "../../src/renderers/allocators/offset_allocator.mjs";
-
-window.OA = OffsetAllocator;
 
 let backend, canvas, shader_module, shader_module1;
 let global_bind_group, lighting_bind_group, lighting_layout;
 let draw_stream, global_buffer, global_data, count;
 
-let depth_texture, ms_texture, gbuffer_pos, gbuffer_norm, gbuffer_target, render_target, sampler;
+let gbuffer_pos, gbuffer_norm, gbuffer_target, render_target, sampler;
 let attrib0, attrib1, geometry_buffer, index_offset;
 let view_matrix = new Mat3x4(), projection_matrix = new Mat4x4(), 
     camera_pos = new Vec3(), target = new Vec3();
@@ -41,58 +39,42 @@ const init = async (geo) => {
   });
 
   const device = await adapter.requestDevice();
-  backend = new GPUBackend(adapter, device);
+
+  const renderer = new Renderer(device);
+  backend = renderer.backend;
 
   const canvas_texture = backend.resources.create_texture({
     canvas: canvas
   });
 
-  const render_pass_formats = {
-    color: [navigator.gpu.getPreferredCanvasFormat()]
-  }
-  
-  ms_texture = backend.resources.create_texture({
-    size: { width: viewport.x, height: viewport.y },
-    format: render_pass_formats.color[0],
-    usage: GPUTextureUsage.RENDER_ATTACHMENT,
-    sampleCount: 4,
+  const render_pass = renderer.resources.create_render_pass({
+    multisampled: true,
+    formats: { 
+      color: [navigator.gpu.getPreferredCanvasFormat()],
+    }
   });
 
-  const gbuffer_pass_formats = {
-    color: ["rgba32float", "rgba32float"],
-    depth: "depth24plus"
-  }
-
-  gbuffer_pos = backend.resources.create_texture({
+  render_target = renderer.resources.create_render_target(render_pass, {
     size: { width: viewport.x, height: viewport.y },
-    format: gbuffer_pass_formats.color[0],
-    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-  });
-
-  gbuffer_norm = backend.resources.create_texture({
-    size: { width: viewport.x, height: viewport.y },
-    format: gbuffer_pass_formats.color[1],
-    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-  });
-
-  depth_texture = backend.resources.create_texture({
-    size: { width: viewport.x, height: viewport.y },
-    format: gbuffer_pass_formats.depth,
-    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-  });
-  
-  gbuffer_target = backend.resources.create_render_target({
     color: [
-      { target: gbuffer_pos, clear: [0, 0, 0, 0] },
-      { target: gbuffer_norm, clear: [0, 0, 0, 0] }
+      { resolve: canvas_texture, clear: [.05, .05, .05, 1] },
     ],
-    depth_stencil: { target: depth_texture, clear: 0 }
   });
 
-  render_target = backend.resources.create_render_target({
+  const gbuffer_pass = renderer.resources.create_render_pass({
+    formats: {
+      color: ["rgba32float", "rgba32float"],
+      depth: "depth24plus"
+    }
+  });
+
+  gbuffer_target = renderer.resources.create_render_target(gbuffer_pass, {
+    size: { width: viewport.x, height: viewport.y },
     color: [
-      { target: ms_texture, resolve: canvas_texture, clear: [.05, .05, .05, 1] }
+      { clear: [0, 0, 0, 0] },
+      { clear: [0, 0, 0, 0] },
     ],
+    depth: { clear: 0 }
   });
 
   const global_layout = backend.resources.create_group_layout({
@@ -180,19 +162,19 @@ const init = async (geo) => {
       {
         binding: 1,
         type: GPUResource.TEXTURE,
-        resource: gbuffer_pos,
+        resource: gbuffer_target.attachments.color[0].texture,
       },
       {
         binding: 2,
         type: GPUResource.TEXTURE,
-        resource: gbuffer_norm,
+        resource: gbuffer_target.attachments.color[1].texture,
       }
     ]
   });
 
   shader_module = backend.resources.create_shader({
     code: gbuffer_shader,
-    formats: gbuffer_pass_formats,
+    render_info: gbuffer_pass.info,
     layouts: {
       bindings: [global_layout],
     },
@@ -216,7 +198,7 @@ const init = async (geo) => {
 
   shader_module1 = backend.resources.create_shader({
     code: lighting_shader,
-    formats: render_pass_formats,
+    render_info: render_pass.info,
     layouts: {
       bindings: [global_layout, lighting_layout],
     },

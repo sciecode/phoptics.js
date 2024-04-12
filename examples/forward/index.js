@@ -1,7 +1,8 @@
 import { GPUBackend } from "../../src/backend/gpu_backend.mjs";
 import { GPUResource } from "../../src/backend/constants.mjs";
-import { DrawStream } from "../../src/renderers/common/draw_stream.mjs";
-import { DynamicBindings } from "../../src/renderers/common/dynamic_bindings.mjs";
+import { DrawStream } from "../../src/renderer/common/draw_stream.mjs";
+import { DynamicBindings } from "../../src/renderer/common/dynamic_bindings.mjs";
+import { Renderer } from "../../src/renderer/renderer.mjs";
 
 import { Vec3 } from "../../src/datatypes/vec3.mjs";
 import { Vec4 } from "../../src/datatypes/vec4.mjs";
@@ -39,36 +40,28 @@ const init = async (geo) => {
   });
 
   const device = await adapter.requestDevice();
-  backend = new GPUBackend(adapter, device);
+
+  const renderer = new Renderer(device);
+  backend = renderer.backend;
 
   const canvas_texture = backend.resources.create_texture({
     canvas: canvas
   });
 
-  const render_pass_formats = {
-    color: [navigator.gpu.getPreferredCanvasFormat()],
-    depth: "depth24plus",
-  }
-
-  ms_texture = backend.resources.create_texture({
-    size: { width: viewport.x, height: viewport.y },
-    format: render_pass_formats.color[0],
-    usage: GPUTextureUsage.RENDER_ATTACHMENT,
-    sampleCount: 4,
+  const render_pass = renderer.resources.create_render_pass({
+    multisampled: true,
+    formats: {
+      color: [navigator.gpu.getPreferredCanvasFormat()],
+      depth: "depth24plus",
+    }
   });
 
-  depth_texture = backend.resources.create_texture({
+  render_target = renderer.resources.create_render_target( render_pass, {
     size: { width: viewport.x, height: viewport.y },
-    format: render_pass_formats.depth,
-    usage: GPUTextureUsage.RENDER_ATTACHMENT,
-    sampleCount: 4,
-  });
-  
-  render_target = backend.resources.create_render_target({
     color: [
-      { target: ms_texture, resolve: canvas_texture, clear: [.05, .05, .05, 1] }
+      { resolve: canvas_texture, clear: [.05, .05, .05, 1] }
     ],
-    depth_stencil: { target: depth_texture, clear: 0 }
+    depth: { clear: 0 }
   });
 
   const global_layout = backend.resources.create_group_layout({
@@ -123,7 +116,7 @@ const init = async (geo) => {
 
   shader_module = backend.resources.create_shader({
     code: shader,
-    formats: render_pass_formats,
+    render_info: render_pass.info,
     layouts: {
       bindings: [global_layout],
       dynamic: dynamic_bindings.get_layout(uniform_binding),
@@ -144,11 +137,6 @@ const init = async (geo) => {
         },
       ],
     },
-    pipeline: {
-      multisample: {
-        count: 4,
-      }
-    }
   });
 
   const vertex_count = geo.positions.length, index_count = geo.indices.length;

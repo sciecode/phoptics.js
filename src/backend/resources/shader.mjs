@@ -1,7 +1,7 @@
 
 export class Shader {
   constructor(device, resources, options = {}) {
-    const formats = options.formats;
+    const info = options.render_info;
 
     const vertex = options.vertex || {};
     const desc_pipeline = options.pipeline || {};
@@ -37,20 +37,20 @@ export class Shader {
         module: module,
         constants: options.constants,
         entryPoint: options.fragment?.entry || 'fs',
-        targets: formats.color.map( format => { 
+        targets: info.formats.color.map( format => { 
           return {
             format: format,
             blend: blend
           };
         }),
       },
-      depthStencil: !!formats.depth ? {
+      depthStencil: !!info.formats.depth ? {
         depthWriteEnabled: depth.write || true,
         depthCompare: depth.test || "greater-equal",
         depthBias: depth.bias,
-        format: formats.depth
+        format: info.formats.depth
       } : undefined,
-      multisample: desc_pipeline.multisample,
+      multisample: { count: info.multisampled ? 4 : 1 },
       primitive: {
         cullMode: "back"
       }

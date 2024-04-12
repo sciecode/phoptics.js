@@ -1,5 +1,4 @@
 import { PoolStorage } from "./storages/pool_storage.mjs";
-import { RenderTarget } from "./resources/render_target.mjs";
 import { CanvasTexture } from "./resources/canvas_texture.mjs";
 import { Texture } from "./resources/texture.mjs";
 import { Shader } from "./resources/shader.mjs"
@@ -9,7 +8,6 @@ import { Attribute } from "./resources/attribute.mjs";
 export class ResourceManager {
   constructor(device) {
     this.device = device;
-    this.render_targets = new PoolStorage();
     this.shaders = new PoolStorage();
     this.groups = new PoolStorage();
     this.buffers = new PoolStorage();
@@ -22,18 +20,6 @@ export class ResourceManager {
       layout: this.empty_layout,
       entries: []
     });
-  }
-  
-  create_render_target(options) {
-    return this.render_targets.allocate(new RenderTarget(this, options));
-  }
-  
-  get_render_target(idx) {
-    return this.render_targets.get(idx);
-  }
-  
-  destroy_render_target(idx) {
-    return this.render_targets.delete(idx);
   }
 
   create_group_layout(options) {
