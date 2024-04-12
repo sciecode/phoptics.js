@@ -1,4 +1,4 @@
-import { GPUResource } from "./constants.mjs";
+import { GPUResource } from "../../backend/constants.mjs";
 
 const MASK = 255;
 const BUFFER_SIZE = 1024 * 1024 * 128;

@@ -1,5 +1,5 @@
+import { DrawStreamFlags } from "./constants.mjs";
 import { ResourceManager } from "./resource_manager.mjs";
-import { DrawStreamFlags } from "./draw_stream.mjs";
 
 const NULL_HANDLE = -1 >>> 0;
 

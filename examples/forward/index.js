@@ -1,7 +1,7 @@
 import { GPUBackend } from "../../src/backend/gpu_backend.mjs";
 import { GPUResource } from "../../src/backend/constants.mjs";
-import { DrawStream } from "../../src/backend/draw_stream.mjs";
-import { DynamicBindings } from "../../src/backend/dynamic_bindings.mjs";
+import { DrawStream } from "../../src/renderers/common/draw_stream.mjs";
+import { DynamicBindings } from "../../src/renderers/common/dynamic_bindings.mjs";
 
 import { Vec3 } from "../../src/datatypes/vec3.mjs";
 import { Vec4 } from "../../src/datatypes/vec4.mjs";
