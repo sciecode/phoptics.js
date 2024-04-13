@@ -1,4 +1,3 @@
-import { GPUBackend } from "../../src/backend/gpu_backend.mjs";
 import { GPUResource } from "../../src/backend/constants.mjs";
 import { DrawStream } from "../../src/renderer/common/draw_stream.mjs";
 import { DynamicBindings } from "../../src/renderer/common/dynamic_bindings.mjs";
@@ -12,12 +11,12 @@ import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import { shader } from "../shaders/forward_shader.mjs";
 
-let backend, canvas, shader_module, global_bind_group;
+let renderer, backend, canvas, shader_module, global_bind_group;
 let draw_stream, global_buffer, global_data, count;
 
 let dynamic_bindings, uniform_binding;
 
-let depth_texture, ms_texture, render_target;
+let render_target;
 let attrib0, attrib1, geometry_buffer, index_offset;
 let obj_matrix = new Mat3x4(), view_matrix = new Mat3x4(), projection_matrix = new Mat4x4(), 
     obj_pos = new Vec3(), camera_pos = new Vec3(), target = new Vec3();
@@ -35,20 +34,18 @@ const init = async (geo) => {
   canvas.width = viewport.x, canvas.height = viewport.y;
   document.body.append(canvas);
 
-  const adapter = await navigator.gpu.requestAdapter({
+  const device = await navigator.gpu.requestAdapter({
     powerPreference: 'high-performance'
-  });
+  }).then( adapter => adapter.requestDevice());
 
-  const device = await adapter.requestDevice();
-
-  const renderer = new Renderer(device);
+  renderer = new Renderer(device);
   backend = renderer.backend;
 
   const canvas_texture = backend.resources.create_texture({
     canvas: canvas
   });
 
-  const render_pass = renderer.resources.create_render_pass({
+  const render_pass = renderer.create_render_pass({
     multisampled: true,
     formats: {
       color: [navigator.gpu.getPreferredCanvasFormat()],
@@ -56,24 +53,12 @@ const init = async (geo) => {
     }
   });
 
-  render_target = renderer.resources.create_render_target( render_pass, {
+  render_target = renderer.create_render_target(render_pass, {
     size: { width: viewport.x, height: viewport.y },
     color: [
       { resolve: canvas_texture, clear: [.05, .05, .05, 1] }
     ],
     depth: { clear: 0 }
-  });
-
-  const global_layout = backend.resources.create_group_layout({
-    entries: [
-      {
-        binding: 0,
-        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-        buffer: {
-          type: "read-only-storage",
-        },
-      },
-    ],
   });
   
   dynamic_bindings = new DynamicBindings(backend);
@@ -102,6 +87,18 @@ const init = async (geo) => {
   view_matrix.to(global_data, 16);
 
   backend.write_buffer(global_buffer, 0, global_data);
+
+  const global_layout = backend.resources.create_group_layout({
+    entries: [
+      {
+        binding: 0,
+        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+        buffer: {
+          type: "read-only-storage",
+        },
+      },
+    ],
+  });
 
   global_bind_group = backend.resources.create_bind_group({
     layout: global_layout,
@@ -224,12 +221,10 @@ const auto_resize = () => {
   
   if (viewport.x != newW || viewport.y != newH) {
     viewport.x = newW; viewport.y = newH;
-
-    canvas.width = viewport.x;
-    canvas.height = viewport.y;
-    const options = { size: { width: viewport.x, height: viewport.y } };
-    backend.resources.update_texture(ms_texture, options);
-    backend.resources.update_texture(depth_texture, options);
+    
+    render_target.size.width = canvas.width = viewport.x;
+    render_target.size.height = canvas.height = viewport.y;
+    render_target.update();
     
     projection_matrix.projection(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
     global_data[0] = projection_matrix[0];
@@ -255,5 +250,5 @@ const animate = () => {
 
   update_draw_stream(angle);
 
-  backend.render(render_target, draw_stream);
+  renderer.render(render_target, draw_stream);
 }

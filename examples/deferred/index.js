@@ -1,4 +1,3 @@
-import { GPUBackend } from "../../src/backend/gpu_backend.mjs";
 import { GPUResource } from "../../src/backend/constants.mjs";
 import { Renderer } from "../../src/renderer/renderer.mjs";
 import { DrawStream } from "../../src/renderer/common/draw_stream.mjs";
@@ -12,7 +11,7 @@ import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import { gbuffer_shader } from "../shaders/deferred_gbuffer.mjs";
 import { lighting_shader } from "../shaders/deferred_lighting.mjs";
 
-let backend, canvas, shader_module, shader_module1;
+let renderer, backend, canvas, shader_module, shader_module1;
 let global_bind_group, lighting_bind_group, lighting_layout;
 let draw_stream, global_buffer, global_data, count;
 
@@ -34,41 +33,39 @@ const init = async (geo) => {
   canvas.width = viewport.x, canvas.height = viewport.y;
   document.body.append(canvas);
 
-  const adapter = await navigator.gpu.requestAdapter({
+  const device = await navigator.gpu.requestAdapter({
     powerPreference: 'high-performance'
-  });
+  }).then(adapter => adapter.requestDevice());
 
-  const device = await adapter.requestDevice();
-
-  const renderer = new Renderer(device);
+  renderer = new Renderer(device);
   backend = renderer.backend;
 
   const canvas_texture = backend.resources.create_texture({
     canvas: canvas
   });
 
-  const render_pass = renderer.resources.create_render_pass({
+  const render_pass = renderer.create_render_pass({
     multisampled: true,
     formats: { 
       color: [navigator.gpu.getPreferredCanvasFormat()],
     }
   });
 
-  render_target = renderer.resources.create_render_target(render_pass, {
+  render_target = renderer.create_render_target(render_pass, {
     size: { width: viewport.x, height: viewport.y },
     color: [
       { resolve: canvas_texture, clear: [.05, .05, .05, 1] },
     ],
   });
 
-  const gbuffer_pass = renderer.resources.create_render_pass({
+  const gbuffer_pass = renderer.create_render_pass({
     formats: {
       color: ["rgba32float", "rgba32float"],
       depth: "depth24plus"
     }
   });
 
-  gbuffer_target = renderer.resources.create_render_target(gbuffer_pass, {
+  gbuffer_target = renderer.create_render_target(gbuffer_pass, {
     size: { width: viewport.x, height: viewport.y },
     color: [
       { clear: [0, 0, 0, 0] },
@@ -162,12 +159,12 @@ const init = async (geo) => {
       {
         binding: 1,
         type: GPUResource.TEXTURE,
-        resource: gbuffer_target.attachments.color[0].texture,
+        resource: renderer.resources.get_texture_handle(gbuffer_target.attachments.color[0].texture),
       },
       {
         binding: 2,
         type: GPUResource.TEXTURE,
-        resource: gbuffer_target.attachments.color[1].texture,
+        resource: renderer.resources.get_texture_handle(gbuffer_target.attachments.color[1].texture),
       }
     ]
   });
@@ -289,14 +286,13 @@ const auto_resize = () => {
   if (viewport.x != newW || viewport.y != newH) {
     viewport.x = newW; viewport.y = newH;
 
-    canvas.width = viewport.x;
-    canvas.height = viewport.y;
-    const options = { size: { width: viewport.x, height: viewport.y } };
-    backend.resources.update_texture(gbuffer_pos, options);
-    backend.resources.update_texture(gbuffer_norm, options);
-    backend.resources.update_texture(ms_texture, options);
-    backend.resources.update_texture(depth_texture, options);
-    backend.resources.update_bind_group(lighting_bind_group);
+    gbuffer_target.size.width = render_target.size.width = canvas.width = viewport.x;
+    gbuffer_target.size.height = render_target.size.height = canvas.height = viewport.y;
+    render_target.update();
+    gbuffer_target.update();
+
+    // TODO: this won't work until bind group updates have been implemented
+    // backend.resources.update_bind_group(lighting_bind_group);
     
     projection_matrix.projection(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
     global_data[0] = projection_matrix[0];
@@ -321,8 +317,8 @@ const animate = () => {
   backend.write_buffer(global_buffer, 0, global_data);
 
   update_gbuffer_stream();
-  backend.render(gbuffer_target, draw_stream);
+  renderer.render(gbuffer_target, draw_stream);
 
   update_lighting_stream();
-  backend.render(render_target, draw_stream);
+  renderer.render(render_target, draw_stream);
 }

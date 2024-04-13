@@ -2,14 +2,16 @@ const build_target = (desc) => {
   return {
     texture: desc.texture,
     resolve: desc.resolve,
-    clear: desc.clear,
     view: desc.view,
+    clear: desc.clear,
     load: desc.load || ((desc.clear !== undefined) ? 'clear' : 'load'),
     store: desc.store || 'store',
   }
 }
 
 export class RenderTarget {
+  #version = 0;
+
   constructor(id, size, desc) {
     this.id = id;
     this.size = size;
@@ -18,4 +20,7 @@ export class RenderTarget {
       depth: desc.depth ? build_target(desc.depth) : undefined
     };
   }
+
+  update() { this.#version++ }
+  get_version() { return this.#version }
 }

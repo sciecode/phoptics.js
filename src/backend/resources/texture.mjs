@@ -17,14 +17,10 @@ export class Texture {
       size: options.size,
       usage: current.usage,
       sampleCount: current.sampleCount,
-      dimensions: options.dimensions,
-      mipLevelCount: options.mipLevelCount,
+      dimensions: current.dimensions,
+      mipLevelCount: current.mipLevelCount,
     });
     current.destroy();
-  }
-
-  get_format() {
-    return this.texture.format;
   }
 
   get_view(descriptor) {
