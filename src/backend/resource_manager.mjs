@@ -1,5 +1,4 @@
 import { PoolStorage } from "./storages/pool_storage.mjs";
-import { CanvasTexture } from "./resources/canvas_texture.mjs";
 import { Texture } from "./resources/texture.mjs";
 import { Shader } from "./resources/shader.mjs"
 import { BindGroup } from "./resources/bind_group.mjs";
@@ -68,11 +67,7 @@ export class ResourceManager {
   }
 
   create_texture(options) {
-    return this.textures.allocate(
-      options.canvas ? 
-        new CanvasTexture(this.device, options) :
-        new Texture(this.device, options)
-    );
+    return this.textures.allocate(new Texture(this.device, options));
   }
 
   get_texture(idx) {
@@ -81,23 +76,6 @@ export class ResourceManager {
 
   update_texture(idx, options) {
     this.textures.get(idx).update_texture(this.device, options);
-  }
-
-  destroy_texture(idx) {
-    this.textures.get(idx).destroy();
-    this.textures.delete(idx);
-  }
-
-  create_texture(options) {
-    return this.textures.allocate(
-      options.canvas ? 
-        new CanvasTexture(this.device, options) :
-        new Texture(this.device, options)
-    );
-  }
-
-  get_texture(idx) {
-    return this.textures.get(idx);
   }
 
   destroy_texture(idx) {

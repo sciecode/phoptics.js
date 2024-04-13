@@ -18,7 +18,11 @@ export class RenderResources {
     return this.gpu_textures[id].obj;
   }
 
-  get_texture_handle(tex) {
+  create_texture_view(tex, options) {
+    return this.backend.resources.get_texture(this.gpu_textures[tex.id].bid).get_view(options);
+  }
+
+  update_texture(tex) {
     const entry = this.gpu_textures[tex.id];
     const current_version = tex.get_version();
 
@@ -26,7 +30,9 @@ export class RenderResources {
       this.backend.resources.update_texture(entry.bid, tex);
       entry.version = current_version;
     }
+  }
 
-    return entry.bid;
+  get_texture_handle(tex) {
+    return this.gpu_textures[tex.id].bid;
   }
 }

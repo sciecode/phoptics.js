@@ -15,7 +15,7 @@ let renderer, backend, canvas, shader_module, shader_module1;
 let global_bind_group, lighting_bind_group, lighting_layout;
 let draw_stream, global_buffer, global_data, count;
 
-let gbuffer_pos, gbuffer_norm, gbuffer_target, render_target, sampler;
+let gbuffer_target, render_target, sampler;
 let attrib0, attrib1, geometry_buffer, index_offset;
 let view_matrix = new Mat3x4(), projection_matrix = new Mat4x4(), 
     camera_pos = new Vec3(), target = new Vec3();
@@ -40,9 +40,7 @@ const init = async (geo) => {
   renderer = new Renderer(device);
   backend = renderer.backend;
 
-  const canvas_texture = backend.resources.create_texture({
-    canvas: canvas
-  });
+  const canvas_texture = renderer.create_canvas_texture({canvas});
 
   const render_pass = renderer.create_render_pass({
     multisampled: true,
@@ -284,12 +282,10 @@ const auto_resize = () => {
   const newH = (canvas.clientHeight * dpr) | 0;
   
   if (viewport.x != newW || viewport.y != newH) {
-    viewport.x = newW; viewport.y = newH;
+    canvas.width = viewport.x = newW; canvas.height = viewport.y = newH;
 
-    gbuffer_target.size.width = render_target.size.width = canvas.width = viewport.x;
-    gbuffer_target.size.height = render_target.size.height = canvas.height = viewport.y;
-    render_target.update();
-    gbuffer_target.update();
+    render_target.set_size(viewport);
+    gbuffer_target.set_size(viewport);
 
     // TODO: this won't work until bind group updates have been implemented
     // backend.resources.update_bind_group(lighting_bind_group);

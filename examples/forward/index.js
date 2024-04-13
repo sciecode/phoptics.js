@@ -30,21 +30,13 @@ let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0}
 })();
 
 const init = async (geo) => {
-  canvas = document.createElement('canvas');
-  canvas.width = viewport.x, canvas.height = viewport.y;
-  document.body.append(canvas);
-
   const device = await navigator.gpu.requestAdapter({
     powerPreference: 'high-performance'
   }).then( adapter => adapter.requestDevice());
 
   renderer = new Renderer(device);
   backend = renderer.backend;
-
-  const canvas_texture = backend.resources.create_texture({
-    canvas: canvas
-  });
-
+  
   const render_pass = renderer.create_render_pass({
     multisampled: true,
     formats: {
@@ -52,6 +44,11 @@ const init = async (geo) => {
       depth: "depth24plus",
     }
   });
+  
+  canvas = document.createElement('canvas');
+  document.body.append(canvas);
+  const canvas_texture = renderer.create_canvas_texture({canvas});
+  canvas_texture.set_size({width: viewport.x, height: viewport.y});
 
   render_target = renderer.create_render_target(render_pass, {
     size: { width: viewport.x, height: viewport.y },
@@ -60,7 +57,7 @@ const init = async (geo) => {
     ],
     depth: { clear: 0 }
   });
-  
+
   dynamic_bindings = new DynamicBindings(backend);
   uniform_binding = dynamic_bindings.create_dynamic_binding([
     { binding: 0, size: Mat3x4.byte_size },
@@ -221,10 +218,7 @@ const auto_resize = () => {
   
   if (viewport.x != newW || viewport.y != newH) {
     viewport.x = newW; viewport.y = newH;
-    
-    render_target.size.width = canvas.width = viewport.x;
-    render_target.size.height = canvas.height = viewport.y;
-    render_target.update();
+    render_target.set_size({ width: newW, height: newH });
     
     projection_matrix.projection(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
     global_data[0] = projection_matrix[0];
