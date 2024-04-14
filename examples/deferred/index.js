@@ -11,14 +11,13 @@ import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import { gbuffer_shader } from "../shaders/deferred_gbuffer.mjs";
 import { lighting_shader } from "../shaders/deferred_lighting.mjs";
 
-let renderer, backend, canvas, shader_module, shader_module1;
+let renderer, backend, canvas, gbuffer_pipeline, lighting_pipeline;
 let global_bind_group, lighting_bind_group, lighting_layout;
-let draw_stream, global_buffer, global_data, count;
+let draw_stream, global_data, count;
 
 let gbuffer_target, render_target, sampler;
 let attrib0, attrib1, geometry_buffer, index_offset;
-let view_matrix = new Mat3x4(), projection_matrix = new Mat4x4(), 
-    camera_pos = new Vec3(), target = new Vec3();
+let target = new Vec3();
 
 const dpr = window.devicePixelRatio;
 let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
@@ -110,42 +109,35 @@ const init = async (geo) => {
     ],
   });
 
-  const uniforms_size = Mat4x4.byte_size + Mat3x4.byte_size + Vec4.byte_size;
-  global_buffer = backend.resources.create_buffer({
-    size: uniforms_size,
-    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-  });
-
-  global_data = new Float32Array(uniforms_size / 4);
+  global_data = renderer.resources.create_resource_data([
+    { name: "projection_matrix", type: Mat4x4 },
+    { name: "view_matrix", type: Mat3x4 },
+    { name: "camera_position", type: Vec4 },
+  ]);
 
   target.set(0, 30, 0);
+  global_data.camera_position.y = 30;
+  global_data.camera_position.w = 250;
+  global_data.projection_matrix.projection(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 600);
+  global_data.view_matrix.translate(global_data.camera_position).view_inverse();
+  renderer.resources.update_resource_data(global_data);
 
-  camera_pos.y = 30;
-  camera_pos.to(global_data, 28);
-  global_data[31] = 250;
-
-  projection_matrix.projection(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 600);
-  projection_matrix.to(global_data, 0);
-
-  view_matrix.translate(camera_pos);
-  view_matrix.view_inverse();
-  view_matrix.to(global_data, 16);
-
-  backend.write_buffer(global_buffer, 0, global_data);
-
-  sampler = backend.resources.create_sampler();
-
+  const info = global_data.get_info();
   global_bind_group = backend.resources.create_bind_group({
     layout: global_layout,
     entries: [
       {
         binding: 0,
         type: GPUResource.BUFFER,
-        resource: global_buffer,
+        offset: info.offset,
+        size: info.size,
+        resource: renderer.resources.get_handle_data(global_data),
       }
     ]
   });
 
+  sampler = backend.resources.create_sampler();
+  
   lighting_bind_group = backend.resources.create_bind_group({
     layout: lighting_layout,
     entries: [
@@ -167,7 +159,7 @@ const init = async (geo) => {
     ]
   });
 
-  shader_module = backend.resources.create_shader({
+  gbuffer_pipeline = backend.resources.create_pipeline({
     code: gbuffer_shader,
     render_info: gbuffer_pass.info,
     layouts: {
@@ -191,7 +183,7 @@ const init = async (geo) => {
     },
   });
 
-  shader_module1 = backend.resources.create_shader({
+  lighting_pipeline = backend.resources.create_pipeline({
     code: lighting_shader,
     render_info: render_pass.info,
     layouts: {
@@ -245,7 +237,7 @@ const init = async (geo) => {
 const update_gbuffer_stream = () => {
   draw_stream.clear();
 
-  draw_stream.set_shader(shader_module);
+  draw_stream.set_pipeline(gbuffer_pipeline);
   draw_stream.set_globals(global_bind_group);
   draw_stream.set_variant(0);
   draw_stream.set_material(0);
@@ -264,7 +256,7 @@ const update_gbuffer_stream = () => {
 const update_lighting_stream = () => {
   draw_stream.clear();
 
-  draw_stream.set_shader(shader_module1);
+  draw_stream.set_pipeline(lighting_pipeline);
   draw_stream.set_globals(global_bind_group);
   draw_stream.set_variant(lighting_bind_group);
   draw_stream.set_material(0);
@@ -290,8 +282,7 @@ const auto_resize = () => {
     // TODO: this won't work until bind group updates have been implemented
     // backend.resources.update_bind_group(lighting_bind_group);
     
-    projection_matrix.projection(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
-    global_data[0] = projection_matrix[0];
+    global_data.projection_matrix.projection(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
   }
 }
 
@@ -301,16 +292,10 @@ const animate = () => {
   auto_resize();
 
   const angle = performance.now() / 1000;
-  camera_pos.x = 100 * Math.sin( angle );
-  camera_pos.z = 100 * Math.cos( angle );
-  camera_pos.to(global_data, 28);
-
-  view_matrix.translate(camera_pos);
-  view_matrix.look_at(target);
-  view_matrix.view_inverse();
-  view_matrix.to(global_data, 16);
-
-  backend.write_buffer(global_buffer, 0, global_data);
+  global_data.camera_position.x = 100 * Math.sin(angle);
+  global_data.camera_position.z = 100 * Math.cos(angle);
+  global_data.view_matrix.translate(global_data.camera_position).look_at(target).view_inverse();
+  renderer.resources.update_resource_data(global_data);
 
   update_gbuffer_stream();
   renderer.render(gbuffer_target, draw_stream);

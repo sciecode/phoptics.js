@@ -1,13 +1,13 @@
 import { PoolStorage } from "./storages/pool_storage.mjs";
 import { Texture } from "./resources/texture.mjs";
-import { Shader } from "./resources/shader.mjs"
+import { Pipeline } from "./resources/pipeline.mjs"
 import { BindGroup } from "./resources/bind_group.mjs";
 import { Attribute } from "./resources/attribute.mjs";
 
 export class ResourceManager {
   constructor(device) {
     this.device = device;
-    this.shaders = new PoolStorage();
+    this.pipelines = new PoolStorage();
     this.groups = new PoolStorage();
     this.buffers = new PoolStorage();
     this.samplers = new PoolStorage();
@@ -95,15 +95,15 @@ export class ResourceManager {
     this.attributes.delete(idx);
   }
 
-  create_shader(options) {
-    return this.shaders.allocate(new Shader(this.device, this, options));
+  create_pipeline(options) {
+    return this.pipelines.allocate(new Pipeline(this.device, this, options));
   }
 
-  get_shader(idx) {
-    return this.shaders.get(idx);
+  get_pipeline(idx) {
+    return this.pipelines.get(idx);
   }
 
-  destroy_shader(idx) {
-    return this.shaders.delete(idx);
+  destroy_pipeline(idx) {
+    return this.pipelines.delete(idx);
   }
 }

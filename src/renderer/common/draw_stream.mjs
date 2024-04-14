@@ -1,4 +1,4 @@
-import { DrawStreamBits, DrawStreamFlags } from '../../backend/constants.mjs';
+import { DrawStreamBits } from '../../backend/constants.mjs';
 
 const NULL_HANDLE = -1 >>> 0;
 
@@ -20,8 +20,10 @@ export class DrawStream {
     this.state.fill(NULL_HANDLE);
   }
 
-  set_shader(shader_handle) {
-    this.upload_data("shader", shader_handle);
+  // TODO: remove string keys, use direct bit-field values
+
+  set_pipeline(pipeline_handle) {
+    this.upload_data("pipeline", pipeline_handle);
   }
 
   set_globals(group_handle) {

@@ -42,6 +42,10 @@ export class RenderResources {
     return this.buffer_manager.create_resource_data(desc);
   }
 
+  get_handle_data(data) {
+    return this.buffer_manager.buffer;
+  }
+
   update_resource_data(data) {
     this.buffer_manager.update_resource_data(data);
   }

@@ -1,6 +1,6 @@
 
 export const DrawStreamBits = {
-  shader:           0,
+  pipeline:         0,
   bind_group0:      1,
   bind_group1:      2,
   bind_group2:      3,

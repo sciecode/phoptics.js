@@ -1,5 +1,5 @@
 
-export class Shader {
+export class Pipeline {
   constructor(device, resources, options = {}) {
     const info = options.render_info;
 

@@ -11,8 +11,8 @@ import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import { shader } from "../shaders/forward_shader.mjs";
 
-let renderer, backend, canvas, render_target, shader_module, global_bind_group;
-let draw_stream, global_data, count,dynamic_bindings, uniform_binding;
+let renderer, backend, canvas, render_target, pipeline, global_bind_group;
+let draw_stream, global_data, count, dynamic_bindings, uniform_binding;
 let attrib0, attrib1, geometry_buffer, index_offset;
 let obj_matrix = new Mat3x4(), obj_pos = new Vec3(), target = new Vec3();
 
@@ -93,12 +93,12 @@ const init = async (geo) => {
         type: GPUResource.BUFFER,
         offset: info.offset,
         size: info.size,
-        resource: renderer.resources.buffer_manager.buffer,
+        resource: renderer.resources.get_handle_data(global_data),
       }
     ]
   });
 
-  shader_module = backend.resources.create_shader({
+  pipeline = backend.resources.create_pipeline({
     code: shader,
     render_info: render_pass.info,
     layouts: {
@@ -172,7 +172,7 @@ const update_draw_stream = (angle) => {
   bind_info = dynamic_bindings.allocate(uniform_binding);
   dynamic_bindings.writer.f32_array(obj_matrix, bind_info.offsets[0]);
 
-  draw_stream.set_shader(shader_module);
+  draw_stream.set_pipeline(pipeline);
   draw_stream.set_globals(global_bind_group);
   draw_stream.set_variant(0);
   draw_stream.set_material(0);

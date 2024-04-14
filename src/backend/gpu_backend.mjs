@@ -43,10 +43,10 @@ export class GPUBackend {
   render_packet(draw_packet) {
     const pass = draw_packet.pass, stream = draw_packet.stream, metadata = draw_packet.stream[draw_packet.offset++];
 
-    // shader
-    if (metadata & DrawStreamFlags.shader) {
-      const shader_handle = stream[draw_packet.offset++];
-      const pipeline = this.resources.get_shader(shader_handle).pipeline;
+    // pipeline
+    if (metadata & DrawStreamFlags.pipeline) {
+      const pipeline_handle = stream[draw_packet.offset++];
+      const pipeline = this.resources.get_pipeline(pipeline_handle).pipeline;
       pass.setPipeline(pipeline);
     }
 
