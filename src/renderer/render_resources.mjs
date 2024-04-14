@@ -1,9 +1,11 @@
 import { GPUTexture } from "./resources/gpu_texture.mjs";
+import { BufferManager } from "./buffer_manager.mjs";
 
 export class RenderResources {
   constructor(backend) {
     this.backend = backend;
     this.gpu_textures = [];
+    this.buffer_manager = new BufferManager(backend);
   }
 
   create_texture(desc) {
@@ -34,5 +36,17 @@ export class RenderResources {
 
   get_texture_handle(tex) {
     return this.gpu_textures[tex.id].bid;
+  }
+
+  create_resource_data(desc) {
+    return this.buffer_manager.create_resource_data(desc);
+  }
+
+  update_resource_data(data) {
+    this.buffer_manager.update_resource_data(data);
+  }
+
+  dispose_resource_data(data) {
+    this.buffer_manager.dispose_resource_data(data);
   }
 }

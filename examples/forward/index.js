@@ -11,15 +11,10 @@ import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import { shader } from "../shaders/forward_shader.mjs";
 
-let renderer, backend, canvas, shader_module, global_bind_group;
-let draw_stream, global_buffer, global_data, count;
-
-let dynamic_bindings, uniform_binding;
-
-let render_target;
+let renderer, backend, canvas, render_target, shader_module, global_bind_group;
+let draw_stream, global_data, count,dynamic_bindings, uniform_binding;
 let attrib0, attrib1, geometry_buffer, index_offset;
-let obj_matrix = new Mat3x4(), view_matrix = new Mat3x4(), projection_matrix = new Mat4x4(), 
-    obj_pos = new Vec3(), camera_pos = new Vec3(), target = new Vec3();
+let obj_matrix = new Mat3x4(), obj_pos = new Vec3(), target = new Vec3();
 
 const dpr = window.devicePixelRatio;
 let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
@@ -47,8 +42,8 @@ const init = async (geo) => {
   
   canvas = document.createElement('canvas');
   document.body.append(canvas);
-  const canvas_texture = renderer.create_canvas_texture({canvas});
-  canvas_texture.set_size({width: viewport.x, height: viewport.y});
+  const canvas_texture = renderer.create_canvas_texture({ canvas });
+  canvas_texture.set_size({ width: viewport.x, height: viewport.y });
 
   render_target = renderer.create_render_target(render_pass, {
     size: { width: viewport.x, height: viewport.y },
@@ -62,28 +57,19 @@ const init = async (geo) => {
   uniform_binding = dynamic_bindings.create_dynamic_binding([
     { binding: 0, size: Mat3x4.byte_size },
   ]);
-  
-  const global_size = Mat4x4.byte_size + Mat3x4.byte_size + Vec4.byte_size;
-  global_buffer = backend.resources.create_buffer({
-    size: global_size,
-    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-  });
 
-  global_data = new Float32Array(global_size / 4);
+  global_data = renderer.resources.create_resource_data([
+    { name: "projection_matrix", type: Mat4x4 }, 
+    { name: "view_matrix", type: Mat3x4 }, 
+    { name: "camera_position", type: Vec4 }, 
+  ]);
 
   target.set(0, 30, 0);
-  camera_pos.y = 30;
-  camera_pos.to(global_data, 28);
-  global_data[31] = 250;
-
-  projection_matrix.projection(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 600);
-  projection_matrix.to(global_data, 0);
-
-  view_matrix.translate(camera_pos);
-  view_matrix.view_inverse();
-  view_matrix.to(global_data, 16);
-
-  backend.write_buffer(global_buffer, 0, global_data);
+  global_data.camera_position.y = 30;
+  global_data.camera_position.w = 250;
+  global_data.projection_matrix.projection(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 600);
+  global_data.view_matrix.translate(global_data.camera_position).view_inverse();
+  renderer.resources.update_resource_data(global_data);
 
   const global_layout = backend.resources.create_group_layout({
     entries: [
@@ -97,13 +83,17 @@ const init = async (geo) => {
     ],
   });
 
+  const info = global_data.get_info();
+
   global_bind_group = backend.resources.create_bind_group({
     layout: global_layout,
     entries: [
       {
         binding: 0,
         type: GPUResource.BUFFER,
-        resource: global_buffer
+        offset: info.offset,
+        size: info.size,
+        resource: renderer.resources.buffer_manager.buffer,
       }
     ]
   });
@@ -220,8 +210,7 @@ const auto_resize = () => {
     viewport.x = newW; viewport.y = newH;
     render_target.set_size({ width: newW, height: newH });
     
-    projection_matrix.projection(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
-    global_data[0] = projection_matrix[0];
+    global_data.projection_matrix.projection(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
   }
 }
 
@@ -231,16 +220,10 @@ const animate = () => {
   auto_resize();
 
   const angle = performance.now() / 2000;
-  camera_pos.x = 120 * Math.sin( angle );
-  camera_pos.z = 120 * Math.cos( angle );
-  camera_pos.to(global_data, 28);
-
-  view_matrix.translate(camera_pos);
-  view_matrix.look_at(target);
-  view_matrix.view_inverse();
-  view_matrix.to(global_data, 16);
-
-  backend.write_buffer(global_buffer, 0, global_data);
+  global_data.camera_position.x = 120 * Math.sin( angle );
+  global_data.camera_position.z = 120 * Math.cos( angle );
+  global_data.view_matrix.translate(global_data.camera_position).look_at(target).view_inverse();
+  renderer.resources.update_resource_data(global_data);
 
   update_draw_stream(angle);
 

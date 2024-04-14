@@ -50,7 +50,7 @@ const sm_ffs = (mask, i) => {
 }
 
 export class OffsetAllocator {
-  constructor(size, max_alloc = 16 * 1024) {
+  constructor(size, max_alloc = 512 * 1024) {
     this.size = size;
     this.max_alloc = Math.min(max_alloc, size);
 

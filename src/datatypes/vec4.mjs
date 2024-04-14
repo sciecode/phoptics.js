@@ -1,8 +1,11 @@
 export class Vec4 extends Float32Array {
   static byte_size = 16;
 
-  constructor() {
-    super(4);
+  constructor(array_buffer, byte_offset) {
+    if (array_buffer) {
+      super(array_buffer, byte_offset, 4);
+      this.fill(0);
+    } else super(4);
   }
 
   get x() { return this[0]; }

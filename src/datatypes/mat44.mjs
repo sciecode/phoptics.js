@@ -1,8 +1,11 @@
 export class Mat4x4 extends Float32Array {
   static byte_size = 64;
 
-  constructor() {
-    super(16);
+  constructor(array_buffer, byte_offset) {
+    if (array_buffer) {
+      super(array_buffer, byte_offset, 16);
+      this.fill(0);
+    } else super(16);
     this[0] = this[5] = this[10] = this[15] = 1;
   }
 

@@ -3,8 +3,11 @@ import { Vec3 } from "./vec3.mjs";
 export class Mat3x4 extends Float32Array {
   static byte_size = 48;
 
-  constructor() {
-    super(12); 
+  constructor(array_buffer, byte_offset) {
+    if (array_buffer) {
+      super(array_buffer, byte_offset, 12);
+      this.fill(0);
+    } else super(12);
     this[0] = this[5] = this[10] = 1;
   }
 
