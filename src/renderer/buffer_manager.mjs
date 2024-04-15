@@ -1,4 +1,4 @@
-import { OffsetAllocator } from "./allocators/offset_allocator.mjs";
+import { OffsetAllocator } from "../common/offset_allocator.mjs";
 import { ResourceData } from "./resources/resource_data.mjs";
 
 const BITS = 8;

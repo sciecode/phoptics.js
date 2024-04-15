@@ -1,4 +1,4 @@
-import { GPUTexture } from "./resources/gpu_texture.mjs";
+import { Texture } from "./objects/texture.mjs";
 import { BufferManager } from "./buffer_manager.mjs";
 
 export class RenderResources {
@@ -14,7 +14,7 @@ export class RenderResources {
 
     this.gpu_textures.push({ 
       version: 0,
-      obj: new GPUTexture(id, desc.size, desc.format),
+      obj: new Texture(id, desc.size, desc.format),
       bid: bid,
     });
     return this.gpu_textures[id].obj;

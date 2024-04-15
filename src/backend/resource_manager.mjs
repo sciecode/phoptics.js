@@ -1,4 +1,4 @@
-import { PoolStorage } from "./storages/pool_storage.mjs";
+import { PoolStorage } from "../common/pool_storage.mjs";
 import { Texture } from "./resources/texture.mjs";
 import { Pipeline } from "./resources/pipeline.mjs"
 import { BindGroup } from "./resources/bind_group.mjs";
@@ -74,8 +74,8 @@ export class ResourceManager {
     return this.textures.get(idx);
   }
 
-  update_texture(idx, options) {
-    this.textures.get(idx).update_texture(this.device, options);
+  update_texture(idx, size) {
+    this.textures.get(idx).update_texture(this.device, size);
   }
 
   destroy_texture(idx) {

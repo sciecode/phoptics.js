@@ -10,11 +10,11 @@ export class Texture {
     });
   }
 
-  update_texture(device, options) {
+  update_texture(device, size) {
     const current = this.texture;
     this.texture = device.createTexture({
       format: current.format,
-      size: options.size,
+      size: size,
       usage: current.usage,
       sampleCount: current.sampleCount,
       dimensions: current.dimensions,

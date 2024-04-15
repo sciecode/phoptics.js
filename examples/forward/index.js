@@ -1,7 +1,10 @@
 import { GPUResource } from "../../src/backend/constants.mjs";
 import { DrawStream } from "../../src/renderer/common/draw_stream.mjs";
 import { DynamicBindings } from "../../src/renderer/common/dynamic_bindings.mjs";
+
 import { Renderer } from "../../src/renderer/renderer.mjs";
+import { RenderTarget } from "../../src/renderer/objects/render_target.mjs";
+import { CanvasTexture } from "../../src/renderer/objects/canvas_texture.mjs";
 
 import { Vec3 } from "../../src/datatypes/vec3.mjs";
 import { Vec4 } from "../../src/datatypes/vec4.mjs";
@@ -31,21 +34,21 @@ const init = async (geo) => {
 
   renderer = new Renderer(device);
   backend = renderer.backend;
-  
-  const render_pass = renderer.create_render_pass({
+
+  canvas = document.createElement('canvas');
+  document.body.append(canvas);
+  const canvas_texture = new CanvasTexture(canvas);
+  canvas_texture.set_size({ width: viewport.x, height: viewport.y });
+
+  const render_pass = {
     multisampled: true,
     formats: {
       color: [navigator.gpu.getPreferredCanvasFormat()],
       depth: "depth24plus",
     }
-  });
+  };
   
-  canvas = document.createElement('canvas');
-  document.body.append(canvas);
-  const canvas_texture = renderer.create_canvas_texture({ canvas });
-  canvas_texture.set_size({ width: viewport.x, height: viewport.y });
-
-  render_target = renderer.create_render_target(render_pass, {
+  render_target = new RenderTarget(render_pass,{
     size: { width: viewport.x, height: viewport.y },
     color: [
       { resolve: canvas_texture, clear: [.05, .05, .05, 1] }
@@ -100,7 +103,7 @@ const init = async (geo) => {
 
   pipeline = backend.resources.create_pipeline({
     code: shader,
-    render_info: render_pass.info,
+    render_info: render_pass,
     layouts: {
       bindings: [global_layout],
       dynamic: dynamic_bindings.get_layout(uniform_binding),
@@ -220,8 +223,8 @@ const animate = () => {
   auto_resize();
 
   const angle = performance.now() / 2000;
-  global_data.camera_position.x = 120 * Math.sin( angle );
-  global_data.camera_position.z = 120 * Math.cos( angle );
+  global_data.camera_position.x = 120 * Math.sin(angle);
+  global_data.camera_position.z = 120 * Math.cos(angle);
   global_data.view_matrix.translate(global_data.camera_position).look_at(target).view_inverse();
   renderer.resources.update_resource_data(global_data);
 

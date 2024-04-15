@@ -1,15 +1,12 @@
-import { ResourceType } from "../constants.mjs";
+import { ResourceType, UNINITIALIZED } from "../constants.mjs";
 
 export class CanvasTexture {
-  constructor(device, options = {}) {
+  #version = UNINITIALIZED;
+
+  constructor(canvas) {
     this.type = ResourceType.CanvasTexture;
-    this.canvas = options.canvas;
+    this.canvas = canvas;
     this.context = this.canvas.getContext('webgpu');
-   
-    this.context.configure({
-      device: device,
-      format: navigator.gpu.getPreferredCanvasFormat()
-    });
   }
 
   set_size(size) {
@@ -20,4 +17,7 @@ export class CanvasTexture {
   get_view(descriptor) {
     return this.context.getCurrentTexture().createView(descriptor);
   }
+
+  get_version() { return this.#version }
+  initialize(version) { if (this.#version == UNINITIALIZED) this.#version = version; }
 }
