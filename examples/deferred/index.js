@@ -118,7 +118,7 @@ const init = async (geo) => {
   target.set(0, 30, 0);
   global_data.camera_position.y = 30;
   global_data.camera_position.w = 250;
-  global_data.projection_matrix.projection(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 600);
+  global_data.projection_matrix.perspective(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 600);
   global_data.view_matrix.translate(global_data.camera_position).view_inverse();
   renderer.resources.update_resource_data(global_data);
 
@@ -282,7 +282,7 @@ const auto_resize = () => {
     // TODO: this won't work until bind group updates have been implemented
     // backend.resources.update_bind_group(lighting_bind_group);
     
-    global_data.projection_matrix.projection(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
+    global_data.projection_matrix.perspective(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
   }
 }
 

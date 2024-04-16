@@ -1,11 +1,14 @@
 import { PoolStorage } from "../../common/pool_storage.mjs";
+import { BufferManager } from "../buffer_manager.mjs";
 import { ResourceType, UNINITIALIZED } from "../constants.mjs";
 
 export class RenderCache {
   constructor(backend) {
     this.backend = backend;
+    this.buffer_manager = new BufferManager(backend);
     this.targets = new PoolStorage();
     this.textures = new PoolStorage();
+    this.buffers = new PoolStorage();
   }
 
   get_target(target_obj) {
@@ -94,6 +97,31 @@ export class RenderCache {
     if (cache.version != version) {
       cache.version = version;
       this.backend.resources.update_texture(cache.bid, texture_obj.size);
+    }
+
+    return cache;
+  }
+
+  get_buffer(buffer_obj) {
+    let id = buffer_obj.get_id();
+
+    if (id == UNINITIALIZED) {
+      const { slot_id, offset, bid } = this.buffer_manager.create(buffer_obj.total_size);
+      id = this.buffers.allocate({
+        version: -1,
+        slot_id: slot_id,
+        bid: bid,
+        offset: offset,
+        size: buffer_obj.total_size,
+      });
+      buffer_obj.initialize(id);
+    }
+
+    const cache = this.buffers.get(id), version = buffer_obj.get_version();
+    if (cache.version != version) {
+      cache.version = version;
+      // TODO: if we implement arraybuffer allocator, implement offset / size for front-end bufffer
+      this.buffer_manager.update(cache.bid, cache.offset, buffer_obj.buffer);
     }
 
     return cache;

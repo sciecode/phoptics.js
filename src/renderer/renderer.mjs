@@ -1,22 +1,17 @@
 import { GPUBackend } from "../backend/gpu_backend.mjs"
 import { DrawStream } from "./common/draw_stream.mjs";
 import { RenderCache } from "./common/render_cache.mjs";
-import { RenderResources } from "./render_resources.mjs";
 import { ResourceType } from "./constants.mjs";
 
 export class Renderer {
   constructor(device) {
     this.backend = new GPUBackend(device);
-    this.resources = new RenderResources(this.backend);
     this.cache = new RenderCache(this.backend);
     this.draw_stream = new DrawStream();
   }
 
-  create_render_pass(desc) { return this.entities.create_render_pass(desc); }
-  create_render_target(pass, desc) { return this.entities.create_render_target(pass, desc); }
-  create_canvas_texture(desc) { return this.entities.create_canvas_texture(desc); }
-
-  render(target, draw_stream) {
+  render(pass, draw_stream) {
+    const target = pass.current_target;
     const cached_target = this.cache.get_target(target);
     this.backend.render(make_pass_descriptor(target, cached_target.attachments), draw_stream);
   }

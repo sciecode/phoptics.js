@@ -5,7 +5,7 @@ export class CanvasTexture {
 
   constructor(canvas) {
     this.type = ResourceType.CanvasTexture;
-    this.canvas = canvas;
+    this.canvas = canvas || document.createElement('canvas');
     this.context = this.canvas.getContext('webgpu');
   }
 

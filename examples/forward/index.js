@@ -3,6 +3,7 @@ import { DrawStream } from "../../src/renderer/common/draw_stream.mjs";
 import { DynamicBindings } from "../../src/renderer/common/dynamic_bindings.mjs";
 
 import { Renderer } from "../../src/renderer/renderer.mjs";
+import { RenderPass } from "../../src/renderer/objects/render_pass.mjs";
 import { RenderTarget } from "../../src/renderer/objects/render_target.mjs";
 import { CanvasTexture } from "../../src/renderer/objects/canvas_texture.mjs";
 
@@ -13,9 +14,10 @@ import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import { shader } from "../shaders/forward_shader.mjs";
+import { StructuredBuffer } from "../../src/renderer/objects/structured_buffer.mjs";
 
-let renderer, backend, canvas, render_target, pipeline, global_bind_group;
-let draw_stream, global_data, count, dynamic_bindings, uniform_binding;
+let renderer, backend, canvas, render_pass, render_target, pipeline, global_bind_group;
+let draw_stream, global_data, count, dynamic_bindings, transform_binding;
 let attrib0, attrib1, geometry_buffer, index_offset;
 let obj_matrix = new Mat3x4(), obj_pos = new Vec3(), target = new Vec3();
 
@@ -35,20 +37,20 @@ const init = async (geo) => {
   renderer = new Renderer(device);
   backend = renderer.backend;
 
-  canvas = document.createElement('canvas');
-  document.body.append(canvas);
-  const canvas_texture = new CanvasTexture(canvas);
+  const canvas_texture = new CanvasTexture();
   canvas_texture.set_size({ width: viewport.x, height: viewport.y });
+  canvas = canvas_texture.canvas;
+  document.body.append(canvas);
 
-  const render_pass = {
+  render_pass = new RenderPass({
     multisampled: true,
     formats: {
       color: [navigator.gpu.getPreferredCanvasFormat()],
       depth: "depth24plus",
     }
-  };
+  });
   
-  render_target = new RenderTarget(render_pass,{
+  render_target = new RenderTarget(render_pass, {
     size: { width: viewport.x, height: viewport.y },
     color: [
       { resolve: canvas_texture, clear: [.05, .05, .05, 1] }
@@ -56,23 +58,23 @@ const init = async (geo) => {
     depth: { clear: 0 }
   });
 
+  render_pass.set_render_target(render_target);
+
   dynamic_bindings = new DynamicBindings(backend);
-  uniform_binding = dynamic_bindings.create_dynamic_binding([
+  transform_binding = dynamic_bindings.create_dynamic_binding([
     { binding: 0, size: Mat3x4.byte_size },
   ]);
 
-  global_data = renderer.resources.create_resource_data([
+  global_data = new StructuredBuffer([
     { name: "projection_matrix", type: Mat4x4 }, 
     { name: "view_matrix", type: Mat3x4 }, 
     { name: "camera_position", type: Vec4 }, 
   ]);
 
   target.set(0, 30, 0);
-  global_data.camera_position.y = 30;
-  global_data.camera_position.w = 250;
-  global_data.projection_matrix.projection(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 600);
+  global_data.camera_position.set(0, 30, 120, 250);
+  global_data.projection_matrix.perspective(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 600);
   global_data.view_matrix.translate(global_data.camera_position).view_inverse();
-  renderer.resources.update_resource_data(global_data);
 
   const global_layout = backend.resources.create_group_layout({
     entries: [
@@ -86,7 +88,7 @@ const init = async (geo) => {
     ],
   });
 
-  const info = global_data.get_info();
+  const info = renderer.cache.get_buffer(global_data);
 
   global_bind_group = backend.resources.create_bind_group({
     layout: global_layout,
@@ -96,7 +98,7 @@ const init = async (geo) => {
         type: GPUResource.BUFFER,
         offset: info.offset,
         size: info.size,
-        resource: renderer.resources.get_handle_data(global_data),
+        resource: info.bid,
       }
     ]
   });
@@ -106,7 +108,7 @@ const init = async (geo) => {
     render_info: render_pass,
     layouts: {
       bindings: [global_layout],
-      dynamic: dynamic_bindings.get_layout(uniform_binding),
+      dynamic: dynamic_bindings.get_layout(transform_binding),
     },
     vertex: {
       buffers: [
@@ -165,14 +167,14 @@ const init = async (geo) => {
 }
 
 const update_draw_stream = (angle) => {
-  let bind_info;
   dynamic_bindings.reset();
   draw_stream.clear();
+  
+  let bind_info = dynamic_bindings.allocate(transform_binding);
 
   obj_pos.x = -30;
   obj_pos.y = 10 * Math.sin(angle);
   obj_matrix.translate(obj_pos);
-  bind_info = dynamic_bindings.allocate(uniform_binding);
   dynamic_bindings.writer.f32_array(obj_matrix, bind_info.offsets[0]);
 
   draw_stream.set_pipeline(pipeline);
@@ -191,10 +193,11 @@ const update_draw_stream = (angle) => {
     index_offset: index_offset,
   });
 
+  bind_info = dynamic_bindings.allocate(transform_binding);
+  
   obj_pos.x = 30;
   obj_pos.y = -10 * Math.sin(angle);
   obj_matrix.translate(obj_pos);
-  bind_info = dynamic_bindings.allocate(uniform_binding);
   dynamic_bindings.writer.f32_array(obj_matrix, bind_info.offsets[0]);
 
   draw_stream.set_dynamic(bind_info.group);
@@ -213,7 +216,7 @@ const auto_resize = () => {
     viewport.x = newW; viewport.y = newH;
     render_target.set_size({ width: newW, height: newH });
     
-    global_data.projection_matrix.projection(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
+    global_data.projection_matrix.perspective(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
   }
 }
 
@@ -223,12 +226,14 @@ const animate = () => {
   auto_resize();
 
   const angle = performance.now() / 2000;
-  global_data.camera_position.x = 120 * Math.sin(angle);
-  global_data.camera_position.z = 120 * Math.cos(angle);
-  global_data.view_matrix.translate(global_data.camera_position).look_at(target).view_inverse();
-  renderer.resources.update_resource_data(global_data);
+  // global_data.camera_position.x = 120 * Math.sin(angle);
+  // global_data.camera_position.z = 120 * Math.cos(angle);
+  // global_data.view_matrix.translate(global_data.camera_position).look_at(target).view_inverse();
+  global_data.update();
+
+  renderer.cache.get_buffer(global_data);
 
   update_draw_stream(angle);
 
-  renderer.render(render_target, draw_stream);
+  renderer.render(render_pass, draw_stream);
 }

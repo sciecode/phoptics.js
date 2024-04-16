@@ -19,7 +19,7 @@ export class Mat4x4 extends Float32Array {
     return this;
   }
 
-  projection(fov, aspect, near, far) {
+  perspective(fov, aspect, near, far) {
     const m = this;
     const range = 1 / (far - near);
     const focal_length = Math.tan((Math.PI - fov) * .5);
