@@ -66,15 +66,19 @@ const init = async (geo) => {
   ]);
 
   global_data = new StructuredBuffer([
-    { name: "projection_matrix", type: Mat4x4 }, 
-    { name: "view_matrix", type: Mat3x4 }, 
-    { name: "camera_position", type: Vec4 }, 
+    { 
+      name: "camera", type: [
+        { name: "projection", type: Mat4x4 }, 
+        { name: "view", type: Mat3x4 }, 
+        { name: "position", type: Vec4 }, 
+      ]
+    }
   ]);
 
   target.set(0, 30, 0);
-  global_data.camera_position.set(0, 30, 120, 250);
-  global_data.projection_matrix.perspective(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 600);
-  global_data.view_matrix.translate(global_data.camera_position).view_inverse();
+  global_data.camera.position.set(0, 30, 120, 250);
+  global_data.camera.projection.perspective(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 600);
+  global_data.camera.view.translate(global_data.camera.position).view_inverse();
 
   const global_layout = backend.resources.create_group_layout({
     entries: [
@@ -89,7 +93,6 @@ const init = async (geo) => {
   });
 
   const info = renderer.cache.get_buffer(global_data);
-
   global_bind_group = backend.resources.create_bind_group({
     layout: global_layout,
     entries: [
@@ -216,7 +219,7 @@ const auto_resize = () => {
     viewport.x = newW; viewport.y = newH;
     render_target.set_size({ width: newW, height: newH });
     
-    global_data.projection_matrix.perspective(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
+    global_data.camera.projection.perspective(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
   }
 }
 
@@ -225,12 +228,10 @@ const animate = () => {
 
   auto_resize();
 
-  const angle = performance.now() / 2000;
-  // global_data.camera_position.x = 120 * Math.sin(angle);
-  // global_data.camera_position.z = 120 * Math.cos(angle);
-  // global_data.view_matrix.translate(global_data.camera_position).look_at(target).view_inverse();
+  const angle = performance.now() / 1000;
+  // global_data.camera.position.set(120 * Math.sin(angle), 30, 120 * Math.cos(angle), 250);
+  // global_data.camera.view.translate(global_data.camera.position).look_at(target).view_inverse();
   global_data.update();
-
   renderer.cache.get_buffer(global_data);
 
   update_draw_stream(angle);

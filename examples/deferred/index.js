@@ -10,12 +10,16 @@ import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import { gbuffer_shader } from "../shaders/deferred_gbuffer.mjs";
 import { lighting_shader } from "../shaders/deferred_lighting.mjs";
+import { CanvasTexture } from "../../src/renderer/objects/canvas_texture.mjs";
+import { RenderPass } from "../../src/renderer/objects/render_pass.mjs";
+import { RenderTarget } from "../../src/renderer/objects/render_target.mjs";
+import { StructuredBuffer } from "../../src/renderer/objects/structured_buffer.mjs";
 
 let renderer, backend, canvas, gbuffer_pipeline, lighting_pipeline;
 let global_bind_group, lighting_bind_group, lighting_layout;
 let draw_stream, global_data, count;
 
-let gbuffer_target, render_target, sampler;
+let gbuffer_pass, gbuffer_target, render_pass, render_target, sampler;
 let attrib0, attrib1, geometry_buffer, index_offset;
 let target = new Vec3();
 
@@ -29,40 +33,43 @@ let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0}
 
 const init = async (geo) => {
   canvas = document.createElement('canvas');
-  canvas.width = viewport.x, canvas.height = viewport.y;
-  document.body.append(canvas);
-
+  
   const device = await navigator.gpu.requestAdapter({
     powerPreference: 'high-performance'
   }).then(adapter => adapter.requestDevice());
-
+  
   renderer = new Renderer(device);
   backend = renderer.backend;
+  
+  const canvas_texture = new CanvasTexture();
+  canvas_texture.set_size({ width: viewport.x, height: viewport.y });
+  canvas = canvas_texture.canvas;
+  document.body.append(canvas);
 
-  const canvas_texture = renderer.create_canvas_texture({canvas});
-
-  const render_pass = renderer.create_render_pass({
+  render_pass = new RenderPass({
     multisampled: true,
-    formats: { 
+    formats: {
       color: [navigator.gpu.getPreferredCanvasFormat()],
     }
   });
 
-  render_target = renderer.create_render_target(render_pass, {
-    size: { width: viewport.x, height: viewport.y },
-    color: [
-      { resolve: canvas_texture, clear: [.05, .05, .05, 1] },
-    ],
-  });
-
-  const gbuffer_pass = renderer.create_render_pass({
+  gbuffer_pass = new RenderPass({
     formats: {
       color: ["rgba32float", "rgba32float"],
       depth: "depth24plus"
     }
   });
 
-  gbuffer_target = renderer.create_render_target(gbuffer_pass, {
+  render_target = new RenderTarget(render_pass, {
+    size: { width: viewport.x, height: viewport.y },
+    color: [ 
+      { resolve: canvas_texture, clear: [.05, .05, .05, 1] }
+    ],
+  });
+
+  render_pass.set_render_target(render_target);
+
+  gbuffer_target = new RenderTarget(gbuffer_pass, {
     size: { width: viewport.x, height: viewport.y },
     color: [
       { clear: [0, 0, 0, 0] },
@@ -70,6 +77,7 @@ const init = async (geo) => {
     ],
     depth: { clear: 0 }
   });
+  gbuffer_pass.set_render_target(gbuffer_target);
 
   const global_layout = backend.resources.create_group_layout({
     entries: [
@@ -109,20 +117,22 @@ const init = async (geo) => {
     ],
   });
 
-  global_data = renderer.resources.create_resource_data([
-    { name: "projection_matrix", type: Mat4x4 },
-    { name: "view_matrix", type: Mat3x4 },
-    { name: "camera_position", type: Vec4 },
+  global_data = new StructuredBuffer([
+    { 
+      name: "camera", type: [
+        { name: "projection", type: Mat4x4 }, 
+        { name: "view", type: Mat3x4 }, 
+        { name: "position", type: Vec4 }, 
+      ]
+    }
   ]);
 
   target.set(0, 30, 0);
-  global_data.camera_position.y = 30;
-  global_data.camera_position.w = 250;
-  global_data.projection_matrix.perspective(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 600);
-  global_data.view_matrix.translate(global_data.camera_position).view_inverse();
-  renderer.resources.update_resource_data(global_data);
+  global_data.camera.position.set(0, 30, 100, 250);
+  global_data.camera.projection.perspective(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 600);
+  global_data.camera.view.translate(global_data.camera.position).view_inverse();
 
-  const info = global_data.get_info();
+  const info = renderer.cache.get_buffer(global_data);
   global_bind_group = backend.resources.create_bind_group({
     layout: global_layout,
     entries: [
@@ -131,7 +141,7 @@ const init = async (geo) => {
         type: GPUResource.BUFFER,
         offset: info.offset,
         size: info.size,
-        resource: renderer.resources.get_handle_data(global_data),
+        resource: info.bid,
       }
     ]
   });
@@ -149,19 +159,19 @@ const init = async (geo) => {
       {
         binding: 1,
         type: GPUResource.TEXTURE,
-        resource: renderer.resources.get_texture_handle(gbuffer_target.attachments.color[0].texture),
+        resource: renderer.cache.get_texture(gbuffer_target.attachments.color[0].texture).bid,
       },
       {
         binding: 2,
         type: GPUResource.TEXTURE,
-        resource: renderer.resources.get_texture_handle(gbuffer_target.attachments.color[1].texture),
+        resource: renderer.cache.get_texture(gbuffer_target.attachments.color[1].texture).bid,
       }
     ]
   });
 
   gbuffer_pipeline = backend.resources.create_pipeline({
     code: gbuffer_shader,
-    render_info: gbuffer_pass.info,
+    render_info: gbuffer_pass,
     layouts: {
       bindings: [global_layout],
     },
@@ -185,7 +195,7 @@ const init = async (geo) => {
 
   lighting_pipeline = backend.resources.create_pipeline({
     code: lighting_shader,
-    render_info: render_pass.info,
+    render_info: render_pass,
     layouts: {
       bindings: [global_layout, lighting_layout],
     },
@@ -282,7 +292,7 @@ const auto_resize = () => {
     // TODO: this won't work until bind group updates have been implemented
     // backend.resources.update_bind_group(lighting_bind_group);
     
-    global_data.projection_matrix.perspective(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
+    global_data.camera.projection.perspective(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
   }
 }
 
@@ -292,14 +302,14 @@ const animate = () => {
   auto_resize();
 
   const angle = performance.now() / 1000;
-  global_data.camera_position.x = 100 * Math.sin(angle);
-  global_data.camera_position.z = 100 * Math.cos(angle);
-  global_data.view_matrix.translate(global_data.camera_position).look_at(target).view_inverse();
-  renderer.resources.update_resource_data(global_data);
+  global_data.camera.position.set(100 * Math.sin(angle), 30, 100 * Math.cos(angle), 250);
+  global_data.camera.view.translate(global_data.camera.position).look_at(target).view_inverse();
+  global_data.update();
+  renderer.cache.get_buffer(global_data);
 
   update_gbuffer_stream();
-  renderer.render(gbuffer_target, draw_stream);
+  renderer.render(gbuffer_pass, draw_stream);
 
   update_lighting_stream();
-  renderer.render(render_target, draw_stream);
+  renderer.render(render_pass, draw_stream);
 }
