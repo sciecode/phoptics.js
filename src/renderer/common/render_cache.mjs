@@ -6,9 +6,9 @@ export class RenderCache {
   constructor(backend) {
     this.backend = backend;
     this.buffer_manager = new BufferManager(backend);
+    this.buffers = new PoolStorage();
     this.targets = new PoolStorage();
     this.textures = new PoolStorage();
-    this.buffers = new PoolStorage();
   }
 
   get_target(target_obj) {

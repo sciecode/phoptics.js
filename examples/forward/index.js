@@ -72,8 +72,19 @@ const init = async (geo) => {
         { name: "view", type: Mat3x4 }, 
         { name: "position", type: Vec4 }, 
       ]
+    },
+  ]);
+
+  const test_buffer = new StructuredBuffer([
+    {
+      name: "rays", count: 3, type: [
+        { name: "origin", type: Vec4 },
+        { name: "direction", type: Vec4 },
+      ]
     }
   ]);
+
+  console.log(test_buffer, test_buffer.rays[2].origin);
 
   target.set(0, 30, 0);
   global_data.camera.position.set(0, 30, 120, 250);

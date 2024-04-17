@@ -6,31 +6,15 @@ export class StructuredBuffer {
 
   constructor(options) {
     this.type = ResourceType.StructuredBuffer;
-    this.total_bytes = 0;
-
-    for (let entry of options) {
-      if (typeof entry.type == 'function') {
-        this.total_bytes += entry.type.byte_size;
-      } else {
-        for (let prop of entry.type) {
-          this.total_bytes += prop.type.byte_size;
-        }
-      }
-    }
-    this.buffer = new ArrayBuffer(this.total_bytes);
     
+    const arr = [];
+    this.total_bytes = parse_struct(this, arr, options);
+    this.buffer = new ArrayBuffer(this.total_bytes);
+
     let current_offset = 0;
-    for (let entry of options) {
-      if (typeof entry.type == 'function') {
-        this[entry.name] = new entry.type(this.buffer, current_offset);
-        current_offset += entry.type.byte_size;
-      } else { // struct
-        const struct = this[entry.name] = {}
-        for (let prop of entry.type) {
-          struct[prop.name] = new prop.type(this.buffer, current_offset);
-          current_offset += prop.type.byte_size;
-        }
-      }
+    for (let entry of arr) {
+      entry.parent[entry.name] = new entry.type(this.buffer, current_offset);
+      current_offset += entry.size;
     }
   }
 
@@ -38,4 +22,35 @@ export class StructuredBuffer {
   get_version() { return this.#version }
   initialize(id) { if (this.#id == UNINITIALIZED) this.#id = id; }
   update() { this.#version = (this.#version + 1) & UNINITIALIZED }
+}
+
+const parse_struct = (parent, arr, desc) => {
+  let total_bytes = 0;
+  for (let entry of desc) {
+    if (typeof entry.type == 'function') {
+      if (!entry.count || entry.count < 2) {
+        total_bytes += entry.type.byte_size;
+        arr.push( { parent: parent, name: entry.name, type: entry.type, size: entry.type.byte_size } );
+      } else {
+        const par = parent[entry.name] = [];
+        for (let i = 0; i < entry.count; i++) {
+          total_bytes += entry.type.byte_size;
+          arr.push( { parent: par, name: i, type: entry.type, size: entry.type.byte_size } );
+        }
+      }
+    } else {
+      if (!entry.count || entry.count < 2) {
+        parent[entry.name] = {};
+        total_bytes += parse_struct(parent[entry.name], arr, entry.type);
+      } else {
+        const par = parent[entry.name] = [];
+        for (let i = 0; i < entry.count; i++) {
+          par[i] = {};
+          total_bytes += parse_struct(par[i], arr, entry.type);
+        }
+      }
+    }
+  }
+
+  return total_bytes;
 }
