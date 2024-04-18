@@ -1,12 +1,14 @@
+import { GPUResource } from "../../backend/constants.mjs";
+import { ResourceType, UNINITIALIZED } from "../constants.mjs";
 import { PoolStorage } from "../../common/pool_storage.mjs";
 import { BufferManager } from "./buffer_manager.mjs";
-import { ResourceType, UNINITIALIZED } from "../constants.mjs";
-import { GPUResource } from "../../backend/constants.mjs";
+import { MaterialManager } from "./material_manager.mjs";
 
 export class RenderCache {
   constructor(backend) {
     this.backend = backend;
     this.buffer_manager = new BufferManager(backend);
+    this.material_manager = new MaterialManager(backend);
     this.buffers = new PoolStorage();
     this.bindings = new PoolStorage();
     this.targets = new PoolStorage();
@@ -82,7 +84,7 @@ export class RenderCache {
     let id = binding_obj.get_id(), version = binding_obj.get_version();
 
     if (id == UNINITIALIZED) {
-      const layout = this.backend.resources.create_group_layout({
+      const layout_cache = this.material_manager.create_layout({
         entries: binding_obj.info.map( entry => {
           const resource = {
             binding: entry.binding,
@@ -98,7 +100,7 @@ export class RenderCache {
       });
 
       const bid = this.backend.resources.create_bind_group({
-        layout: layout,
+        layout: layout_cache.layout,
         entries: binding_obj.info.map( entry => {
           const resource = binding_obj[entry.name];
           switch (resource.type) {
@@ -117,7 +119,7 @@ export class RenderCache {
 
       id = this.bindings.allocate({
         version: version,
-        layout: layout,
+        layout: layout_cache.id,
         bid: bid,
       });
       binding_obj.initialize(id);

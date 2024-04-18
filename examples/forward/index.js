@@ -76,11 +76,13 @@ const init = async (geo) => {
     { binding: 0, size: Mat3x4.byte_size },
   ]);
 
+  const camera_layout_id = renderer.cache.get_binding(render_pass.bindings).layout;
+
   pipeline = backend.resources.create_pipeline({
     code: shader,
     render_info: render_pass,
     layouts: {
-      bindings: [renderer.cache.get_binding(render_pass.bindings).layout],
+      bindings: [renderer.cache.material_manager.get_layout(camera_layout_id)],
       dynamic: renderer.dynamic.get_layout(transform_binding),
     },
     vertex: {
