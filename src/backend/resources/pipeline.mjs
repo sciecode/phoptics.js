@@ -46,7 +46,7 @@ export class Pipeline {
       },
       depthStencil: !!info.formats.depth ? {
         depthWriteEnabled: depth.write || true,
-        depthCompare: depth.test || "greater-equal",
+        depthCompare: depth.test || "greater",
         depthBias: depth.bias,
         format: info.formats.depth
       } : undefined,

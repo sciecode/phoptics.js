@@ -1,12 +1,14 @@
 import { PoolStorage } from "../../common/pool_storage.mjs";
 import { BufferManager } from "./buffer_manager.mjs";
 import { ResourceType, UNINITIALIZED } from "../constants.mjs";
+import { GPUResource } from "../../backend/constants.mjs";
 
 export class RenderCache {
   constructor(backend) {
     this.backend = backend;
     this.buffer_manager = new BufferManager(backend);
     this.buffers = new PoolStorage();
+    this.bindings = new PoolStorage();
     this.targets = new PoolStorage();
     this.textures = new PoolStorage();
   }
@@ -20,7 +22,7 @@ export class RenderCache {
       id = this.targets.allocate({
         version: version,
         attachments: {
-          color: attachs.color.map(_ => { return { version: -1, view: null } }),
+          color: attachs.color.map( _ => { return { version: -1, view: null } }),
           depth: attachs.depth ? { version: -1, view: null } : undefined,
         }
       });
@@ -70,6 +72,69 @@ export class RenderCache {
       if (cached_depth.version != cached_texture.version) {
         cached_depth.version = cached_texture.version;
         cached_depth.view = this.backend.resources.get_texture(cached_texture.bid).get_view(depth.view);
+      }
+    }
+
+    return cache;
+  }
+
+  get_binding(binding_obj) {
+    let id = binding_obj.get_id(), version = binding_obj.get_version();
+
+    if (id == UNINITIALIZED) {
+      const layout = this.backend.resources.create_group_layout({
+        entries: binding_obj.info.map( entry => {
+          const resource = {
+            binding: entry.binding,
+            visibility: entry.visibility || (GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT),
+          };
+          switch (binding_obj[entry.name].type) {
+            case ResourceType.StructuredBuffer: 
+              resource.buffer = { type: "read-only-storage" };
+              break;
+          }
+          return resource;
+        })
+      });
+
+      const bid = this.backend.resources.create_bind_group({
+        layout: layout,
+        entries: binding_obj.info.map( entry => {
+          const resource = binding_obj[entry.name];
+          switch (resource.type) {
+            case ResourceType.StructuredBuffer:
+              const info = this.get_buffer(resource);
+              return {
+                binding: entry.binding,
+                type: GPUResource.BUFFER,
+                offset: info.offset,
+                size: info.size,
+                resource: info.bid,
+              }
+          }
+        })
+      });
+
+      id = this.bindings.allocate({
+        version: version,
+        layout: layout,
+        bid: bid,
+      });
+      binding_obj.initialize(id);
+    }
+
+    const cache = this.bindings.get(id);
+    // if (cache.version != version) {
+    //   cache.version = version;
+    //   TODO: validate & update binding
+    // } else ....
+
+    for (let entry of binding_obj.info) {
+      const resource = binding_obj[entry.name];
+      switch (resource.type) {
+        case ResourceType.StructuredBuffer:
+          this.get_buffer(resource);
+          break;
       }
     }
 

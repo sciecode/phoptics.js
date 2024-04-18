@@ -1,5 +1,5 @@
 import { UNINITIALIZED } from "../constants.mjs";
-import { build_bindings } from "../common/bindings.mjs";
+import { Bindings } from "./bindings.mjs";
 
 export class Material {
   #id = UNINITIALIZED;
@@ -11,7 +11,16 @@ export class Material {
       vertex: options.shader.vertex,
       fragment: options.shader.fragment
     };
-    build_bindings(this, options.bindings);    
+    this.graphics = {
+      cull: options.graphics?.cull || "back",
+      primitive: options.graphics?.primitive || "triangle-list",
+      depth: {
+        test: options.graphics?.depth?.test || "greater",
+        write: options.graphics?.depth?.write || true,
+      }
+    };
+    this.attributes = options.attributes;
+    this.bindings = new Bindings(options.bindings);
   }
   
   get_id() { return this.#id; }

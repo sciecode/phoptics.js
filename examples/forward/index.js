@@ -1,11 +1,9 @@
-import { GPUResource } from "../../src/backend/constants.mjs";
-import { DrawStream } from "../../src/renderer/common/draw_stream.mjs";
-import { DynamicBindings } from "../../src/renderer/common/dynamic_bindings.mjs";
-
+import { ResourceType } from "../../src/renderer/constants.mjs";
 import { Renderer } from "../../src/renderer/renderer.mjs";
 import { RenderPass } from "../../src/renderer/objects/render_pass.mjs";
 import { RenderTarget } from "../../src/renderer/objects/render_target.mjs";
 import { CanvasTexture } from "../../src/renderer/objects/canvas_texture.mjs";
+import { Material } from "../../src/renderer/objects/material.mjs";
 
 import { Vec3 } from "../../src/datatypes/vec3.mjs";
 import { Vec4 } from "../../src/datatypes/vec4.mjs";
@@ -14,13 +12,9 @@ import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import { shader } from "../shaders/forward_shader.mjs";
-import { StructuredBuffer } from "../../src/renderer/objects/structured_buffer.mjs";
-import { Material } from "../../src/renderer/objects/material.mjs";
-import { ResourceType } from "../../src/renderer/constants.mjs";
 
-let renderer, backend, canvas, render_pass, render_target, pipeline, global_bind_group;
-let draw_stream, global_data, count, dynamic_bindings, transform_binding;
-let attrib0, attrib1, geometry_buffer, index_offset;
+let renderer, backend, canvas, render_pass, render_target, pipeline;
+let count, transform_binding, attrib0, attrib1, geometry_buffer, index_offset;
 let obj_matrix = new Mat3x4(), obj_pos = new Vec3(), target = new Vec3();
 
 const dpr = window.devicePixelRatio;
@@ -49,7 +43,19 @@ const init = async (geo) => {
     formats: {
       color: [navigator.gpu.getPreferredCanvasFormat()],
       depth: "depth24plus",
-    }
+    },
+    bindings: [
+      {
+        binding: 0,
+        name: "camera",
+        type: ResourceType.StructuredBuffer,
+        info: [
+          { name: "projection", type: Mat4x4 }, 
+          { name: "view", type: Mat3x4 }, 
+          { name: "position", type: Vec4 }, 
+        ]
+      }
+    ]
   });
   
   render_target = new RenderTarget(render_pass, {
@@ -60,76 +66,22 @@ const init = async (geo) => {
     depth: { clear: 0 }
   });
 
+  target.set(0, 30, 0);
+  render_pass.bindings.camera.position.set(0, 30, 120, 250);
+  render_pass.bindings.camera.projection.perspective(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 600);
+  render_pass.bindings.camera.view.translate(render_pass.bindings.camera.position).view_inverse();
   render_pass.set_render_target(render_target);
 
-  dynamic_bindings = new DynamicBindings(backend);
-  transform_binding = dynamic_bindings.create_dynamic_binding([
+  transform_binding = renderer.dynamic.create_binding([
     { binding: 0, size: Mat3x4.byte_size },
   ]);
-
-  global_data = new StructuredBuffer([
-    { 
-      name: "camera", type: [
-        { name: "projection", type: Mat4x4 }, 
-        { name: "view", type: Mat3x4 }, 
-        { name: "position", type: Vec4 }, 
-      ]
-    },
-  ]);
-
-  target.set(0, 30, 0);
-  global_data.camera.position.set(0, 30, 120, 250);
-  global_data.camera.projection.perspective(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 600);
-  global_data.camera.view.translate(global_data.camera.position).view_inverse();
-
-  const global_layout = backend.resources.create_group_layout({
-    entries: [
-      {
-        binding: 0,
-        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-        buffer: {
-          type: "read-only-storage",
-        },
-      },
-    ],
-  });
-
-  const info = renderer.cache.get_buffer(global_data);
-  global_bind_group = backend.resources.create_bind_group({
-    layout: global_layout,
-    entries: [
-      {
-        binding: 0,
-        type: GPUResource.BUFFER,
-        offset: info.offset,
-        size: info.size,
-        resource: info.bid,
-      }
-    ]
-  });
-
-  const rough_material = new Material({
-    shader: { code: shader },
-    bindings: [
-     {
-      binding: 0,
-      name: "properties",
-      type: ResourceType.StructuredBuffer,
-      info: [
-        { name: "surface", type: Vec4 },
-      ]
-     } 
-    ]
-  });
-
-  console.log(rough_material);
 
   pipeline = backend.resources.create_pipeline({
     code: shader,
     render_info: render_pass,
     layouts: {
-      bindings: [global_layout],
-      dynamic: dynamic_bindings.get_layout(transform_binding),
+      bindings: [renderer.cache.get_binding(render_pass.bindings).layout],
+      dynamic: renderer.dynamic.get_layout(transform_binding),
     },
     vertex: {
       buffers: [
@@ -182,50 +134,48 @@ const init = async (geo) => {
     byte_size: vertex_count * 4,
   });
 
-  draw_stream = new DrawStream();
-
   animate();
 }
 
 const update_draw_stream = (angle) => {
-  dynamic_bindings.reset();
-  draw_stream.clear();
+  renderer.dynamic.reset();
+  renderer.draw_stream.clear();
   
-  let bind_info = dynamic_bindings.allocate(transform_binding);
+  let bind_info = renderer.dynamic.allocate(transform_binding);
 
   obj_pos.x = -30;
   obj_pos.y = 10 * Math.sin(angle);
   obj_matrix.translate(obj_pos);
-  dynamic_bindings.writer.f32_array(obj_matrix, bind_info.offsets[0]);
+  renderer.dynamic.writer.f32_array(obj_matrix, bind_info.offsets[0]);
 
-  draw_stream.set_pipeline(pipeline);
-  draw_stream.set_globals(global_bind_group);
-  draw_stream.set_variant(0);
-  draw_stream.set_material(0);
-  draw_stream.set_dynamic(bind_info.group);
-  draw_stream.set_dynamic_offset(0, bind_info.offsets[0]);
-  draw_stream.set_attribute(0, attrib0);
-  draw_stream.set_attribute(1, attrib1);
+  renderer.draw_stream.set_pipeline(pipeline);
+  renderer.draw_stream.set_globals(renderer.cache.get_binding(render_pass.bindings).bid);
+  renderer.draw_stream.set_variant(0);
+  renderer.draw_stream.set_material(0);
+  renderer.draw_stream.set_dynamic(bind_info.group);
+  renderer.draw_stream.set_dynamic_offset(0, bind_info.offsets[0]);
+  renderer.draw_stream.set_attribute(0, attrib0);
+  renderer.draw_stream.set_attribute(1, attrib1);
 
-  draw_stream.draw({
+  renderer.draw_stream.draw({
     index: geometry_buffer,
     draw_count: count,
     vertex_offset: 0,
     index_offset: index_offset,
   });
 
-  bind_info = dynamic_bindings.allocate(transform_binding);
+  bind_info = renderer.dynamic.allocate(transform_binding);
   
   obj_pos.x = 30;
   obj_pos.y = -10 * Math.sin(angle);
   obj_matrix.translate(obj_pos);
-  dynamic_bindings.writer.f32_array(obj_matrix, bind_info.offsets[0]);
+  renderer.dynamic.writer.f32_array(obj_matrix, bind_info.offsets[0]);
 
-  draw_stream.set_dynamic(bind_info.group);
-  draw_stream.set_dynamic_offset(0, bind_info.offsets[0]);
-  draw_stream.draw();
+  renderer.draw_stream.set_dynamic(bind_info.group);
+  renderer.draw_stream.set_dynamic_offset(0, bind_info.offsets[0]);
+  renderer.draw_stream.draw();
 
-  dynamic_bindings.commit();
+  renderer.dynamic.commit();
 }
 
 const auto_resize = () => {
@@ -237,7 +187,7 @@ const auto_resize = () => {
     viewport.x = newW; viewport.y = newH;
     render_target.set_size({ width: newW, height: newH });
     
-    global_data.camera.projection.perspective(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
+    render_pass.bindings.camera.projection.perspective(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
   }
 }
 
@@ -247,12 +197,11 @@ const animate = () => {
   auto_resize();
 
   const angle = performance.now() / 1000;
-  // global_data.camera.position.set(120 * Math.sin(angle), 30, 120 * Math.cos(angle), 250);
-  // global_data.camera.view.translate(global_data.camera.position).look_at(target).view_inverse();
-  global_data.update();
-  renderer.cache.get_buffer(global_data);
+  render_pass.bindings.camera.position.set(120 * Math.sin(angle), 30, 120 * Math.cos(angle), 250);
+  render_pass.bindings.camera.view.translate(render_pass.bindings.camera.position).look_at(target).view_inverse();
+  render_pass.bindings.camera.update();
 
   update_draw_stream(angle);
 
-  renderer.render(render_pass, draw_stream);
+  renderer.render(render_pass, transform_binding);
 }

@@ -1,6 +1,6 @@
 import { GPUResource } from "../../src/backend/constants.mjs";
 import { Renderer } from "../../src/renderer/renderer.mjs";
-import { DrawStream } from "../../src/renderer/common/draw_stream.mjs";
+import { DrawStream } from "../../src/renderer/modules/draw_stream.mjs";
 
 import { Vec3 } from "../../src/datatypes/vec3.mjs";
 import { Vec4 } from "../../src/datatypes/vec4.mjs";
