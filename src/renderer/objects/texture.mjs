@@ -17,8 +17,8 @@ export class Texture {
     this.#update();
   }
 
-  get_id() { return this.#id }
+  get_id() { return this.#id; }
   get_version() { return this.#version }
   initialize(id) { if (this.#id == UNINITIALIZED) this.#id = id; }
-  #update() { this.#version = (this.#version + 1) & UNINITIALIZED }
+  #update() { this.#version = (this.#version + 1) & UNINITIALIZED; }
 }

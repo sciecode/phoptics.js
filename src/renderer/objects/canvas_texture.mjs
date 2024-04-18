@@ -18,6 +18,6 @@ export class CanvasTexture {
     return this.context.getCurrentTexture().createView(descriptor);
   }
 
-  get_version() { return this.#version }
+  get_version() { return this.#version; }
   initialize(version) { if (this.#version == UNINITIALIZED) this.#version = version; }
 }

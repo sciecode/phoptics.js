@@ -1,5 +1,5 @@
 import { PoolStorage } from "../../common/pool_storage.mjs";
-import { BufferManager } from "../buffer_manager.mjs";
+import { BufferManager } from "./buffer_manager.mjs";
 import { ResourceType, UNINITIALIZED } from "../constants.mjs";
 
 export class RenderCache {

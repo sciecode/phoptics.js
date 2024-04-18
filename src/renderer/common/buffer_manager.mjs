@@ -1,4 +1,4 @@
-import { OffsetAllocator } from "../common/offset_allocator.mjs";
+import { OffsetAllocator } from "../../common/offset_allocator.mjs";
 
 const BITS = 8;
 const MAX_ALLOC = 0x7FFFF;

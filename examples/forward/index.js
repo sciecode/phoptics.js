@@ -15,6 +15,8 @@ import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import { shader } from "../shaders/forward_shader.mjs";
 import { StructuredBuffer } from "../../src/renderer/objects/structured_buffer.mjs";
+import { Material } from "../../src/renderer/objects/material.mjs";
+import { ResourceType } from "../../src/renderer/constants.mjs";
 
 let renderer, backend, canvas, render_pass, render_target, pipeline, global_bind_group;
 let draw_stream, global_data, count, dynamic_bindings, transform_binding;
@@ -75,17 +77,6 @@ const init = async (geo) => {
     },
   ]);
 
-  const test_buffer = new StructuredBuffer([
-    {
-      name: "rays", count: 3, type: [
-        { name: "origin", type: Vec4 },
-        { name: "direction", type: Vec4 },
-      ]
-    }
-  ]);
-
-  console.log(test_buffer, test_buffer.rays[2].origin);
-
   target.set(0, 30, 0);
   global_data.camera.position.set(0, 30, 120, 250);
   global_data.camera.projection.perspective(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 600);
@@ -116,6 +107,22 @@ const init = async (geo) => {
       }
     ]
   });
+
+  const rough_material = new Material({
+    shader: { code: shader },
+    bindings: [
+     {
+      binding: 0,
+      name: "properties",
+      type: ResourceType.StructuredBuffer,
+      info: [
+        { name: "surface", type: Vec4 },
+      ]
+     } 
+    ]
+  });
+
+  console.log(rough_material);
 
   pipeline = backend.resources.create_pipeline({
     code: shader,
