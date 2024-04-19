@@ -9,7 +9,6 @@ export class RenderCache {
     this.backend = backend;
     this.buffer_manager = new BufferManager(backend);
     this.material_manager = new MaterialManager(backend);
-    this.materials = new PoolStorage();
     this.buffers = new PoolStorage();
     this.bindings = new PoolStorage();
     this.targets = new PoolStorage();
@@ -61,7 +60,7 @@ export class RenderCache {
         if (color.resolve && color.resolve.get_version() == UNINITIALIZED) {
           color.resolve.context.configure({
             device: this.backend.device,
-            format: navigator.gpu.getPreferredCanvasFormat()
+            format: color.texture.format, 
           });
           color.resolve.initialize(0);
         }
@@ -82,28 +81,21 @@ export class RenderCache {
   }
 
   get_pipeline(material_obj, state, dynamic) {
-    let id = material_obj.get_id(), version = material_obj.get_version();
-
-    // TODO: is it possible to use same material for different render pass formats? currently unsupported.
+    let id = material_obj.get_id();
 
     if (id == UNINITIALIZED) {
-      const pipeline_id = this.material_manager.create_pipeline({
+      id = this.material_manager.create_material({
         material: material_obj,
         state: state,
         dynamic: dynamic,
         binding: material_obj.bindings ? this.get_binding(material_obj.bindings).layout : undefined
       });
-      id = this.materials.allocate({
-        version: version,
-        pipeline: pipeline_id,
-      });
-      material_obj.initialize(id);
     }
 
+    const cache = this.material_manager.get_material(id);
     // TODO: versioning
 
-    const pipeline_id = this.materials.get(id).pipeline;
-    return this.material_manager.get_pipeline(pipeline_id);
+    return this.material_manager.get_pipeline(cache.pipeline);
   }
 
   get_binding(binding_obj) {

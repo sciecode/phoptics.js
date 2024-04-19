@@ -5,8 +5,8 @@ export class Shader {
 
   constructor(options) {
     this.code = options.code;
-    this.vertex = options.vertex;
-    this.fragment = options.fragment;
+    this.vertex = options.vertex || "vs";
+    this.fragment = options.fragment || "fs";
   }
 
   get_id() { return this.#id; }
