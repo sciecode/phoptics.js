@@ -1,15 +1,8 @@
-
 export class Pipeline {
   constructor(device, resources, options = {}) {
-    const info = options.render_info;
-
-    const vertex = options.vertex || {};
-    const desc_pipeline = options.pipeline || {};
-    const depth = desc_pipeline.depth || {}
-    const blend = !desc_pipeline.blend ? undefined : {
-      alpha: desc_pipeline.blend?.alpha || {},
-      color: desc_pipeline.blend?.color || {},
-    };
+      
+    const graphics = options.graphics;
+    const depth = graphics.depth || {}
     
     const layouts = options.layouts || { bindings: [] };
     const groups = new Array(4);
@@ -22,7 +15,7 @@ export class Pipeline {
     });
 
     const module = device.createShaderModule({
-      code: options.code,
+      code: options.shader.code,
     });
 
     const descriptor = {
@@ -30,29 +23,30 @@ export class Pipeline {
       vertex: {
         module: module,
         constants: options.constants,
-        entryPoint: vertex.entry || 'vs',
-        buffers: vertex.buffers,
+        entryPoint: options.shader.vertex || 'vs',
+        buffers: options.vertex,
       },
       fragment: {
         module: module,
         constants: options.constants,
-        entryPoint: options.fragment?.entry || 'fs',
-        targets: info.formats.color.map( format => { 
+        entryPoint: options.shader.fragment || 'fs',
+        targets: graphics.formats.color.map( format => { 
           return {
             format: format,
-            blend: blend
+            // blend: blend
           };
         }),
       },
-      depthStencil: !!info.formats.depth ? {
+      depthStencil: !!graphics.formats.depth ? {
         depthWriteEnabled: depth.write || true,
         depthCompare: depth.test || "greater",
         depthBias: depth.bias,
-        format: info.formats.depth
+        format: graphics.formats.depth
       } : undefined,
-      multisample: { count: info.multisampled ? 4 : 1 },
+      multisample: { count: graphics.multisampled ? 4 : 1 },
       primitive: {
-        cullMode: "back"
+        topology: graphics.primitive,
+        cullMode: graphics.cull
       }
     } 
 

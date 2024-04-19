@@ -1,10 +1,70 @@
 import { PoolStorage } from "../../common/pool_storage.mjs";
+import { UNINITIALIZED } from "../constants.mjs";
 
 export class MaterialManager {
   constructor(backend) {
     this.backend = backend;
     this.layout_table = new Map();
     this.layouts = new PoolStorage();
+    this.shaders = new PoolStorage();
+    this.pipelines_table = new Map();
+    this.pipelines = new PoolStorage();
+    this.materials = new PoolStorage();
+  }
+
+  get_shader(shader_obj) {
+    let id = shader_obj.get_id();
+
+    if (id == UNINITIALIZED) {
+      id = this.shaders.allocate(shader_obj);
+      shader_obj.initialize(id);
+    }
+
+    return shader_obj;
+  }
+
+  create_pipeline(info) {
+    const hash = JSON.stringify({
+      shader: this.get_shader(info.material.shader).get_id(),
+      binding: info.binding,
+      vertex: info.material.vertex,
+      graphics: info.material.graphics,
+      ...info.state,
+      ...info.material.graphics,
+    });
+
+    let cache = this.pipelines_table.get(hash), id;
+
+    if (cache) {
+      id = cache.id;
+      cache.count++;
+    } else {
+      const pipeline = this.backend.resources.create_pipeline({
+        shader: info.material.shader,
+        graphics: {
+          multisampled: info.state.multisampled,
+          formats: info.state.formats,
+          ...info.material.graphics,
+        },
+        layouts: {
+          bindings: [
+            this.get_layout(info.state.global_layout),
+            undefined,
+            info.binding ? this.get_layout(info.binding) : undefined,
+          ],
+          dynamic: info.dynamic.get_layout(info.state.dynamic_layout),
+        },
+        vertex: info.material.vertex,
+      });
+      id = this.pipelines.allocate(pipeline);
+      this.pipelines_table.set(hash, { count: 1, id: id });
+    }
+
+    return id;
+  }
+
+  get_pipeline(id) {
+    return this.pipelines.get(id);
   }
 
   create_layout(layout_info) {

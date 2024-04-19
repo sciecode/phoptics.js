@@ -6,11 +6,7 @@ export class Material {
   #version = 0;
 
   constructor(options) {
-    this.shader = {
-      code: options.shader.code,
-      vertex: options.shader.vertex,
-      fragment: options.shader.fragment
-    };
+    this.shader = options.shader; 
     this.graphics = {
       cull: options.graphics?.cull || "back",
       primitive: options.graphics?.primitive || "triangle-list",
@@ -19,8 +15,8 @@ export class Material {
         write: options.graphics?.depth?.write || true,
       }
     };
-    this.attributes = options.attributes;
-    this.bindings = new Bindings(options.bindings);
+    this.vertex = options.vertex;
+    this.bindings = options.bindings ? new Bindings(options.bindings) : undefined;
   }
   
   get_id() { return this.#id; }

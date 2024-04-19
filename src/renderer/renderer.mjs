@@ -18,12 +18,14 @@ export class Renderer {
     }
   }
 
-  render(pass, dynamic) {
+  render(pass, dynamic, material) {
     this.#set_pass(pass);
     this.#set_dynamic_binding(dynamic);
 
     const target = pass.current_target;
     const cached_target = this.cache.get_target(target);
+
+    this.cache.get_pipeline(material, this.state, this.dynamic);
 
     this.backend.render(make_pass_descriptor(target, cached_target.attachments), this.draw_stream);
   }
@@ -35,7 +37,7 @@ export class Renderer {
   }
 
   #set_dynamic_binding(dynamic_info) {
-    this.state.dynamic_layout = this.dynamic.get_layout(dynamic_info);
+    this.state.dynamic_layout = dynamic_info;
   }
 }
 

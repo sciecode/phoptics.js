@@ -12,8 +12,9 @@ import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import { shader } from "../shaders/forward_shader.mjs";
+import { Shader } from "../../src/renderer/objects/shader.mjs";
 
-let renderer, backend, canvas, render_pass, render_target, pipeline;
+let renderer, backend, canvas, render_pass, render_target, material;
 let count, transform_binding, attrib0, attrib1, geometry_buffer, index_offset;
 let obj_matrix = new Mat3x4(), obj_pos = new Vec3(), target = new Vec3();
 
@@ -26,11 +27,11 @@ let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0}
 })();
 
 const init = async (geo) => {
-  const device = await navigator.gpu.requestAdapter({
-    powerPreference: 'high-performance'
-  }).then( adapter => adapter.requestDevice());
-
-  renderer = new Renderer(device);
+  renderer = new Renderer(
+    await navigator.gpu.requestAdapter({
+      powerPreference: 'high-performance'
+    }).then( adapter => adapter.requestDevice())
+  );
   backend = renderer.backend;
 
   const canvas_texture = new CanvasTexture();
@@ -75,34 +76,28 @@ const init = async (geo) => {
   transform_binding = renderer.dynamic.create_binding([
     { binding: 0, size: Mat3x4.byte_size },
   ]);
-
-  const camera_layout_id = renderer.cache.get_binding(render_pass.bindings).layout;
-
-  pipeline = backend.resources.create_pipeline({
-    code: shader,
-    render_info: render_pass,
-    layouts: {
-      bindings: [renderer.cache.material_manager.get_layout(camera_layout_id)],
-      dynamic: renderer.dynamic.get_layout(transform_binding),
+  
+  const shader_base = new Shader({code: shader});
+  material = new Material({
+    shader: shader_base,
+    graphics: {
+      cull: "back",
+      primitive: "triangle-list",
+      depth: {
+        write: true,
+        test: "greater"
+      }
     },
-    vertex: {
-      buffers: [
-        {
-          arrayStride: 12,
-          attributes: [
-            { shaderLocation: 0, offset: 0, format: 'float32x3' },
-          ],
-        },
-        {
-          arrayStride: 12,
-          attributes: [
-            { shaderLocation: 1, offset: 0, format: 'float32x3' },
-          ],
-        },
-      ],
-    },
+    vertex: [
+      { arrayStride: 12, attributes: [
+        { shaderLocation: 0, offset: 0, format: 'float32x3' },
+      ], },
+      { arrayStride: 12, attributes: [
+        { shaderLocation: 1, offset: 0, format: 'float32x3' },
+      ], },
+    ],
   });
-
+  
   const vertex_count = geo.positions.length, index_count = geo.indices.length;
   const geo_byte_size = (vertex_count * 2 + index_count) * 4;
 
@@ -150,7 +145,7 @@ const update_draw_stream = (angle) => {
   obj_matrix.translate(obj_pos);
   renderer.dynamic.writer.f32_array(obj_matrix, bind_info.offsets[0]);
 
-  renderer.draw_stream.set_pipeline(pipeline);
+  renderer.draw_stream.set_pipeline(0);
   renderer.draw_stream.set_globals(renderer.cache.get_binding(render_pass.bindings).bid);
   renderer.draw_stream.set_variant(0);
   renderer.draw_stream.set_material(0);
@@ -199,11 +194,11 @@ const animate = () => {
   auto_resize();
 
   const angle = performance.now() / 1000;
-  render_pass.bindings.camera.position.set(120 * Math.sin(angle), 30, 120 * Math.cos(angle), 250);
-  render_pass.bindings.camera.view.translate(render_pass.bindings.camera.position).look_at(target).view_inverse();
+  // render_pass.bindings.camera.position.set(120 * Math.sin(angle), 30, 120 * Math.cos(angle), 250);
+  // render_pass.bindings.camera.view.translate(render_pass.bindings.camera.position).look_at(target).view_inverse();
   render_pass.bindings.camera.update();
 
   update_draw_stream(angle);
 
-  renderer.render(render_pass, transform_binding);
+  renderer.render(render_pass, transform_binding, material);
 }
