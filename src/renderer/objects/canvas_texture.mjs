@@ -20,4 +20,5 @@ export class CanvasTexture {
 
   get_version() { return this.#version; }
   initialize(version) { if (this.#version == UNINITIALIZED) this.#version = version; }
+  destroy() {}
 }

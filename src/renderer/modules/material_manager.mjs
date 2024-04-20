@@ -4,13 +4,16 @@ import { UNINITIALIZED } from "../constants.mjs";
 export class MaterialManager {
   constructor(backend) {
     this.backend = backend;
-    this.layout_table = new Map();
+    this.layouts_table = new Map();
     this.layouts = new PoolStorage();
     this.shaders_table = new Map();
     this.shaders = new PoolStorage();
     this.pipelines_table = new Map();
     this.pipelines = new PoolStorage();
     this.materials = new PoolStorage();
+
+    this.material_callback = this.free_material.bind(this);
+    this.shader_callback = this.free_shader.bind(this);
   }
 
   get_shader(shader_obj) {
@@ -18,18 +21,25 @@ export class MaterialManager {
 
     if (id == UNINITIALIZED) {
       const hash = JSON.stringify(shader_obj);
-      const cache = this.shaders_table.get(hash);
-      if (cache) {
-        id = cache.id;
-        cache.count++;
+      id = this.shaders_table.get(hash);
+      if (id) {
+        this.shaders.get(id).count++;
       } else {
-        id = this.shaders.allocate(shader_obj);
-        this.shaders_table.set(hash, { count: 1, id: id });
+        id = this.shaders.allocate({ count: 1, hash: hash });
+        this.shaders_table.set(hash, id);
       }
-      shader_obj.initialize(id);
+      shader_obj.initialize(id, this.shader_callback);
     }
 
     return shader_obj;
+  }
+
+  free_shader(shader_id) {
+    const cache = this.shaders.get(shader_id);
+    if (!--cache.count) {
+      this.shaders_table.delete(cache.hash);
+      this.shaders.delete(shader_id);
+    }
   }
 
   create_pipeline(info) {
@@ -42,11 +52,10 @@ export class MaterialManager {
       ...info.material.graphics,
     });
 
-    let cache = this.pipelines_table.get(hash), id;
+    let id = this.pipelines_table.get(hash);
 
-    if (cache) {
-      id = cache.id;
-      cache.count++;
+    if (id) {
+      this.pipelines.get(id).count++;
     } else {
       const pipeline = this.backend.resources.create_pipeline({
         shader: info.material.shader,
@@ -65,15 +74,24 @@ export class MaterialManager {
         },
         vertex: info.material.vertex,
       });
-      id = this.pipelines.allocate(pipeline);
-      this.pipelines_table.set(hash, { count: 1, id: id });
+      id = this.pipelines.allocate({ count: 1, bid: pipeline, hash: hash });
+      this.pipelines_table.set(hash, id);
     }
 
     return id;
   }
 
   get_pipeline(pipeline_id) {
-    return this.pipelines.get(pipeline_id);
+    return this.pipelines.get(pipeline_id).bid;
+  }
+
+  free_pipeline(pipeline_id) {
+    const cache = this.pipelines.get(pipeline_id);
+    if (!--cache.count) {
+      this.backend.resources.destroy_pipeline(cache.bid);
+      this.pipelines_table.delete(cache.hash);
+      this.pipelines.delete(pipeline_id);
+    }
   }
 
   create_material(info) {
@@ -82,8 +100,14 @@ export class MaterialManager {
       version: info.material.get_version(),
       pipeline: pipeline_id,
     });
-    info.material.initialize(id);
+    info.material.initialize(id, this.material_callback);
     return id;
+  }
+
+  free_material(material_id) {
+    const cache = this.materials.get(material_id);
+    this.free_pipeline(cache.pipeline); 
+    this.materials.delete(material_id);
   }
 
   get_material(material_id) {
@@ -92,20 +116,28 @@ export class MaterialManager {
 
   create_layout(layout_info) {
     const hash = JSON.stringify(layout_info);
-    let layout_id, layout, cache;
-    if (cache = this.layout_table.get(hash)) {
+    let id, layout;
+    if (id = this.layouts_table.get(hash)) {
+      const cache = this.layouts[layout_id];
       cache.count++;
-      layout_id = cache.id;
-      layout = this.layouts[layout_id];
+      layout = cache.layout;
     } else {
       layout = this.backend.resources.create_group_layout(layout_info);
-      layout_id = this.layouts.allocate(layout);
-      this.layout_table.set(hash, { count: 1, id: layout_id });
+      id = this.layouts.allocate({ count: 1, layout: layout, hash: hash });
+      this.layouts_table.set(hash, id);
     }
-    return { id: layout_id, layout: layout };
+    return { id: id, layout: layout };
   }
 
   get_layout(layout_id) {
-    return this.layouts.get(layout_id);
+    return this.layouts.get(layout_id).layout;
+  }
+
+  free_layout(layout_id) {
+    const cache = this.layouts.get(layout_id);
+    if (!--cache.count) {
+      this.layouts_table.delete(cache.hash);
+      this.layouts.delete(layout_id);
+    }
   }
 }

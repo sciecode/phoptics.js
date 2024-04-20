@@ -13,6 +13,10 @@ export class RenderCache {
     this.bindings = new PoolStorage();
     this.targets = new PoolStorage();
     this.textures = new PoolStorage();
+
+    this.texture_callback = this.free_texture.bind(this);
+    this.target_callback = this.free_target.bind(this);
+    this.bindings_callback = this.free_binding.bind(this);
   }
 
   get_target(target_obj) {
@@ -28,7 +32,7 @@ export class RenderCache {
           depth: attachs.depth ? { version: -1, view: null } : undefined,
         }
       });
-      target_obj.initialize(id);
+      target_obj.initialize(id, this.target_callback);
     }
 
     const cache = this.targets.get(id);
@@ -78,6 +82,10 @@ export class RenderCache {
     }
 
     return cache;
+  }
+
+  free_target(id) {
+    this.targets.delete(id);
   }
 
   get_pipeline(material_obj, state, dynamic) {
@@ -140,7 +148,7 @@ export class RenderCache {
         layout: layout_cache.id,
         bid: bid,
       });
-      binding_obj.initialize(id);
+      binding_obj.initialize(id, this.bindings_callback);
     }
 
     const cache = this.bindings.get(id);
@@ -161,6 +169,13 @@ export class RenderCache {
     return cache;
   }
 
+  free_binding(id) {
+    const cache = this.bindings.get(id);
+    this.material_manager.free_layout(cache.layout);
+    this.backend.resources.destroy_bind_group(cache.bid);
+    this.bindings.delete(id);
+  }
+
   get_texture(texture_obj) {
     let id = texture_obj.get_id();
     const version = texture_obj.get_version();
@@ -175,7 +190,7 @@ export class RenderCache {
           sampleCount: texture_obj.multisampled ? 4 : 1,
         })
       });
-      texture_obj.initialize(id);
+      texture_obj.initialize(id, this.texture_callback);
     }
 
     const cache = this.textures.get(id);
@@ -185,6 +200,12 @@ export class RenderCache {
     }
 
     return cache;
+  }
+
+  free_texture(id) {
+    const cache = this.textures.get(id);
+    this.backend.resources.destroy_texture(cache.bid);
+    this.textures.delete(id);
   }
 
   get_buffer(buffer_obj) {

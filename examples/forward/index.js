@@ -131,6 +131,10 @@ const init = async (geo) => {
     byte_size: vertex_count * 4,
   });
 
+  // setTimeout( () => {
+  //   material.destroy();
+  //   console.log(renderer.cache.material_manager.shaders, renderer.cache.material_manager.materials);
+  // }, 2000);
   animate();
 }
 

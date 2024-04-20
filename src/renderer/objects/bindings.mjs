@@ -4,7 +4,9 @@ import { StructuredBuffer } from "./structured_buffer.mjs";
 export class Bindings {
   #id = UNINITIALIZED;
   #version = 0;
+  #free = () => {}
 
+  // TODO: implement resource ownership & destruction
   constructor(options) {
     this.info = new Array();
     for (let entry of options) {
@@ -20,7 +22,8 @@ export class Bindings {
   
   get_id() { return this.#id; }
   get_version() { return this.#version; }
-  initialize(id) { if (this.#id == UNINITIALIZED) this.#id = id; }
+  initialize(id, free) { if (this.#id == UNINITIALIZED) { this.#id = id; this.#free = free } }
+  destroy() { this.#free(this.#id); this.#id = -1 }
   update() { this.#version = (this.#version + 1) & UNINITIALIZED; }
 }
 

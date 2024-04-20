@@ -4,6 +4,7 @@ import { Texture } from "./texture.mjs";
 export class RenderTarget {
   #id = UNINITIALIZED;
   #version = 0;
+  #free = () => {}
 
   constructor(render_pass, options) {
     this.size = { ...options.size };
@@ -21,7 +22,16 @@ export class RenderTarget {
 
   get_id() { return this.#id; }
   get_version() { return this.#version; }
-  initialize(id) { if (this.#id == UNINITIALIZED) this.#id = id; }
+  initialize(id, free) { if (this.#id == UNINITIALIZED) { this.#id = id; this.#free = free } }
+  destroy() {
+    for (let entry of this.attachments.color) {
+      entry.texture.destroy();
+      entry.resolve?.destroy();
+    }
+    this.attachments.depth?.texture.destroy();
+    this.#free(this.#id);
+    this.#id = -1;
+  }
   #update() { this.#version = (this.#version + 1) & UNINITIALIZED; }
 }
 
