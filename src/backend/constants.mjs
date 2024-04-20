@@ -17,6 +17,7 @@ export const DrawStreamBits = {
   draw_count:       14,
   vertex_offset:    15,
   index_offset:     16,
+  MAX:              17,
 }
 
 export const DrawStreamFlags = Object.entries(DrawStreamBits)

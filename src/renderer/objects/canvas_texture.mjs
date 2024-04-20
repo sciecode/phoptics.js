@@ -7,6 +7,7 @@ export class CanvasTexture {
     this.type = ResourceType.CanvasTexture;
     this.canvas = canvas || document.createElement('canvas');
     this.context = this.canvas.getContext('webgpu');
+    this.format = null;
   }
 
   set_size(size) {

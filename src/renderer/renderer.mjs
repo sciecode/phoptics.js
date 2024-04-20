@@ -1,31 +1,70 @@
+import { ResourceType } from "./constants.mjs";
 import { GPUBackend } from "../backend/gpu_backend.mjs"
 import { DrawStream } from "./modules/draw_stream.mjs";
 import { RenderCache } from "./modules/render_cache.mjs";
-import { DynamicBindings } from "./modules/dynamic_bindings.mjs";
-import { ResourceType } from "./constants.mjs";
+import { DynamicManager } from "./modules/dynamic_manager.mjs";
 
 export class Renderer {
   constructor(device) {
     this.backend = new GPUBackend(device);
     this.cache = new RenderCache(this.backend);
-    this.dynamic = new DynamicBindings(this.backend);
+    this.dynamic = new DynamicManager(this.backend);
     this.draw_stream = new DrawStream();
     this.state = {
       formats: null,
       multisampled: false,
       global_layout: undefined,
-      dynamic_layout: undefined,
+      dynamic_id: undefined,
     }
   }
 
-  render(pass, dynamic, material) {
-    this.#set_pass(pass);
-    this.#set_dynamic_binding(dynamic);
-
+  render(pass, scene) {
     const target = pass.current_target;
     const cached_target = this.cache.get_target(target);
+    
+    this.#set_pass(pass);
 
-    this.cache.get_pipeline(material, this.state, this.dynamic);
+    this.dynamic.reset();
+    this.draw_stream.clear();
+
+    const global_group = this.cache.get_binding(pass.bindings).bid;
+    this.draw_stream.set_globals(global_group);
+
+    // TODO: order optimization
+
+    // TODO: temporary while shader variant isn't implemented
+    this.draw_stream.set_variant(0);
+    
+    for (let mesh of scene) {
+      const material = mesh.material, geometry = mesh.geometry;
+
+      const dynamic_layout = this.#set_dynamic_binding(material);
+      const pipeline = this.cache.get_pipeline(material, this.state, dynamic_layout);
+      this.draw_stream.set_pipeline(pipeline);
+
+      const material_group = material.bindings ? this.cache.get_binding(material.bindings).bid : 0;
+      this.draw_stream.set_material(material_group);
+
+      if (this.state.dynamic_id !== undefined) {
+        const { group, offset } = this.dynamic.allocate(this.state.dynamic_id);
+        // TODO: custom dynamic writer
+        this.draw_stream.set_dynamic(group);
+        this.draw_stream.set_dynamic_offset(0, offset);
+        this.dynamic.writer.f32_array(mesh.dynamic.world, offset);
+      }
+
+      for (let i = 0, il = geometry.attributes.length; i < il; i++)
+        this.draw_stream.set_attribute(i, geometry.attributes[i]);
+
+      this.draw_stream.draw({
+        index: geometry.index,
+        draw_count: geometry.count,
+        vertex_offset: geometry.vertex_offset,
+        index_offset: geometry.index_offset,
+      });
+    }
+
+    this.dynamic.commit();
 
     this.backend.render(make_pass_descriptor(target, cached_target.attachments), this.draw_stream);
   }
@@ -36,8 +75,14 @@ export class Renderer {
     this.state.global_layout = this.cache.get_binding(pass.bindings).layout;
   }
 
-  #set_dynamic_binding(dynamic_info) {
-    this.state.dynamic_layout = dynamic_info;
+  #set_dynamic_binding(material) {
+    if (material.dynamic) {
+      this.state.dynamic_id = this.dynamic.get_id(material.dynamic);
+      return this.dynamic.layout;
+    } else {
+      this.state.dynamic_id = undefined;
+      return undefined;
+    }
   }
 }
 

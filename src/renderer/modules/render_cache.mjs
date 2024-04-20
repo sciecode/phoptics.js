@@ -89,14 +89,14 @@ export class RenderCache {
     this.targets.delete(id);
   }
 
-  get_pipeline(material_obj, state, dynamic) {
+  get_pipeline(material_obj, state, dynamic_layout) {
     let id = material_obj.get_id();
 
     if (id == UNINITIALIZED) {
       id = this.material_manager.create_material({
         material: material_obj,
         state: state,
-        dynamic: dynamic,
+        dynamic_layout: dynamic_layout,
         binding: material_obj.bindings ? this.get_binding(material_obj.bindings).layout : undefined
       });
     }

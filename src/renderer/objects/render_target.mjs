@@ -1,4 +1,4 @@
-import { UNINITIALIZED } from "../constants.mjs";
+import { ResourceType, UNINITIALIZED } from "../constants.mjs";
 import { Texture } from "./texture.mjs";
 
 export class RenderTarget {
@@ -6,7 +6,8 @@ export class RenderTarget {
   #version = 0;
   #free = () => {}
 
-  constructor(render_pass, options) {
+  constructor(options) {
+    const render_pass = options.pass;
     this.size = { ...options.size };
     this.multisampled = render_pass.multisampled || false;
     this.attachments = {
@@ -37,6 +38,7 @@ const build_target = (desc, size, format, multisampled) => {
   if (desc.texture) {
     ownership = false;
     texture = desc.texture
+    if (texture.type == ResourceType.CanvasTexture) texture.format = format;
   } else {
     ownership = true;
     texture = new Texture({
@@ -46,6 +48,7 @@ const build_target = (desc, size, format, multisampled) => {
       multisampled: multisampled,
     })
   }
+  if (desc.resolve) desc.resolve.format = format;
   return {
     ownership: ownership,
     texture: texture,

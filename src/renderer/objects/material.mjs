@@ -16,6 +16,7 @@ export class Material {
         write: options.graphics?.depth?.write || true,
       }
     };
+    this.dynamic = options.dynamic;
     this.vertex = options.vertex;
     this.bindings = options.bindings ? new Bindings(options.bindings) : undefined;
   }

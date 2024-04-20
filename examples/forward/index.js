@@ -3,7 +3,10 @@ import { Renderer } from "../../src/renderer/renderer.mjs";
 import { RenderPass } from "../../src/renderer/objects/render_pass.mjs";
 import { RenderTarget } from "../../src/renderer/objects/render_target.mjs";
 import { CanvasTexture } from "../../src/renderer/objects/canvas_texture.mjs";
+import { Mesh } from "../../src/renderer/objects/mesh.mjs";
+import { Shader } from "../../src/renderer/objects/shader.mjs";
 import { Material } from "../../src/renderer/objects/material.mjs";
+import { DynamicLayout } from "../../src/renderer/objects/dynamic_layout.mjs";
 
 import { Vec3 } from "../../src/datatypes/vec3.mjs";
 import { Vec4 } from "../../src/datatypes/vec4.mjs";
@@ -12,28 +15,66 @@ import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import { shader } from "../shaders/forward_shader.mjs";
-import { Shader } from "../../src/renderer/objects/shader.mjs";
 
-let renderer, backend, canvas, render_pass, render_target, material;
-let count, transform_binding, attrib0, attrib1, geometry_buffer, index_offset;
-let obj_matrix = new Mat3x4(), obj_pos = new Vec3(), target = new Vec3();
+let renderer, backend, canvas, render_pass, render_target, material, scene;
+let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
 
 const dpr = window.devicePixelRatio;
 let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
 
 (() => {
   const loader = new OBJLoader();
-  loader.load('../models/walt.obj').then(geo => init(geo));
+  loader.load('../models/walt.obj').then(async (geo) => {
+    renderer = new Renderer(
+      await navigator.gpu.requestAdapter({
+        powerPreference: 'high-performance'
+      }).then( adapter => adapter.requestDevice())
+    );
+    backend = renderer.backend;
+
+    const vertex_count = geo.positions.length, index_count = geo.indices.length;
+    const geo_byte_size = (vertex_count * 2 + index_count) * 4;
+
+    const geometry_buffer = backend.resources.create_buffer({
+      size: geo_byte_size,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
+    });
+
+    const data = new ArrayBuffer(geo_byte_size);
+    const pos_data = new Float32Array(data, 0, vertex_count);
+    const norm_data = new Float32Array(data, vertex_count * 4, vertex_count);
+    const index_data = new Uint32Array(data, vertex_count * 8, index_count);
+    pos_data.set(geo.positions);
+    norm_data.set(geo.normals);
+    index_data.set(geo.indices);
+    
+    backend.write_buffer(geometry_buffer, 0, data);
+
+    const geometry = {
+      index: geometry_buffer,
+      count: index_count,
+      index_offset: vertex_count * 2,
+      vertex_offset: 0,
+      attributes: [],
+    }
+
+    geometry.attributes.push(backend.resources.create_attribute({
+      buffer: geometry_buffer,
+      byte_offset: 0,
+      byte_size: vertex_count * 4,
+    }));
+
+    geometry.attributes.push(backend.resources.create_attribute({
+      buffer: geometry_buffer,
+      byte_offset: vertex_count * 4,
+      byte_size: vertex_count * 4,
+    }));
+
+    init(geometry)
+  });
 })();
 
-const init = async (geo) => {
-  renderer = new Renderer(
-    await navigator.gpu.requestAdapter({
-      powerPreference: 'high-performance'
-    }).then( adapter => adapter.requestDevice())
-  );
-  backend = renderer.backend;
-
+const init = async (geometry) => {
   const canvas_texture = new CanvasTexture();
   canvas_texture.set_size({ width: viewport.x, height: viewport.y });
   canvas = canvas_texture.canvas;
@@ -59,7 +100,8 @@ const init = async (geo) => {
     ]
   });
   
-  render_target = new RenderTarget(render_pass, {
+  render_target = new RenderTarget({
+    pass: render_pass,
     size: { width: viewport.x, height: viewport.y },
     color: [
       { resolve: canvas_texture, clear: [.05, .05, .05, 1] }
@@ -73,10 +115,10 @@ const init = async (geo) => {
   render_pass.bindings.camera.view.translate(render_pass.bindings.camera.position).view_inverse();
   render_pass.set_render_target(render_target);
 
-  transform_binding = renderer.dynamic.create_binding([
-    { binding: 0, size: Mat3x4.byte_size },
+  const transform_layout = new DynamicLayout([
+    { name: "world", type: Mat3x4 }
   ]);
-  
+
   const shader_base = new Shader({code: shader});
   material = new Material({
     shader: shader_base,
@@ -88,6 +130,7 @@ const init = async (geo) => {
         test: "greater"
       }
     },
+    dynamic: transform_layout,
     vertex: [
       { arrayStride: 12, attributes: [
         { shaderLocation: 0, offset: 0, format: 'float32x3' },
@@ -98,81 +141,18 @@ const init = async (geo) => {
     ],
   });
   
-  const vertex_count = geo.positions.length, index_count = geo.indices.length;
-  const geo_byte_size = (vertex_count * 2 + index_count) * 4;
-
-  geometry_buffer = backend.resources.create_buffer({
-    size: geo_byte_size,
-    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
-  });
-
-  const data = new ArrayBuffer(geo_byte_size);
-  const pos_data = new Float32Array(data, 0, vertex_count);
-  const norm_data = new Float32Array(data, vertex_count * 4, vertex_count);
-  const index_data = new Uint32Array(data, vertex_count * 8, index_count);
-  pos_data.set(geo.positions);
-  norm_data.set(geo.normals);
-  index_data.set(geo.indices);
-
-  count = index_count;
-  index_offset = vertex_count * 2;
-
-  backend.write_buffer(geometry_buffer, 0, data);
-
-  attrib0 = backend.resources.create_attribute({
-    buffer: geometry_buffer,
-    byte_offset: 0,
-    byte_size: vertex_count * 4,
-  });
-
-  attrib1 = backend.resources.create_attribute({
-    buffer: geometry_buffer,
-    byte_offset: vertex_count * 4,
-    byte_size: vertex_count * 4,
-  });
+  mesh1 = new Mesh(geometry, material);
+  obj_pos.set(-30, 0, 0);
+  mesh1.dynamic.world.translate(obj_pos);
+  
+  mesh2 = new Mesh(geometry, material);
+  obj_pos.x = 30;
+  mesh2.dynamic.world.translate(obj_pos);
+  
+  scene = [];
+  scene.push(mesh1, mesh2);
 
   animate();
-}
-
-const update_draw_stream = (angle) => {
-  renderer.dynamic.reset();
-  renderer.draw_stream.clear();
-  
-  let bind_info = renderer.dynamic.allocate(transform_binding);
-
-  obj_pos.x = -30;
-  obj_pos.y = 10 * Math.sin(angle);
-  obj_matrix.translate(obj_pos);
-  renderer.dynamic.writer.f32_array(obj_matrix, bind_info.offsets[0]);
-
-  renderer.draw_stream.set_pipeline(0);
-  renderer.draw_stream.set_globals(renderer.cache.get_binding(render_pass.bindings).bid);
-  renderer.draw_stream.set_variant(0);
-  renderer.draw_stream.set_material(0);
-  renderer.draw_stream.set_dynamic(bind_info.group);
-  renderer.draw_stream.set_dynamic_offset(0, bind_info.offsets[0]);
-  renderer.draw_stream.set_attribute(0, attrib0);
-  renderer.draw_stream.set_attribute(1, attrib1);
-
-  renderer.draw_stream.draw({
-    index: geometry_buffer,
-    draw_count: count,
-    vertex_offset: 0,
-    index_offset: index_offset,
-  });
-
-  bind_info = renderer.dynamic.allocate(transform_binding);
-  
-  obj_pos.x = 30;
-  obj_pos.y = -10 * Math.sin(angle);
-  obj_matrix.translate(obj_pos);
-  renderer.dynamic.writer.f32_array(obj_matrix, bind_info.offsets[0]);
-
-  renderer.draw_stream.set_dynamic(bind_info.group);
-  renderer.draw_stream.set_dynamic_offset(0, bind_info.offsets[0]);
-  renderer.draw_stream.draw();
-
-  renderer.dynamic.commit();
 }
 
 const auto_resize = () => {
@@ -188,17 +168,26 @@ const auto_resize = () => {
   }
 }
 
+const update_objects = (phase) => {
+  const amplitude = 10 * Math.sin(phase);
+  obj_pos.set(-30, amplitude, 0);
+  mesh1.dynamic.world.translate(obj_pos);
+
+  obj_pos.set(30, -amplitude, 0);
+  mesh2.dynamic.world.translate(obj_pos);
+}
+
 const animate = () => {
   requestAnimationFrame(animate);
 
   auto_resize();
 
-  const angle = performance.now() / 1000;
-  // render_pass.bindings.camera.position.set(120 * Math.sin(angle), 30, 120 * Math.cos(angle), 250);
-  // render_pass.bindings.camera.view.translate(render_pass.bindings.camera.position).look_at(target).view_inverse();
+  const phase = performance.now() / 500;
+  render_pass.bindings.camera.position.set(120 * Math.sin(phase / 4), 30, 120 * Math.cos(phase / 4), 250);
+  render_pass.bindings.camera.view.translate(render_pass.bindings.camera.position).look_at(target).view_inverse();
   render_pass.bindings.camera.update();
 
-  update_draw_stream(angle);
+  update_objects(phase);
 
-  renderer.render(render_pass, transform_binding, material);
+  renderer.render(render_pass, scene);
 }

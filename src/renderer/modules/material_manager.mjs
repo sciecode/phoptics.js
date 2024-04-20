@@ -70,7 +70,7 @@ export class MaterialManager {
             undefined,
             info.binding ? this.get_layout(info.binding) : undefined,
           ],
-          dynamic: info.dynamic.get_layout(info.state.dynamic_layout),
+          dynamic: info.dynamic_layout,
         },
         vertex: info.material.vertex,
       });
