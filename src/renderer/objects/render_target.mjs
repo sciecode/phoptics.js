@@ -24,11 +24,8 @@ export class RenderTarget {
   get_version() { return this.#version; }
   initialize(id, free) { if (this.#id == UNINITIALIZED) { this.#id = id; this.#free = free } }
   destroy() {
-    for (let entry of this.attachments.color) {
-      entry.texture.destroy();
-      entry.resolve?.destroy();
-    }
-    this.attachments.depth?.texture.destroy();
+    for (let entry of this.attachments.color) entry.ownership && entry.texture.destroy();
+    this.attachments.depth?.ownership && this.attachments.depth?.texture.destroy();
     this.#free(this.#id);
     this.#id = -1;
   }
@@ -36,13 +33,22 @@ export class RenderTarget {
 }
 
 const build_target = (desc, size, format, multisampled) => {
-  return {
-    texture: desc.texture || new Texture({
+  let ownership, texture;
+  if (desc.texture) {
+    ownership = false;
+    texture = desc.texture
+  } else {
+    ownership = true;
+    texture = new Texture({
       size: size,
       format: format,
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
       multisampled: multisampled,
-    }),
+    })
+  }
+  return {
+    ownership: ownership,
+    texture: texture,
     resolve: desc.resolve,
     view: desc.view,
     clear: desc.clear,

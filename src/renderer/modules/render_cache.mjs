@@ -17,6 +17,7 @@ export class RenderCache {
     this.texture_callback = this.free_texture.bind(this);
     this.target_callback = this.free_target.bind(this);
     this.bindings_callback = this.free_binding.bind(this);
+    this.buffer_callback = this.free_buffer.bind(this);
   }
 
   get_target(target_obj) {
@@ -220,7 +221,7 @@ export class RenderCache {
         offset: offset,
         size: buffer_obj.total_size,
       });
-      buffer_obj.initialize(id);
+      buffer_obj.initialize(id, this.buffer_callback);
     }
 
     const cache = this.buffers.get(id), version = buffer_obj.get_version();
@@ -231,5 +232,11 @@ export class RenderCache {
     }
 
     return cache;
+  }
+
+  free_buffer(buffer_id) {
+    const cache = this.buffers.get(buffer_id);
+    this.buffer_manager.delete(cache.slot_id);
+    this.buffers.delete(buffer_id);
   }
 }

@@ -30,7 +30,7 @@ export class BufferManager {
     this.backend.write_buffer(bid, offset, data);
   }
 
-  dispose(slot_id) {
+  delete(slot_id) {
     this.allocator.free(slot_id);
   }
 }
