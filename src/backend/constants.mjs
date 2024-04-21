@@ -1,3 +1,4 @@
+export const NULL_HANDLE = -1 >>> 0;
 
 export const DrawStreamBits = {
   pipeline:         0,
@@ -5,19 +6,16 @@ export const DrawStreamBits = {
   bind_group1:      2,
   bind_group2:      3,
   dynamic_group:    4,
-  dynamic_offset0:  5,
-  dynamic_offset1:  6,
-  dynamic_offset2:  7,
-  dynamic_offset3:  8,
-  attribute0:       9,
-  attribute1:       10,
-  attribute2:       11,
-  attribute4:       12,
-  index:            13,
-  draw_count:       14,
-  vertex_offset:    15,
-  index_offset:     16,
-  MAX:              17,
+  dynamic_offset:   5,
+  attribute0:       6,
+  attribute1:       7,
+  attribute2:       8,
+  attribute4:       9,
+  index:            10,
+  draw_count:       11,
+  vertex_offset:    12,
+  index_offset:     13,
+  MAX:              14,
 }
 
 export const DrawStreamFlags = Object.entries(DrawStreamBits)

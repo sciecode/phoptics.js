@@ -1,7 +1,5 @@
-import { DrawStreamFlags } from "./constants.mjs";
+import { DrawStreamFlags, NULL_HANDLE } from "./constants.mjs";
 import { ResourceManager } from "./resource_manager.mjs";
-
-const NULL_HANDLE = -1 >>> 0;
 
 export class GPUBackend {
   constructor(device) {
@@ -24,7 +22,7 @@ export class GPUBackend {
       pass: pass,
       draw: {
         dynamic_group: null,
-        dynamic_cache: new Array(4),
+        dynamic_offset: [],
         draw_count: 0,
         vertex_offset: 0,
         index_offset: 0,
@@ -59,28 +57,30 @@ export class GPUBackend {
       }
     }
 
-    // dynamic group
-    if ((metadata >> 4) & 31) {
+    // dynamic
+    if ((metadata >> 4) & 3) {
       let group_handle = draw_packet.draw.dynamic_group = metadata & DrawStreamFlags.dynamic_group ?
         stream[draw_packet.offset++] : draw_packet.draw.dynamic_group;
       const bind_group = this.resources.get_bind_group(group_handle);
       const group = bind_group.group;
 
-      const offsets = draw_packet.draw.dynamic_cache.slice(0, bind_group.dynamic_entries);
-      for (let i = 0; i < 4; i++)
-        if (metadata & (DrawStreamFlags.dynamic_offset0 << i))
-          draw_packet.draw.dynamic_cache[i] = offsets[i] = stream[draw_packet.offset++];
+      if (metadata & (DrawStreamFlags.dynamic_offset))
+        draw_packet.draw.dynamic_offset[0] = stream[draw_packet.offset++];
 
-      pass.setBindGroup(3, group, offsets);
+      pass.setBindGroup(3, group, draw_packet.draw.dynamic_offset);
     }
 
     // vertex attributes
     for (let i = 0; i < 4; i++) {
       if (metadata & (DrawStreamFlags.attribute0 << i)) {
         const attrib_handle = stream[draw_packet.offset++];
-        const attrib = this.resources.get_attribute(attrib_handle);
-        const buffer = this.resources.get_buffer(attrib.buffer);
-        pass.setVertexBuffer(i, buffer, attrib.byte_offset, attrib.byte_size);
+        if (attrib_handle != NULL_HANDLE) {
+          const attrib = this.resources.get_attribute(attrib_handle);
+          const buffer = this.resources.get_buffer(attrib.buffer);
+          pass.setVertexBuffer(i, buffer, attrib.byte_offset, attrib.byte_size);
+        } else {
+          pass.setVertexBuffer(i, null);
+        }
       }
     }
 

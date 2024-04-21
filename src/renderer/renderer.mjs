@@ -1,5 +1,6 @@
 import { ResourceType } from "./constants.mjs";
-import { GPUBackend } from "../backend/gpu_backend.mjs"
+import { NULL_HANDLE } from "../backend/constants.mjs";
+import { GPUBackend } from "../backend/gpu_backend.mjs";
 import { DrawStream } from "./modules/draw_stream.mjs";
 import { RenderCache } from "./modules/render_cache.mjs";
 import { DynamicManager } from "./modules/dynamic_manager.mjs";
@@ -30,7 +31,7 @@ export class Renderer {
     const global_group = this.cache.get_binding(pass.bindings).bid;
     this.draw_stream.set_globals(global_group);
 
-    // TODO: order optimization
+    // TODO: create optimized render list - sort distance / frustum / reduce state changes 
 
     // TODO: temporary while shader variant isn't implemented
     this.draw_stream.set_variant(0);
@@ -47,14 +48,17 @@ export class Renderer {
 
       if (this.state.dynamic_id !== undefined) {
         const { group, offset } = this.dynamic.allocate(this.state.dynamic_id);
-        // TODO: custom dynamic writer
         this.draw_stream.set_dynamic(group);
-        this.draw_stream.set_dynamic_offset(0, offset);
-        this.dynamic.writer.f32_array(mesh.dynamic.world, offset);
+        this.draw_stream.set_dynamic_offset(offset);
+        this.dynamic.data.set(mesh.dynamic.data, offset);
+      } else {
+        this.draw_stream.set_dynamic(0);
       }
 
-      for (let i = 0, il = geometry.attributes.length; i < il; i++)
-        this.draw_stream.set_attribute(i, geometry.attributes[i]);
+      const attrib_length = geometry.attributes.length;
+      for (let i = 0, il = 4; i < il; i++) {
+        this.draw_stream.set_attribute(i, i < attrib_length ? geometry.attributes[i] : NULL_HANDLE);
+      }
 
       this.draw_stream.draw({
         index: geometry.index,

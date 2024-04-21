@@ -1,29 +1,20 @@
-import { ResourceType, UNINITIALIZED } from "../constants.mjs";
 
-export class StructuredBuffer {
-  #id = UNINITIALIZED;
-  #version = 0;
-  #free = () => {}
+import { ResourceType } from "../constants.mjs";
 
+export class StructuredDynamic {
   constructor(options) {
-    this.type = ResourceType.StructuredBuffer;
+    this.type = ResourceType.StructuredDynamic;
     
     const arr = [];
-    this.total_bytes = parse_struct(this, arr, options);
-    this.buffer = new ArrayBuffer(this.total_bytes);
+    const buffer = new ArrayBuffer(parse_struct(this, arr, options));
+    this.data = new Uint8Array(buffer);
 
     let current_offset = 0;
     for (let entry of arr) {
-      entry.parent[entry.name] = new entry.type(this.buffer, current_offset);
+      entry.parent[entry.name] = new entry.type(buffer, current_offset);
       current_offset += entry.size;
     }
   }
-
-  get_id() { return this.#id; }
-  get_version() { return this.#version; }
-  initialize(id, free) { if (this.#id == UNINITIALIZED) { this.#id = id; this.#free = free; } }
-  destroy() { this.#free(this.#id); this.#id = -1 }
-  update() { this.#version = (this.#version + 1) & UNINITIALIZED; }
 }
 
 const parse_struct = (parent, arr, desc) => {

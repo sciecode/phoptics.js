@@ -6,18 +6,6 @@ const MASK = 255;
 const BUFFER_SIZE = 1024 * 1024 * 128;
 const aligned = (x) => (x + MASK) & ~MASK;
 
-class BufferWriter {
-  constructor(buffer) {
-    this.buffer = buffer;
-    this.f32 = new Float32Array(this.buffer);
-    this.u32 = new Uint32Array(this.buffer);
-  }
-
-  f32_array(array, byte_offset) {
-    this.f32.set(array, byte_offset >> 2);
-  }
-}
-
 export class DynamicManager {
   constructor(backend) {
     this.backend = backend;
@@ -37,7 +25,7 @@ export class DynamicManager {
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
     });
 
-    this.writer = new BufferWriter(new ArrayBuffer(BUFFER_SIZE));
+    this.data = new Uint8Array(BUFFER_SIZE);
 
     this.group_callback = this.free_group.bind(this);
   }
@@ -89,7 +77,7 @@ export class DynamicManager {
   }
 
   commit() {
-    this.backend.write_buffer(this.buffer, 0, this.writer.buffer, 0, this.offset);
+    this.backend.write_buffer(this.buffer, 0, this.data, 0, this.offset);
   }
 }
 

@@ -1,9 +1,9 @@
-import { StructuredBuffer } from "./structured_buffer.mjs";
+import { StructuredDynamic } from "./structured_dynamic.mjs";
 
 export class Mesh {
   constructor(geometry, material) {
     this.geometry = geometry;
     this.material = material;
-    this.dynamic = material.dynamic ? new StructuredBuffer(material.dynamic.info) : undefined;
+    this.dynamic = material.dynamic ? new StructuredDynamic(material.dynamic.info) : undefined;
   }
 }

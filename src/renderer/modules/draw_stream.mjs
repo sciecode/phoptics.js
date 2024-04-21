@@ -1,6 +1,4 @@
-import { DrawStreamBits } from '../../backend/constants.mjs';
-
-const NULL_HANDLE = -1 >>> 0;
+import { DrawStreamBits, NULL_HANDLE } from '../../backend/constants.mjs';
 
 export class DrawStream {
   constructor() {
@@ -42,8 +40,8 @@ export class DrawStream {
     this.upload_data("dynamic_group", group_handle);
   }
 
-  set_dynamic_offset(idx, offset) {
-    this.upload_data("dynamic_offset0", offset, idx);
+  set_dynamic_offset(offset) {
+    this.upload_data("dynamic_offset", offset);
   }
 
   set_attribute(idx, attrib_handle) {
