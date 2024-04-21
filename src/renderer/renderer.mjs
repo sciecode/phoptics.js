@@ -6,11 +6,15 @@ import { RenderCache } from "./modules/render_cache.mjs";
 import { DynamicManager } from "./modules/dynamic_manager.mjs";
 
 export class Renderer {
-  constructor(device) {
-    this.backend = new GPUBackend(device);
+  constructor(options = {}) {
+
+    this.backend = new GPUBackend(options.device);
+    this.features = options.features || [];
+
     this.cache = new RenderCache(this.backend);
     this.dynamic = new DynamicManager(this.backend);
     this.draw_stream = new DrawStream();
+
     this.state = {
       formats: null,
       multisampled: false,
@@ -88,7 +92,30 @@ export class Renderer {
       return undefined;
     }
   }
+
+  static async acquire_device(options = {}) {
+    options.powerPreference ||= "high-performance";
+    const adapter = await navigator.gpu.requestAdapter(options);
+    
+    const device_descriptor = {
+      requiredFeatures: [],
+    };
+
+    for (let feat of FEATURE_LIST)
+      if (adapter.features.has(feat))
+        device_descriptor.requiredFeatures.push(feat);
+
+    return { device: await adapter.requestDevice(device_descriptor), features: device_descriptor.requiredFeatures };
+  }
 }
+
+const FEATURE_LIST = [
+  "float32-filterable",
+  "texture-compression-bc",
+  "texture-compression-astc",
+  "texture-compression-etc2",
+  "shader-f16",
+]
 
 const make_pass_descriptor = (target, cache) => {
   const descriptor = {

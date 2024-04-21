@@ -25,11 +25,7 @@ let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0}
 (() => {
   const loader = new OBJLoader();
   loader.load('../models/walt.obj').then(async (geo) => {
-    renderer = new Renderer(
-      await navigator.gpu.requestAdapter({
-        powerPreference: 'high-performance'
-      }).then( adapter => adapter.requestDevice())
-    );
+    renderer = new Renderer(await Renderer.acquire_device());
     backend = renderer.backend;
 
     const vertex_count = geo.positions.length, index_count = geo.indices.length;
