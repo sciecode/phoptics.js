@@ -168,15 +168,6 @@ const auto_resize = () => {
   }
 }
 
-const update_objects = (phase) => {
-  const amplitude = 10 * Math.sin(phase);
-  obj_pos.set(-30, amplitude, 0);
-  mesh1.dynamic.world.translate(obj_pos);
-
-  obj_pos.set(30, -amplitude, 0);
-  mesh2.dynamic.world.translate(obj_pos);
-}
-
 const animate = () => {
   requestAnimationFrame(animate);
 
@@ -187,7 +178,14 @@ const animate = () => {
   render_pass.bindings.camera.view.translate(render_pass.bindings.camera.position).look_at(target).view_inverse();
   render_pass.bindings.camera.update();
 
-  update_objects(phase);
+  {
+    const amplitude = 10 * Math.sin(phase);
+    obj_pos.set(-30, amplitude, 0);
+    mesh1.dynamic.world.translate(obj_pos);
+
+    obj_pos.set(30, -amplitude, 0);
+    mesh2.dynamic.world.translate(obj_pos);
+  }
 
   renderer.render(render_pass, scene);
 }

@@ -121,25 +121,47 @@ export class RenderCache {
             case ResourceType.StructuredBuffer: 
               resource.buffer = { type: "read-only-storage" };
               break;
+            case ResourceType.Texture:
+              resource.texture = { sampleType: "unfilterable-float" }; // TODO: automatically detect sampleType based on format
+              break;
+            case ResourceType.Sampler:
+              resource.sampler = { type: "non-filtering" }; // TODO: automatically detect based on filtering
+              break;
           }
           return resource;
         })
       });
 
+      const textures = [];
       const bid = this.backend.resources.create_bind_group({
         layout: layout_cache.layout,
         entries: binding_obj.info.map( entry => {
           const resource = binding_obj[entry.name];
           switch (resource.type) {
             case ResourceType.StructuredBuffer:
-              const info = this.get_buffer(resource);
+              const buffer_info = this.get_buffer(resource);
               return {
                 binding: entry.binding,
                 type: GPUResource.BUFFER,
-                offset: info.offset,
-                size: info.size,
-                resource: info.bid,
-              }
+                offset: buffer_info.offset,
+                size: buffer_info.size,
+                resource: buffer_info.bid,
+              };
+            case ResourceType.Texture:
+              const tex_info = this.get_texture(resource);
+              textures.push(tex_info.version);
+              return {
+                binding: entry.binding,
+                type: GPUResource.TEXTURE,
+                resource: tex_info.bid,
+              };
+            case ResourceType.Sampler:
+              const sampler = this.backend.resources.create_sampler();
+              return {
+                binding: entry.binding,
+                type: GPUResource.SAMPLER,
+                resource: sampler,
+              };
           }
         })
       });
@@ -147,6 +169,7 @@ export class RenderCache {
       id = this.bindings.allocate({
         version: version,
         layout: layout_cache.id,
+        textures: textures,
         bid: bid,
       });
       binding_obj.initialize(id, this.bindings_callback);
@@ -158,14 +181,21 @@ export class RenderCache {
     //   TODO: validate & update binding
     // } else ....
 
+    let needs_update = false, texture_id = 0;
     for (let entry of binding_obj.info) {
       const resource = binding_obj[entry.name];
       switch (resource.type) {
         case ResourceType.StructuredBuffer:
           this.get_buffer(resource);
           break;
+        case ResourceType.Texture:
+          const version = this.get_texture(resource).version;
+          if (version != cache.textures[texture_id]) needs_update = true;
+          texture_id++;
+          break;
       }
     }
+    if (needs_update) this.backend.resources.update_bind_group(cache.bid);
 
     return cache;
   }
@@ -219,7 +249,7 @@ export class RenderCache {
         slot_id: slot_id,
         bid: bid,
         offset: offset,
-        size: buffer_obj.total_size,
+        size: buffer_obj.total_bytes,
       });
       buffer_obj.initialize(id, this.buffer_callback);
     }

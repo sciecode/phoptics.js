@@ -12,23 +12,25 @@ struct FragInput {
   @location(1) w_normal : vec3f,
 }
 
-struct GlobalUniforms {
+struct Globals {
   projection_matrix : mat4x4f,
   view_matrix : mat3x4f,
   camera_pos : vec3f,
   nits : f32,
 }
 
-@group(0) @binding(0) var<storage, read> globals: GlobalUniforms;
+
+@group(0) @binding(0) var<storage, read> globals: Globals;
+@group(3) @binding(0) var<storage, read> obj: mat3x4f; 
 
 @vertex fn vs(attrib : Attributes) -> FragInput {
   var output : FragInput;
 
-  var v_pos = vec4f(attrib.position, 1) * globals.view_matrix;
-  var c_pos = vec4f(v_pos, 1) * globals.projection_matrix;
+  var w_pos = vec4f(attrib.position, 1) * obj;
+  var c_pos = vec4f( vec4f(w_pos, 1 ) * globals.view_matrix, 1 ) * globals.projection_matrix;
 
   output.position = c_pos;
-  output.w_pos = attrib.position;
+  output.w_pos = w_pos;
   output.w_normal = attrib.normal;
 
   return output;

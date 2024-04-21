@@ -13,6 +13,9 @@ export class Bindings {
         case ResourceType.StructuredBuffer:
           bind_resource(this, entry, new StructuredBuffer(entry.info), true);
           break;
+        case ResourceType.Sampler:
+          bind_resource(this, entry, { type: entry.type, info: entry.info }, false);
+          break;
         default:
           bind_resource(this, entry, entry.resource, false);
       }

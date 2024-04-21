@@ -12,14 +12,14 @@ struct FragInput {
   @location(1) w_normal : vec3f,
 }
 
-struct GlobalUniforms {
+struct Globals {
   projection_matrix : mat4x4f,
   view_matrix : mat3x4f,
   camera_pos : vec3f,
   nits : f32,
 }
 
-@group(0) @binding(0) var<storage, read> globals: GlobalUniforms;
+@group(0) @binding(0) var<storage, read> globals: Globals;
 @group(3) @binding(0) var<storage, read> obj: mat3x4f; 
 
 @vertex fn vs(attrib : Attributes) -> FragInput {

@@ -6,17 +6,17 @@ struct FragInput {
   @location(0) uv : vec2f,
 }
 
-struct GlobalUniforms {
+struct Globals {
   projection_matrix : mat4x4f,
   view_matrix : mat3x4f,
   camera_pos : vec3f,
   nits : f32,
 }
 
-@group(0) @binding(0) var<storage, read> globals: GlobalUniforms;
-@group(1) @binding(0) var gsampler: sampler;
-@group(1) @binding(1) var gbuffer_pos: texture_2d<f32>;
-@group(1) @binding(2) var gbuffer_norm: texture_2d<f32>;
+@group(0) @binding(0) var<storage, read> globals: Globals;
+@group(0) @binding(1) var gsampler: sampler;
+@group(0) @binding(2) var gbuffer_pos: texture_2d<f32>;
+@group(0) @binding(3) var gbuffer_norm: texture_2d<f32>;
 
 @vertex fn vs(@builtin(vertex_index) vertexIndex : u32) -> FragInput {
   var output : FragInput;

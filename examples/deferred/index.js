@@ -1,6 +1,13 @@
-import { GPUResource } from "../../src/backend/constants.mjs";
+import { ResourceType } from "../../src/renderer/constants.mjs";
 import { Renderer } from "../../src/renderer/renderer.mjs";
-import { DrawStream } from "../../src/renderer/modules/draw_stream.mjs";
+import { RenderPass } from "../../src/renderer/objects/render_pass.mjs";
+import { RenderTarget } from "../../src/renderer/objects/render_target.mjs";
+import { CanvasTexture } from "../../src/renderer/objects/canvas_texture.mjs";
+import { Mesh } from "../../src/renderer/objects/mesh.mjs";
+import { Shader } from "../../src/renderer/objects/shader.mjs";
+import { Material } from "../../src/renderer/objects/material.mjs";
+import { StructuredBuffer } from "../../src/renderer/objects/structured_buffer.mjs";
+import { DynamicLayout } from "../../src/renderer/objects/dynamic_layout.mjs";
 
 import { Vec3 } from "../../src/datatypes/vec3.mjs";
 import { Vec4 } from "../../src/datatypes/vec4.mjs";
@@ -10,66 +17,91 @@ import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import { gbuffer_shader } from "../shaders/deferred_gbuffer.mjs";
 import { lighting_shader } from "../shaders/deferred_lighting.mjs";
-import { CanvasTexture } from "../../src/renderer/objects/canvas_texture.mjs";
-import { RenderPass } from "../../src/renderer/objects/render_pass.mjs";
-import { RenderTarget } from "../../src/renderer/objects/render_target.mjs";
-import { StructuredBuffer } from "../../src/renderer/objects/structured_buffer.mjs";
 
-let renderer, backend, canvas, gbuffer_pipeline, lighting_pipeline;
-let global_bind_group, lighting_bind_group, lighting_layout;
-let draw_stream, global_data, count;
-
-let gbuffer_pass, gbuffer_target, render_pass, render_target, sampler;
-let attrib0, attrib1, geometry_buffer, index_offset;
-let target = new Vec3();
+let renderer, backend, canvas, camera, gbuffer_scene, lighting_scene;
+let gbuffer_pass, gbuffer_target, render_pass, render_target;
+let target = new Vec3(), obj_pos = new Vec3();
 
 const dpr = window.devicePixelRatio;
 let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
 
 (() => {
   const loader = new OBJLoader();
-  loader.load('../models/walt.obj').then(geo => init(geo));
+  loader.load('../models/walt.obj').then(async (geo) => {
+    renderer = new Renderer(
+      await navigator.gpu.requestAdapter({
+        powerPreference: 'high-performance'
+      }).then( adapter => adapter.requestDevice())
+    );
+    backend = renderer.backend;
+
+    const vertex_count = geo.positions.length, index_count = geo.indices.length;
+    const geo_byte_size = (vertex_count * 2 + index_count) * 4;
+
+    const geometry_buffer = backend.resources.create_buffer({
+      size: geo_byte_size,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
+    });
+
+    const data = new ArrayBuffer(geo_byte_size);
+    const pos_data = new Float32Array(data, 0, vertex_count);
+    const norm_data = new Float32Array(data, vertex_count * 4, vertex_count);
+    const index_data = new Uint32Array(data, vertex_count * 8, index_count);
+    pos_data.set(geo.positions);
+    norm_data.set(geo.normals);
+    index_data.set(geo.indices);
+    
+    backend.write_buffer(geometry_buffer, 0, data);
+
+    const geometry = {
+      index: geometry_buffer,
+      count: index_count,
+      index_offset: vertex_count * 2,
+      vertex_offset: 0,
+      attributes: [],
+    }
+
+    geometry.attributes.push(backend.resources.create_attribute({
+      buffer: geometry_buffer,
+      byte_offset: 0,
+      byte_size: vertex_count * 4,
+    }));
+
+    geometry.attributes.push(backend.resources.create_attribute({
+      buffer: geometry_buffer,
+      byte_offset: vertex_count * 4,
+      byte_size: vertex_count * 4,
+    }));
+
+    init(geometry)
+  });
 })();
 
-const init = async (geo) => {
-  canvas = document.createElement('canvas');
-  
-  const device = await navigator.gpu.requestAdapter({
-    powerPreference: 'high-performance'
-  }).then(adapter => adapter.requestDevice());
-  
-  renderer = new Renderer(device);
-  backend = renderer.backend;
-  
+const init = async (geometry) => {
   const canvas_texture = new CanvasTexture();
   canvas_texture.set_size({ width: viewport.x, height: viewport.y });
   canvas = canvas_texture.canvas;
   document.body.append(canvas);
 
-  render_pass = new RenderPass({
-    multisampled: true,
-    formats: {
-      color: [navigator.gpu.getPreferredCanvasFormat()],
-    }
-  });
+  camera = new StructuredBuffer([
+    { name: "projection", type: Mat4x4 }, 
+    { name: "view", type: Mat3x4 }, 
+    { name: "position", type: Vec4 }, 
+  ]);
+
+  target.set(0, 30, 0);
+  camera.projection.perspective(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 600);
 
   gbuffer_pass = new RenderPass({
     formats: {
       color: ["rgba32float", "rgba32float"],
       depth: "depth24plus"
-    }
+    },
+    bindings: [{ binding: 0,  name: "camera", resource: camera }]
   });
 
-  render_target = new RenderTarget(render_pass, {
-    size: { width: viewport.x, height: viewport.y },
-    color: [ 
-      { resolve: canvas_texture, clear: [.05, .05, .05, 1] }
-    ],
-  });
-
-  render_pass.set_render_target(render_target);
-
-  gbuffer_target = new RenderTarget(gbuffer_pass, {
+  gbuffer_target = new RenderTarget({
+    pass: gbuffer_pass,
     size: { width: viewport.x, height: viewport.y },
     color: [
       { clear: [0, 0, 0, 0] },
@@ -79,203 +111,67 @@ const init = async (geo) => {
   });
   gbuffer_pass.set_render_target(gbuffer_target);
 
-  const global_layout = backend.resources.create_group_layout({
-    entries: [
-      {
-        binding: 0,
-        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-        buffer: {
-          type: "read-only-storage",
-        },
-      },
-    ],
-  });
-
-  lighting_layout = backend.resources.create_group_layout({
-    entries: [
-      {
-        binding: 0,
-        visibility: GPUShaderStage.FRAGMENT,
-        sampler: {
-          type: "non-filtering",
+  render_pass = new RenderPass({
+    multisampled: true,
+    formats: {
+      color: [navigator.gpu.getPreferredCanvasFormat()],
+    },
+    bindings: [
+      { binding: 0, name: "camera", resource: camera, },
+      { binding: 1, name: "sampler", type: ResourceType.Sampler,
+        info: {
+          address: { u: "clamp-to-edge", v: "clamp-to-edge", w: "clamp-to-edge" },
+          filtering: { mag: "nearest", min: "nearest", mip: "nearest" },
         }
       },
-      {
-        binding: 1,
-        visibility: GPUShaderStage.FRAGMENT,
-        texture: {
-          sampleType: "unfilterable-float",
-        },
-      },
-      {
-        binding: 2,
-        visibility: GPUShaderStage.FRAGMENT,
-        texture: {
-          sampleType: "unfilterable-float",
-        },
-      },
+      { binding: 2, name: "t_pos", resource: gbuffer_target.attachments.color[0].texture, },
+      { binding: 3, name: "t_normal", resource: gbuffer_target.attachments.color[1].texture, }
+    ]
+  });
+
+  render_target = new RenderTarget({
+    pass: render_pass,
+    size: { width: viewport.x, height: viewport.y },
+    color: [ 
+      { resolve: canvas_texture, clear: [.05, .05, .05, 1] }
+    ],
+  });
+  render_pass.set_render_target(render_target);
+
+  const transform_layout = new DynamicLayout([
+    { name: "world", type: Mat3x4 }
+  ]);
+
+  const gbuffer_material = new Material({
+    shader: new Shader({code: gbuffer_shader}),
+    dynamic: transform_layout,
+    vertex: [
+      { arrayStride: 12, attributes: [
+        { shaderLocation: 0, offset: 0, format: 'float32x3' },
+      ], },
+      { arrayStride: 12, attributes: [
+        { shaderLocation: 1, offset: 0, format: 'float32x3' },
+      ], },
     ],
   });
 
-  global_data = new StructuredBuffer([
-    { 
-      name: "camera", type: [
-        { name: "projection", type: Mat4x4 }, 
-        { name: "view", type: Mat3x4 }, 
-        { name: "position", type: Vec4 }, 
-      ]
-    }
-  ]);
-
-  target.set(0, 30, 0);
-  global_data.camera.position.set(0, 30, 100, 250);
-  global_data.camera.projection.perspective(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 600);
-  global_data.camera.view.translate(global_data.camera.position).view_inverse();
-
-  const info = renderer.cache.get_buffer(global_data);
-  global_bind_group = backend.resources.create_bind_group({
-    layout: global_layout,
-    entries: [
-      {
-        binding: 0,
-        type: GPUResource.BUFFER,
-        offset: info.offset,
-        size: info.size,
-        resource: info.bid,
-      }
-    ]
+  const lighting_material = new Material({
+    shader: new Shader({code: lighting_shader}),
   });
 
-  sampler = backend.resources.create_sampler();
-  
-  lighting_bind_group = backend.resources.create_bind_group({
-    layout: lighting_layout,
-    entries: [
-      {
-        binding: 0,
-        type: GPUResource.SAMPLER,
-        resource: sampler,
-      },
-      {
-        binding: 1,
-        type: GPUResource.TEXTURE,
-        resource: renderer.cache.get_texture(gbuffer_target.attachments.color[0].texture).bid,
-      },
-      {
-        binding: 2,
-        type: GPUResource.TEXTURE,
-        resource: renderer.cache.get_texture(gbuffer_target.attachments.color[1].texture).bid,
-      }
-    ]
-  });
+  const mesh = new Mesh(geometry, gbuffer_material);
+  gbuffer_scene = [mesh];
 
-  gbuffer_pipeline = backend.resources.create_pipeline({
-    code: gbuffer_shader,
-    render_info: gbuffer_pass,
-    layouts: {
-      bindings: [global_layout],
-    },
-    vertex: {
-      buffers: [
-        {
-          arrayStride: 12,
-          attributes: [
-            {shaderLocation: 0, offset: 0, format: 'float32x3'},
-          ],
-        },
-        {
-          arrayStride: 12,
-          attributes: [
-            {shaderLocation: 1, offset: 0, format: 'float32x3'},
-          ],
-        },
-      ],
-    },
-  });
-
-  lighting_pipeline = backend.resources.create_pipeline({
-    code: lighting_shader,
-    render_info: render_pass,
-    layouts: {
-      bindings: [global_layout, lighting_layout],
-    },
-    pipeline: {
-      multisample: {
-        count: 4,
-      }
-    }
-  });
-
-  const vertex_count = geo.positions.length, index_count = geo.indices.length;
-  const geo_byte_size = (vertex_count * 2 + index_count) * 4;
-
-  geometry_buffer = backend.resources.create_buffer({
-    size: geo_byte_size,
-    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
-  });
-
-  const data = new ArrayBuffer(geo_byte_size);
-  const pos_data = new Float32Array(data, 0, vertex_count);
-  const norm_data = new Float32Array(data, vertex_count * 4, vertex_count);
-  const index_data = new Uint32Array(data, vertex_count * 8, index_count);
-  pos_data.set(geo.positions);
-  norm_data.set(geo.normals);
-  index_data.set(geo.indices);
-
-  count = index_count;
-  index_offset = vertex_count * 2;
-
-  backend.write_buffer(geometry_buffer, 0, data);
-
-  attrib0 = backend.resources.create_attribute({
-    buffer: geometry_buffer,
-    byte_offset: 0,
-    byte_size: vertex_count * 4,
-  });
-
-  attrib1 = backend.resources.create_attribute({
-    buffer: geometry_buffer,
-    byte_offset: vertex_count * 4,
-    byte_size: vertex_count * 4,
-  });
-
-  draw_stream = new DrawStream();
+  const lighting = new Mesh({
+    index: geometry.index,
+    count: 3,
+    index_offset: -1,
+    vertex_offset: 0,
+    attributes: []
+  }, lighting_material);
+  lighting_scene = [lighting];
 
   animate();
-}
-
-const update_gbuffer_stream = () => {
-  draw_stream.clear();
-
-  draw_stream.set_pipeline(gbuffer_pipeline);
-  draw_stream.set_globals(global_bind_group);
-  draw_stream.set_variant(0);
-  draw_stream.set_material(0);
-  draw_stream.set_dynamic(0);
-  draw_stream.set_attribute(0, attrib0);
-  draw_stream.set_attribute(1, attrib1);
-
-  draw_stream.draw({
-    index: geometry_buffer,
-    draw_count: count,
-    vertex_offset: 0,
-    index_offset: index_offset,
-  });
-}
-
-const update_lighting_stream = () => {
-  draw_stream.clear();
-
-  draw_stream.set_pipeline(lighting_pipeline);
-  draw_stream.set_globals(global_bind_group);
-  draw_stream.set_variant(lighting_bind_group);
-  draw_stream.set_material(0);
-  draw_stream.set_dynamic(0);
-
-  draw_stream.draw({
-    draw_count: 3,
-    index_offset: -1,
-  });
 }
 
 const auto_resize = () => {
@@ -284,15 +180,11 @@ const auto_resize = () => {
   const newH = (canvas.clientHeight * dpr) | 0;
   
   if (viewport.x != newW || viewport.y != newH) {
-    canvas.width = viewport.x = newW; canvas.height = viewport.y = newH;
-
-    render_target.set_size(viewport);
-    gbuffer_target.set_size(viewport);
-
-    // TODO: this won't work until bind group updates have been implemented
-    // backend.resources.update_bind_group(lighting_bind_group);
+    viewport.x = newW; viewport.y = newH;
+    render_target.set_size({ width: newW, height: newH });
+    gbuffer_target.set_size({ width: newW, height: newH });
     
-    global_data.camera.projection.perspective(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
+    camera.projection.perspective(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
   }
 }
 
@@ -301,15 +193,17 @@ const animate = () => {
 
   auto_resize();
 
-  const angle = performance.now() / 1000;
-  global_data.camera.position.set(100 * Math.sin(angle), 30, 100 * Math.cos(angle), 250);
-  global_data.camera.view.translate(global_data.camera.position).look_at(target).view_inverse();
-  global_data.update();
-  renderer.cache.get_buffer(global_data);
+  const phase = performance.now() / 1000;
+  camera.position.set(100 * Math.sin(phase), 30, 100 * Math.cos(phase), 250);
+  camera.view.translate(camera.position).look_at(target).view_inverse();
+  camera.update();
 
-  update_gbuffer_stream();
-  renderer.render(gbuffer_pass, draw_stream);
+  {
+    const amplitude = 10 * Math.sin(phase);
+    obj_pos.set(0, amplitude, 0);
+    gbuffer_scene[0].dynamic.world.translate(obj_pos);
+  }
 
-  update_lighting_stream();
-  renderer.render(render_pass, draw_stream);
+  renderer.render(gbuffer_pass, gbuffer_scene);
+  renderer.render(render_pass, lighting_scene);
 }
