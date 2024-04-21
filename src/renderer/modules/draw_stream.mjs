@@ -1,4 +1,4 @@
-import { DrawStreamBits, NULL_HANDLE } from '../../backend/constants.mjs';
+import { DrawStreamBits, DrawStreamFlags, NULL_HANDLE } from '../../backend/constants.mjs';
 
 export class DrawStream {
   constructor() {
@@ -18,47 +18,45 @@ export class DrawStream {
     this.state.fill(NULL_HANDLE);
   }
 
-  // TODO: remove string keys, use direct bit-field values
-
   set_pipeline(pipeline_handle) {
-    this.upload_data("pipeline", pipeline_handle);
+    this.upload_data(DrawStreamBits.pipeline, DrawStreamFlags.pipeline, pipeline_handle);
   }
 
   set_globals(group_handle) {
-    this.upload_data("bind_group0", group_handle);
+    this.upload_data(DrawStreamBits.bind_globals, DrawStreamFlags.bind_globals, group_handle);
   }
 
   set_variant(group_handle) {
-    this.upload_data("bind_group1", group_handle);
+    this.upload_data(DrawStreamBits.bind_variant, DrawStreamFlags.bind_variant, group_handle);
   }
 
   set_material(group_handle) {
-    this.upload_data("bind_group2", group_handle);
+    this.upload_data(DrawStreamBits.bind_material, DrawStreamFlags.bind_material, group_handle);
   }
 
   set_dynamic(group_handle) {
-    this.upload_data("dynamic_group", group_handle);
+    this.upload_data(DrawStreamBits.dynamic_group, DrawStreamFlags.dynamic_group, group_handle);
   }
 
   set_dynamic_offset(offset) {
-    this.upload_data("dynamic_offset", offset);
+    this.upload_data(DrawStreamBits.dynamic_offset, DrawStreamFlags.dynamic_offset, offset);
   }
 
   set_attribute(idx, attrib_handle) {
-    this.upload_data("attribute0", attrib_handle, idx);
+    const bits = DrawStreamBits.attribute0 + idx;
+    this.upload_data(bits, 1 << bits, attrib_handle);
   }
 
-  upload_data(key, data, offset = 0) {
-    const bit = DrawStreamBits[key] + offset;
+  upload_data(bit, flag, data) {
     if (this.state[bit] != data) {
-      this.metadata |= 1 << bit;
+      this.metadata |= flag;
       this.state[bit] = data;
     }
   }
 
   draw(desc = {}) {
     for (let entry of Object.keys(desc))
-      this.upload_data(entry, desc[entry]);
+      this.upload_data(DrawStreamBits[entry], DrawStreamFlags[entry], desc[entry]);
 
     for (let bit = 0, il = DrawStreamBits.MAX; bit < il; bit++)
       if (this.metadata & (1 << bit)) this.stream[++this.offset] = this.state[bit];

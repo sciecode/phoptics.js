@@ -2,9 +2,9 @@ export const NULL_HANDLE = -1 >>> 0;
 
 export const DrawStreamBits = {
   pipeline:         0,
-  bind_group0:      1,
-  bind_group1:      2,
-  bind_group2:      3,
+  bind_globals:     1,
+  bind_variant:     2,
+  bind_material:    3,
   dynamic_group:    4,
   dynamic_offset:   5,
   attribute0:       6,

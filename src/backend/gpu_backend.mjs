@@ -50,7 +50,7 @@ export class GPUBackend {
 
     // bind groups
     for (let i = 0; i < 3; i++) {
-      if (metadata & (DrawStreamFlags.bind_group0 << i)) {
+      if (metadata & (DrawStreamFlags.bind_globals << i)) {
         const group_handle = stream[draw_packet.offset++];
         const group = this.resources.get_bind_group(group_handle).group;
         pass.setBindGroup(i, group);
@@ -58,7 +58,7 @@ export class GPUBackend {
     }
 
     // dynamic
-    if ((metadata >> 4) & 3) {
+    if (metadata & 0x30) {
       let group_handle = draw_packet.draw.dynamic_group = metadata & DrawStreamFlags.dynamic_group ?
         stream[draw_packet.offset++] : draw_packet.draw.dynamic_group;
       const bind_group = this.resources.get_bind_group(group_handle);
