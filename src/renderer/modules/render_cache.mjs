@@ -117,7 +117,8 @@ export class RenderCache {
             binding: entry.binding,
             visibility: entry.visibility || (GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT),
           };
-          switch (binding_obj[entry.name].type) {
+          const binding = binding_obj[entry.name];
+          switch (binding.type) {
             case ResourceType.StructuredBuffer: 
               resource.buffer = { type: "read-only-storage" };
               break;
@@ -125,7 +126,9 @@ export class RenderCache {
               resource.texture = { sampleType: "unfilterable-float" }; // TODO: automatically detect sampleType based on format
               break;
             case ResourceType.Sampler:
-              resource.sampler = { type: "non-filtering" }; // TODO: automatically detect based on filtering
+              const filtering = binding.filtering;
+              const filterable = filtering.min != "nearest" || filtering.mag != "nearest" || filtering.mip != "nearest";
+              resource.sampler = { type: filterable ? "filtering" : "non-filtering" };
               break;
           }
           return resource;

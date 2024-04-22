@@ -17,6 +17,7 @@ import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import { gbuffer_shader } from "../shaders/deferred_gbuffer.mjs";
 import { lighting_shader } from "../shaders/deferred_lighting.mjs";
+import { Sampler } from "../../src/renderer/objects/sampler.mjs";
 
 let renderer, backend, canvas, camera, gbuffer_scene, lighting_scene;
 let gbuffer_pass, gbuffer_target, render_pass, render_target;
@@ -114,12 +115,7 @@ const init = async (geometry) => {
     },
     bindings: [
       { binding: 0, name: "camera", resource: camera, },
-      { binding: 1, name: "sampler", type: ResourceType.Sampler,
-        info: {
-          address: { u: "clamp-to-edge", v: "clamp-to-edge", w: "clamp-to-edge" },
-          filtering: { mag: "nearest", min: "nearest", mip: "nearest" },
-        }
-      },
+      { binding: 1, name: "sampler", resource: new Sampler(), },
       { binding: 2, name: "t_pos", resource: gbuffer_target.attachments.color[0].texture, },
       { binding: 3, name: "t_normal", resource: gbuffer_target.attachments.color[1].texture, }
     ]

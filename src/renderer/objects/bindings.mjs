@@ -1,4 +1,5 @@
 import { ResourceType, UNINITIALIZED } from "../constants.mjs";
+import { Sampler } from "./sampler.mjs";
 import { StructuredBuffer } from "./structured_buffer.mjs";
 
 export class Bindings {
@@ -14,7 +15,7 @@ export class Bindings {
           bind_resource(this, entry, new StructuredBuffer(entry.info), true);
           break;
         case ResourceType.Sampler:
-          bind_resource(this, entry, { type: entry.type, info: entry.info }, false);
+          bind_resource(this, entry, new Sampler(entry.info), false);
           break;
         default:
           bind_resource(this, entry, entry.resource, false);
