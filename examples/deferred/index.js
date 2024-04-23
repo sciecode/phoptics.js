@@ -114,10 +114,10 @@ const init = async (geometry) => {
       color: [navigator.gpu.getPreferredCanvasFormat()],
     },
     bindings: [
-      { binding: 0, name: "camera", resource: camera, },
-      { binding: 1, name: "sampler", resource: new Sampler(), },
-      { binding: 2, name: "t_pos", resource: gbuffer_target.attachments.color[0].texture, },
-      { binding: 3, name: "t_normal", resource: gbuffer_target.attachments.color[1].texture, }
+      { binding: 0, name: "camera", resource: camera },
+      { binding: 1, name: "sampler", resource: new Sampler() },
+      { binding: 2, name: "t_pos", resource: gbuffer_target.attachments.color[0].texture },
+      { binding: 3, name: "t_normal", resource: gbuffer_target.attachments.color[1].texture }
     ]
   });
 

@@ -1,15 +1,13 @@
 import { PoolStorage } from "../../common/pool_storage.mjs";
+import { SparseSet } from "../../common/sparse_set.mjs";
 import { UNINITIALIZED } from "../constants.mjs";
 
 export class MaterialManager {
   constructor(backend) {
     this.backend = backend;
-    this.layouts_table = new Map();
-    this.layouts = new PoolStorage();
-    this.shaders_table = new Map();
-    this.shaders = new PoolStorage();
-    this.pipelines_table = new Map();
-    this.pipelines = new PoolStorage();
+    this.layouts = new SparseSet();
+    this.shaders = new SparseSet();
+    this.pipelines = new SparseSet();
     this.materials = new PoolStorage();
 
     this.material_callback = this.free_material.bind(this);
@@ -21,12 +19,10 @@ export class MaterialManager {
 
     if (id == UNINITIALIZED) {
       const hash = JSON.stringify(shader_obj);
-      id = this.shaders_table.get(hash);
-      if (id) {
+      if (id = this.shaders.has(hash)) {
         this.shaders.get(id).count++;
       } else {
-        id = this.shaders.allocate({ count: 1, hash: hash });
-        this.shaders_table.set(hash, id);
+        id = this.shaders.set(hash, { count: 1, hash: hash });
       }
       shader_obj.initialize(id, this.shader_callback);
     }
@@ -36,10 +32,7 @@ export class MaterialManager {
 
   free_shader(shader_id) {
     const cache = this.shaders.get(shader_id);
-    if (!--cache.count) {
-      this.shaders_table.delete(cache.hash);
-      this.shaders.delete(shader_id);
-    }
+    if (!--cache.count) this.shaders.delete(shader_id, cache.key);
   }
 
   create_pipeline(info) {
@@ -52,7 +45,7 @@ export class MaterialManager {
       ...info.material.graphics,
     });
 
-    let id = this.pipelines_table.get(hash);
+    let id = this.pipelines.has(hash);
 
     if (id) {
       this.pipelines.get(id).count++;
@@ -74,8 +67,7 @@ export class MaterialManager {
         },
         vertex: info.material.vertex,
       });
-      id = this.pipelines.allocate({ count: 1, bid: pipeline, hash: hash });
-      this.pipelines_table.set(hash, id);
+      id = this.pipelines.set(hash, { count: 1, bid: pipeline, hash: hash });
     }
 
     return id;
@@ -89,8 +81,7 @@ export class MaterialManager {
     const cache = this.pipelines.get(pipeline_id);
     if (!--cache.count) {
       this.backend.resources.destroy_pipeline(cache.bid);
-      this.pipelines_table.delete(cache.hash);
-      this.pipelines.delete(pipeline_id);
+      this.pipelines.delete(pipeline_id, cache.hash);
     }
   }
 
@@ -117,14 +108,13 @@ export class MaterialManager {
   create_layout(layout_info) {
     const hash = JSON.stringify(layout_info);
     let id, layout;
-    if (id = this.layouts_table.get(hash)) {
-      const cache = this.layouts[layout_id];
+    if (id = this.layouts.has(hash)) {
+      const cache = this.layouts.get(id);
       cache.count++;
       layout = cache.layout;
     } else {
       layout = this.backend.resources.create_group_layout(layout_info);
-      id = this.layouts.allocate({ count: 1, layout: layout, hash: hash });
-      this.layouts_table.set(hash, id);
+      id = this.layouts.set(hash, { count: 1, layout: layout, hash: hash });
     }
     return { id: id, layout: layout };
   }
@@ -135,9 +125,6 @@ export class MaterialManager {
 
   free_layout(layout_id) {
     const cache = this.layouts.get(layout_id);
-    if (!--cache.count) {
-      this.layouts_table.delete(cache.hash);
-      this.layouts.delete(layout_id);
-    }
+    if (!--cache.count) this.layouts.delete(layout_id, cache.hash);
   }
 }

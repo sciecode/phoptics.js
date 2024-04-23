@@ -13,7 +13,6 @@ export class PoolStorage {
       idx = this.freelist.pop();
     } else {
       idx = this.count++;
-
       if (this.count == this.data.length) this.grow();
     }
 

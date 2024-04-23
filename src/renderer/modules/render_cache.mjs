@@ -1,8 +1,9 @@
 import { GPUResource } from "../../backend/constants.mjs";
 import { ResourceType, UNINITIALIZED } from "../constants.mjs";
-import { PoolStorage } from "../../common/pool_storage.mjs";
 import { BufferManager } from "./buffer_manager.mjs";
 import { MaterialManager } from "./material_manager.mjs";
+import { PoolStorage } from "../../common/pool_storage.mjs";
+import { SparseSet } from "../../common/sparse_set.mjs";
 
 export class RenderCache {
   constructor(backend) {
@@ -13,6 +14,7 @@ export class RenderCache {
     this.bindings = new PoolStorage();
     this.targets = new PoolStorage();
     this.textures = new PoolStorage();
+    this.samplers = new SparseSet();
 
     this.texture_callback = this.free_texture.bind(this);
     this.target_callback = this.free_target.bind(this);
@@ -89,6 +91,28 @@ export class RenderCache {
     this.targets.delete(id);
   }
 
+  get_sampler(sampler_obj) {
+    let id = sampler_obj.get_id();
+
+    if (id == UNINITIALIZED) {
+      const hash = JSON.stringify(sampler_obj);
+      id = this.samplers.has(hash);
+      if (!id) {
+        const bid = this.backend.resources.create_sampler({
+          addressModeU: sampler_obj.address.u,
+          addressModeV: sampler_obj.address.v,
+          addressModeW: sampler_obj.address.w,
+          magFilter: sampler_obj.filtering.mag,
+          minFilter: sampler_obj.filtering.min,
+          mipmapFilter: sampler_obj.filtering.mipmap,
+        });
+        id = this.samplers.set(hash, bid);
+      }
+    }
+
+    return this.samplers.get(id);
+  }
+
   get_pipeline(material_obj, state, dynamic_layout) {
     let id = material_obj.get_id();
 
@@ -127,7 +151,7 @@ export class RenderCache {
               break;
             case ResourceType.Sampler:
               const filtering = binding.filtering;
-              const filterable = filtering.min != "nearest" || filtering.mag != "nearest" || filtering.mip != "nearest";
+              const filterable = filtering.min != "nearest" || filtering.mag != "nearest" || filtering.mipmap != "nearest";
               resource.sampler = { type: filterable ? "filtering" : "non-filtering" };
               break;
           }
@@ -159,7 +183,7 @@ export class RenderCache {
                 resource: tex_info.bid,
               };
             case ResourceType.Sampler:
-              const sampler = this.backend.resources.create_sampler();
+              const sampler = this.get_sampler(resource);
               return {
                 binding: entry.binding,
                 type: GPUResource.SAMPLER,
