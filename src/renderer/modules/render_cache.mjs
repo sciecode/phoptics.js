@@ -126,7 +126,14 @@ export class RenderCache {
     }
 
     const cache = this.material_manager.get_material(id);
-    // TODO: versioning
+    if (cache.version != material_obj.get_version()) {
+      this.material_manager.update_material({
+        material: material_obj,
+        state: state,
+        dynamic_layout: dynamic_layout,
+        binding: material_obj.bindings ? this.get_binding(material_obj.bindings).layout : undefined
+      });
+    }
 
     return this.material_manager.get_pipeline(cache.pipeline);
   }

@@ -38,7 +38,7 @@ export class Pipeline {
         }),
       },
       depthStencil: !!graphics.formats.depth ? {
-        depthWriteEnabled: depth.write || true,
+        depthWriteEnabled: depth.write != undefined ? depth.write : true,
         depthCompare: depth.test || "greater",
         depthBias: depth.bias,
         format: graphics.formats.depth

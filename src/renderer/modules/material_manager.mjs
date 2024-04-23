@@ -95,6 +95,13 @@ export class MaterialManager {
     return id;
   }
 
+  update_material(info) {
+    const cache = this.materials.get(info.material.get_id());
+    this.free_pipeline(cache.pipeline);
+    cache.version = info.material.get_version();
+    cache.pipeline = this.create_pipeline(info);
+  }
+
   free_material(material_id) {
     const cache = this.materials.get(material_id);
     this.free_pipeline(cache.pipeline); 
