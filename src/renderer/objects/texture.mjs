@@ -9,7 +9,7 @@ export class Texture {
     this.type = ResourceType.Texture;
     this.size = { ...options.size };
     this.format = options.format;
-    this.usage = options.usage;
+    this.usage = options.usage || (GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING);
     this.multisampled = options.multisampled || false;
   }
 

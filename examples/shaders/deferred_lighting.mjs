@@ -27,11 +27,10 @@ struct Globals {
     vec2f( 4, -4)   // bottom right
   );
 
-  let uv = pos[vertexIndex];
-  var c_pos = vec4f(uv, 0.5, 1.0);
+  let c_pos = pos[vertexIndex];
 
-  output.position = c_pos;
-  output.uv = (uv + vec2f(1.)) * .5;
+  output.position = vec4f(c_pos, .5, 1);
+  output.uv = (c_pos + 1) * .5;
   output.uv.y = 1. - output.uv.y;
 
   return output;
@@ -64,6 +63,7 @@ fn point_light(frag : ptr<function, RenderInfo>, l_pos : vec3f, l_color : vec3f,
 }
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
+
   let pos = textureSample(gbuffer_pos, gsampler, in.uv);
   if (pos.w != 1.) { discard; }
 

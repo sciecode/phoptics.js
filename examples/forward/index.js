@@ -80,7 +80,7 @@ const init = async (geometry) => {
     multisampled: true,
     formats: {
       color: [navigator.gpu.getPreferredCanvasFormat()],
-      depth: "depth24plus",
+      depth: "depth32float",
     },
     bindings: [
       {

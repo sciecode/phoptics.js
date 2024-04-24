@@ -92,7 +92,7 @@ const init = async (geometry) => {
   gbuffer_pass = new RenderPass({
     formats: {
       color: ["rgba32float", "rgba32float"],
-      depth: "depth24plus"
+      depth: "depth32float"
     },
     bindings: [{ binding: 0,  name: "camera", resource: camera }]
   });
