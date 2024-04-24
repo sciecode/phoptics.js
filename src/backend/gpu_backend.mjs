@@ -87,8 +87,12 @@ export class GPUBackend {
     // index buffer
     if (metadata & DrawStreamFlags.index) {
       const index_handle = stream[draw_packet.offset++];
-      const buffer = this.resources.get_buffer(index_handle);
-      pass.setIndexBuffer(buffer, "uint32");
+      if (index_handle != NULL_HANDLE) {
+        const buffer = this.resources.get_buffer(index_handle);
+        pass.setIndexBuffer(buffer, "uint32");
+      } else {
+        pass.setIndexBuffer(null);
+      }
     }
 
     // draw count

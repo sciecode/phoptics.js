@@ -1,4 +1,3 @@
-import { ResourceType } from "../../src/renderer/constants.mjs";
 import { Renderer } from "../../src/renderer/renderer.mjs";
 import { RenderPass } from "../../src/renderer/objects/render_pass.mjs";
 import { RenderTarget } from "../../src/renderer/objects/render_target.mjs";

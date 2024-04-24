@@ -59,7 +59,7 @@ export class MaterialManager {
         },
         layouts: {
           bindings: [
-            this.get_layout(info.state.global_layout),
+            (info.state.global_layout != undefined) ? this.get_layout(info.state.global_layout) : undefined,
             undefined,
             info.binding ? this.get_layout(info.binding) : undefined,
           ],

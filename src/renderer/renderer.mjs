@@ -29,8 +29,14 @@ export class Renderer {
     this.dynamic.reset();
     this.draw_stream.clear();
 
-    const global_group = this.cache.get_binding(pass.bindings).bid;
-    this.draw_stream.set_globals(global_group);
+    if (pass.bindings) {
+      const global_cache = this.cache.get_binding(pass.bindings);
+      this.state.global_layout = global_cache.layout;
+      this.draw_stream.set_globals(global_cache.bid);
+    } else {
+      this.state.global_layout = undefined;
+      this.draw_stream.set_globals(0);
+    }
 
     // TODO: create optimized render list - sort distance / frustum / reduce state changes 
 
@@ -77,7 +83,6 @@ export class Renderer {
   #set_pass(pass) {
     this.state.formats = pass.formats;
     this.state.multisampled = pass.multisampled;
-    this.state.global_layout = this.cache.get_binding(pass.bindings).layout;
   }
 
   #set_dynamic_binding(material) {
