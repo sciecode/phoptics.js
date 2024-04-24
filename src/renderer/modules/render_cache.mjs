@@ -141,37 +141,9 @@ export class RenderCache {
     return this.material_manager.get_pipeline(cache.pipeline);
   }
 
-  get_binding(binding_obj) {
-    let id = binding_obj.get_id(), version = binding_obj.get_version();
-
-    if (id == UNINITIALIZED) {
-      const layout_cache = this.material_manager.create_layout({
-        entries: binding_obj.info.map( entry => {
-          const resource = {
-            binding: entry.binding,
-            visibility: entry.visibility || (GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT),
-          };
-          const binding = binding_obj[entry.name];
-          switch (binding.type) {
-            case ResourceType.StructuredBuffer: 
-              resource.buffer = { type: "read-only-storage" };
-              break;
-            case ResourceType.Texture:
-              resource.texture = { sampleType: this.sampler_table.get_sample_type(binding.format) };
-              break;
-            case ResourceType.Sampler:
-              const filtering = binding.filtering;
-              const filterable = filtering.min != "nearest" || filtering.mag != "nearest" || filtering.mipmap != "nearest";
-              resource.sampler = { type: filterable ? "filtering" : "non-filtering" };
-              break;
-          }
-          return resource;
-        })
-      });
-
-      const textures = [];
-      const bid = this.backend.resources.create_bind_group({
-        layout: layout_cache.layout,
+  create_bind_group(binding_obj, layout, textures) {
+    return this.backend.resources.create_bind_group({
+        layout: layout,
         entries: binding_obj.info.map( entry => {
           const resource = binding_obj[entry.name];
           switch (resource.type) {
@@ -202,6 +174,38 @@ export class RenderCache {
           }
         })
       });
+  }
+
+  get_binding(binding_obj) {
+    let id = binding_obj.get_id(), version = binding_obj.get_version();
+
+    if (id == UNINITIALIZED) {
+      const layout_cache = this.material_manager.create_layout({
+        entries: binding_obj.info.map( entry => {
+          const resource = {
+            binding: entry.binding,
+            visibility: entry.visibility || (GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT),
+          };
+          const binding = binding_obj[entry.name];
+          switch (binding.type) {
+            case ResourceType.StructuredBuffer: 
+              resource.buffer = { type: "read-only-storage" };
+              break;
+            case ResourceType.Texture:
+              resource.texture = { sampleType: this.sampler_table.get_sample_type(binding.format) };
+              break;
+            case ResourceType.Sampler:
+              const filtering = binding.filtering;
+              const filterable = filtering.min != "nearest" || filtering.mag != "nearest" || filtering.mipmap != "nearest";
+              resource.sampler = { type: filterable ? "filtering" : "non-filtering" };
+              break;
+          }
+          return resource;
+        })
+      });
+
+      const textures = [];
+      const bid = this.create_bind_group(binding_obj, layout_cache.layout, textures);
 
       id = this.bindings.allocate({
         version: version,
@@ -213,26 +217,29 @@ export class RenderCache {
     }
 
     const cache = this.bindings.get(id);
-    // if (cache.version != version) {
-    //   cache.version = version;
-    //   TODO: validate & update binding
-    // } else ....
-
-    let needs_update = false, texture_id = 0;
-    for (let entry of binding_obj.info) {
-      const resource = binding_obj[entry.name];
-      switch (resource.type) {
-        case ResourceType.StructuredBuffer:
-          this.get_buffer(resource);
-          break;
-        case ResourceType.Texture:
-          const version = this.get_texture(resource).version;
-          if (version != cache.textures[texture_id]) needs_update = true;
-          texture_id++;
-          break;
+    if (cache.version != version) {
+      const textures = [];
+      this.backend.resources.destroy_bind_group(cache.bid);
+      cache.version = version;
+      cache.bid = this.create_bind_group(binding_obj, cache.layout, textures);
+      cache.textures = textures;
+    } else {
+      let needs_update = false, texture_id = 0;
+      for (let entry of binding_obj.info) {
+        const resource = binding_obj[entry.name];
+        switch (resource.type) {
+          case ResourceType.StructuredBuffer:
+            this.get_buffer(resource);
+            break;
+          case ResourceType.Texture:
+            const version = this.get_texture(resource).version;
+            if (version != cache.textures[texture_id]) needs_update = true;
+            texture_id++;
+            break;
+        }
       }
+      if (needs_update) this.backend.resources.update_bind_group(cache.bid);
     }
-    if (needs_update) this.backend.resources.update_bind_group(cache.bid);
 
     return cache;
   }
