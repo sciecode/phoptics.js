@@ -1,6 +1,7 @@
 import { GPUResource } from "../../backend/constants.mjs";
 import { ResourceType, UNINITIALIZED } from "../constants.mjs";
 import { BufferManager } from "./buffer_manager.mjs";
+import { SamplerTable } from "./sampler_table.mjs";
 import { MaterialManager } from "./material_manager.mjs";
 import { PoolStorage } from "../../common/pool_storage.mjs";
 import { SparseSet } from "../../common/sparse_set.mjs";
@@ -10,6 +11,8 @@ export class RenderCache {
     this.backend = backend;
     this.buffer_manager = new BufferManager(backend);
     this.material_manager = new MaterialManager(backend);
+    this.sampler_table = new SamplerTable(backend.device.features);
+
     this.buffers = new PoolStorage();
     this.bindings = new PoolStorage();
     this.targets = new PoolStorage();
@@ -154,7 +157,7 @@ export class RenderCache {
               resource.buffer = { type: "read-only-storage" };
               break;
             case ResourceType.Texture:
-              resource.texture = { sampleType: "unfilterable-float" }; // TODO: automatically detect sampleType based on format
+              resource.texture = { sampleType: this.sampler_table.get_sample_type(binding.format) };
               break;
             case ResourceType.Sampler:
               const filtering = binding.filtering;

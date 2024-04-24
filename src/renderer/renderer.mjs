@@ -6,11 +6,8 @@ import { RenderCache } from "./modules/render_cache.mjs";
 import { DynamicManager } from "./modules/dynamic_manager.mjs";
 
 export class Renderer {
-  constructor(options = {}) {
-
-    this.backend = new GPUBackend(options.device);
-    this.features = options.features || [];
-
+  constructor(device) {
+    this.backend = new GPUBackend(device);
     this.cache = new RenderCache(this.backend);
     this.dynamic = new DynamicManager(this.backend);
     this.draw_stream = new DrawStream();
@@ -105,7 +102,7 @@ export class Renderer {
       if (adapter.features.has(feat))
         device_descriptor.requiredFeatures.push(feat);
 
-    return { device: await adapter.requestDevice(device_descriptor), features: device_descriptor.requiredFeatures };
+    return await adapter.requestDevice(device_descriptor);
   }
 }
 
