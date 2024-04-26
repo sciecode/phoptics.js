@@ -27,17 +27,18 @@ struct FragInput {
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
   let x = clamp(in.uv.x * 2. - .5, 0, 1);
-  const color1 = vec3f(1, 0, 0);
-  const color2 = vec3f(0, .5, 0) * .25;
+  const color1 = vec4f(1, 0, 0, 1) * 1;
+  const color2 = vec4f(0, .5, 0, 1) * .25;
   var color = mix(color1, color2, x);
 
   let t_color = textureSample(data_tex, usampler, vec2f(in.uv.x, .5));
   let e_color = textureSample(ext_tex, usampler, vec2f(in.uv.x, .5));
   let s_color = textureSample(srgb_tex, usampler, vec2f(in.uv.x, .5));
 
-  if (in.uv.y > .75) { color = s_color.rgb; }
-  else if (in.uv.y > .5) { color = e_color.rgb * e_color.a; }
-  else if (in.uv.y > .25) { color = t_color.rgb; }
+  if (in.uv.y > .75) { color = s_color; }
+  else if (in.uv.y > .5) { color = vec4f(e_color.rgb * e_color.a, e_color.a); }
+  else if (in.uv.y > .25) { color = t_color; }
 
-  return vec4f(pow(color, vec3f(1./2.2)), 1.);
+  var bg_blending = color + (1. - color.a) * vec4f(0, 0, 0, 1);
+  return vec4f(pow(bg_blending.rgb / bg_blending.a, vec3f(1./2.2)), 1.);
 }`;

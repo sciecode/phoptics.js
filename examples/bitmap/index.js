@@ -28,6 +28,7 @@ const init = async (bitmap, uint8) => {
     format: "rgba32float",
   });
 
+  
   const data = new Float32Array(uint8.length);
   for (let i = 0, il = data.length/4; i < il; i++) {
     const i4 = i * 4, as = uint8[i4 + 3] / 255;
