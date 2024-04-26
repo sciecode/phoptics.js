@@ -1,19 +1,53 @@
 <html>
   <head>
-    <title>Phoptic.js - Texture</title>
+    <title>Phoptic.js - ImageBitmap for PNG is completely broken on the Web.</title>
     <style>
       html, body {
         margin: 0;
-        background-color: rgba(.3, .3, .3, 1);
+        background-color: #000;
+      }
+
+      .text {
+        text-align: center;
+        width: 100%;
+        overflow: hidden;
+        position: absolute;
+        color: white;
+        font-family: sans-serif;
+        font-size: 12px;
+        text-shadow: 1px 1px 2px black;
+      }
+
+      .info {
+        font-size: 14px;
+      }
+
+      #message {
+        height: 15px;
+      }
+
+      #message:hover {
+        height: auto;
       }
 
       canvas {
         width: 100%;
-        height: 100vh;
+        height: 80vh;
       }
     </style>
   </head>
   <body>
+    <h3 id="message" class="text">
+      Browsers devs & The Web Consortium don't understand color theory. (i)<br />
+      As such, there isn't a way to correctly filter & composite (blend) .png ImageBitmaps on the web.<br />
+      Either filtering, blending or premultiplied-alpha occurs in sRGB, leading to physically incorret output.<br />
+      If you want physically correct filtering+blending, you need decode png files manually, decode sRGB & premultiply alpha youself.</h3>
+    <img src="../textures/2px.png" style="height: 20vh; width: 100%">
+    <h4 class="text info" style="top: 10vh">HTMLImageElement - Filtering, Blending & PremultipliedAlpha in sRGB</h4>
+    <h4 class="text info" style="top: 30vh">Bitmap - (premul & unorm-srgb) - PremultipliedAlpha in sRGB</h4>
+    <h4 class="text info" style="top: 50vh">Bitmap - (unorm-srgb) - No PremultipliedAlpha</h4>
+    <h4 class="text info" style="top: 70vh">Decoded Manually - Filtering, Blending & PremultipliedAlpha in linear-rgb</h4>
+    <h4 class="text info" style="top: 90vh">Entirely on Shader - Filtering & Blending & PremultipliedAlpha in linear-rgb</h4>
     <script type="module" src="index.js"></script>
   </body>
 </html>
