@@ -16,7 +16,7 @@ let render_pass, render_target;
 const dpr = window.devicePixelRatio;
 let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
 
-const init = async (bitmap) => {
+const init = async (bitmap, uint8) => {
   renderer = new Renderer(await Renderer.acquire_device());
 
   const canvas_texture = new CanvasTexture();
@@ -26,20 +26,21 @@ const init = async (bitmap) => {
 
   const tex1 = new Texture({
     size: { width: 2, height: 1 },
-    format: "rgba8unorm",
+    format: "rgba32float",
   });
+
+  const data = new Float32Array(uint8.length);
+  for (let i = 0, il = data.length/4; i < il; i++) {
+    const i4 = i * 4, as = uint8[i4 + 3] / 255;
+    data[i4 + 0] = process_pixel(uint8[i4 + 0], as);
+    data[i4 + 1] = process_pixel(uint8[i4 + 1], as);
+    data[i4 + 2] = process_pixel(uint8[i4 + 2], as);
+    data[i4 + 3] = as;
+  }
 
   const data_tex = renderer.cache.get_texture(tex1);
   const data_gpu = renderer.backend.resources.get_texture(data_tex.bid).texture;
-  renderer.backend.device.queue.writeTexture(
-    { texture: data_gpu },
-    new Uint8Array([
-      255, 0, 0, 255,
-      0, 128 * 64./255, 0, 64
-    ]),
-    {},
-    tex1.size,
-  );
+  renderer.backend.device.queue.writeTexture( { texture: data_gpu }, data, {}, tex1.size );
 
   const tex2 = new Texture({
     size: { width: 2, height: 1 },
@@ -125,10 +126,16 @@ const animate = () => {
   renderer.render(render_pass, scene);
 }
 
+const process_pixel = (value, alpha) => { return (Math.pow(value/255, 2.2) * alpha); }
+
 (async function loadImageBitmap(url) {
   const res = await fetch(url);
   const blob = await res.blob();
-  init(await createImageBitmap(blob, { premultiplyAlpha: 'none' }));
+  const arraybuffer = await blob.arrayBuffer();
+  const imageBitmap = await createImageBitmap(blob, { premultiplyAlpha: 'none' });
+  const info = UPNG.decode(arraybuffer);
+  const uint8 = new Uint8Array(UPNG.toRGBA8(info)[0]);
+  init(imageBitmap, uint8);
 })('../textures/2px.png');
 
 // init();
