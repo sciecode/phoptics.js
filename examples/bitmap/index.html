@@ -32,16 +32,25 @@
   </head>
   <body>
     <h3 id="message" class="text">
-      Browsers devs & The Web Consortium don't understand color theory. (i)<br />
+      Developers don't understand color theory.<br />
       As such, there isn't a way to correctly filter & composite (blend) .png ImageBitmaps on the web.<br />
       Either filtering, blending or premultiplied-alpha occurs in sRGB, leading to physically incorret output.<br />
-      If you want physically correct filtering+blending, you need decode png files manually, decode sRGB & premultiply alpha youself.</h3>
+      If you want physically correct filtering+blending, you need to generate png bitmap manually, decode sRGB & premultiply alpha youself.</h3>
     <img src="../textures/2px.png" style="height: 20vh; width: 100%">
-    <h4 class="text info" style="top: 10vh">HTMLImageElement - Filtering, Blending & PremultipliedAlpha in sRGB</h4>
-    <h4 class="text info" style="top: 30vh">Bitmap - (premul & unorm-srgb) - PremultipliedAlpha in sRGB</h4>
-    <h4 class="text info" style="top: 50vh">Bitmap - (unorm-srgb) - No PremultipliedAlpha</h4>
-    <h4 class="text info" style="top: 70vh">Decoded Manually - Filtering, Blending & PremultipliedAlpha in linear-rgb</h4>
-    <h4 class="text info" style="top: 90vh">Entirely on Shader - Filtering & Blending & PremultipliedAlpha in linear-rgb</h4>
+    <h4 class="text info" style="top: 10vh">HTMLImageElement - default visualization.<br /> Filtering, Blending & PremultipliedAlpha in sRGB</h4>
+    <h4 class="text info" style="top: 25vh">
+      Bitmap - load bitmap from file, premultiply alpha on WebGPU texture upload (wrong - premultiplied-alpha in sRGB).<br /> 
+      Texture format "unorm-srgb" to decode before filtering.<br />
+      PremultipliedAlpha in sRGB</h4>
+    <h4 class="text info" style="top: 45vh">
+      Bitmap - load bitmap from file, don't premultiply alpha before WebGPU texture upload.<br />
+      Texture format "unorm-srgb" to decode before filtering.<br />
+      No premultipliedAlpha applied - leads to incorrect compositing during filtering.
+    </h4>
+    <h4 class="text info" style="top: 65vh">Manually decode .PNG file - decode sRGB encoded png data to linear-srgb (use bigger precision)<br />
+      PremultiplyAlpha (associative alpha) data array before uploading to "rgba32float" WebGPU texture. <br />
+      Filtering, Blending & PremultipliedAlpha in linear-rgb</h4>
+    <h4 class="text info" style="top: 87vh">Shader - Filtering & Blending & PremultipliedAlpha in linear-rgb</h4>
     <script type="module" src="index.js"></script>
   </body>
 </html>

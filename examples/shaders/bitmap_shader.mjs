@@ -27,9 +27,10 @@ struct FragInput {
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
   let x = clamp(in.uv.x * 2. - .5, 0, 1);
-  const color1 = vec3f(1, 0, 0) * 248./255.;
-  const color2 = vec3f(0, 0.5, 0) * .25;
+  const color1 = vec3f(1, 0, 0);
+  const color2 = vec3f(0, .5, 0) * .25;
   var color = mix(color1, color2, x);
+
   let t_color = textureSample(data_tex, usampler, vec2f(in.uv.x, .5));
   let e_color = textureSample(ext_tex, usampler, vec2f(in.uv.x, .5));
   let s_color = textureSample(srgb_tex, usampler, vec2f(in.uv.x, .5));

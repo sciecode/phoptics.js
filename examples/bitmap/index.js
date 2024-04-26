@@ -10,8 +10,7 @@ import { Texture } from "../../src/renderer/objects/texture.mjs";
 
 import bitmap_shader from "../shaders/bitmap_shader.mjs";
 
-let renderer, canvas, scene;
-let render_pass, render_target;
+let render_pass, render_target, renderer, canvas, scene;
 
 const dpr = window.devicePixelRatio;
 let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
@@ -121,7 +120,6 @@ const auto_resize = () => {
 
 const animate = () => {
   requestAnimationFrame(animate);
-
   auto_resize();
   renderer.render(render_pass, scene);
 }
@@ -137,5 +135,3 @@ const process_pixel = (value, alpha) => { return (Math.pow(value/255, 2.2) * alp
   const uint8 = new Uint8Array(UPNG.toRGBA8(info)[0]);
   init(imageBitmap, uint8);
 })('../textures/2px.png');
-
-// init();
