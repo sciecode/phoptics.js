@@ -40,6 +40,7 @@ struct FragInput {
   else if (in.uv.y > .25) { color = t_color; }
 
   var bg_blending = color + (1. - color.a) * vec4f(0, 0, 0, 1); // premultiplied-alpha blend with black-bg
-  var undo_premul = bg_blending.rgb / bg_blending.a;
+  var undo_premul = bg_blending.rgb;
+  if (bg_blending.a > 0.) { undo_premul /= bg_blending.a; }
   return vec4f(pow(undo_premul, vec3f(1./2.2)), 1.);
 }`;
