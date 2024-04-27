@@ -70,11 +70,11 @@
     <h4 class="center" style="top: 10vh">HTMLImageElement - default visualization.<br /> Filtering, Blending & PremultipliedAlpha in sRGB</h4>
     <h4 class="center" style="top: 25vh">
       Bitmap - load bitmap from file, premultiply alpha on WebGPU texture upload (wrong - premultiplied-alpha in sRGB).<br /> 
-      Texture format "rgba8unorm-srgb" to decode before filtering.<br />
+      Texture format "rgba16float" to decode before filtering.<br />
       PremultipliedAlpha in sRGB</h4>
     <h4 class="center" style="top: 45vh">
       Bitmap - load bitmap from file, don't premultiply alpha before WebGPU texture upload.<br />
-      Texture format "rgba8unorm-srgb" to decode before filtering.<br />
+      Texture format "rgba8float" to decode before filtering.<br />
       No premultipliedAlpha applied - leads to incorrect compositing during filtering.
     </h4>
     <h4 class="center" style="top: 65vh">Manually decode .PNG file - decode sRGB encoded png data to linear-srgb (use bigger precision)<br />

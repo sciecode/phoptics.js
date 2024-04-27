@@ -44,7 +44,7 @@ const init = async (bitmap, uint8) => {
 
   const tex2 = new Texture({
     size: { width: 2, height: 1 },
-    format: "rgba8unorm-srgb",
+    format: "rgba16float",
   });
 
   const srgb_tex = renderer.cache.get_texture(tex2);
@@ -57,7 +57,7 @@ const init = async (bitmap, uint8) => {
 
   const tex3 = new Texture({
     size: { width: 2, height: 1 },
-    format: "rgba8unorm-srgb",
+    format: "rgba16float",
   });
 
   const ext_tex = renderer.cache.get_texture(tex3);
