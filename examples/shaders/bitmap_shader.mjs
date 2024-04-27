@@ -36,7 +36,7 @@ struct FragInput {
   let s_color = textureSample(srgb_tex, usampler, vec2f(in.uv.x, .5));
 
   if (in.uv.y > .75) { color = s_color; }
-  else if (in.uv.y > .5) { color = vec4f(e_color.rgb * e_color.a, e_color.a); }
+  else if (in.uv.y > .5) { color = e_color; }
   else if (in.uv.y > .25) { color = t_color; }
 
   var bg_blending = color + (1. - color.a) * vec4f(0, 0, 0, 1); // premultiplied-alpha blend with black-bg

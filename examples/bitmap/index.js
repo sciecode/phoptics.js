@@ -44,7 +44,7 @@ const init = async (bitmap, uint8) => {
 
   const tex2 = new Texture({
     size: { width: 2, height: 1 },
-    format: "rgba16float",
+    format: "rgba8unorm-srgb",
   });
 
   const srgb_tex = renderer.cache.get_texture(tex2);
@@ -57,14 +57,14 @@ const init = async (bitmap, uint8) => {
 
   const tex3 = new Texture({
     size: { width: 2, height: 1 },
-    format: "rgba16float",
+    format: "rgba8unorm",
   });
 
   const ext_tex = renderer.cache.get_texture(tex3);
   const ext_gpu = renderer.backend.resources.get_texture(ext_tex.bid).texture;
   renderer.backend.device.queue.copyExternalImageToTexture(
     { source: bitmap },
-    { texture: ext_gpu, premultipliedAlpha: false },
+    { texture: ext_gpu, premultipliedAlpha: true },
     { width: bitmap.width, height: bitmap.height },
   );
 
