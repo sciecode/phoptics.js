@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>Phoptic.js - ImageBitmap for PNG is completely broken on the Web.</title>
+    <title>PNG on the Web is broken.</title>
     <style>
       html, body {
         margin: 0;
@@ -58,10 +58,10 @@
   </head>
   <body>
     <h4 class="center h">
-      Web Developers & Web Standards don't understand color theory.<br />
+      WebAPI & WebGPU interfaces for PNG files aren't colorimetry/photometry compliant.<br />
       As such, there isn't a physically correct workflow to filter & composite (blend) .png ImageBitmaps on the web.<br />
       Either filtering, blending or premultiplied-alpha occurs in sRGB, leading to physically incorret output.<br />
-      If you want physically correct filtering+blending, you need to generate png bitmap manually, decode sRGB & premultiply alpha youself.</h3>
+      If you want physically correct filtering + blending, you need to generate png bitmap manually, decode sRGB & premultiply-alpha youself.</h3>
     <img src="../textures/2px.png" style="height: 20vh; width: 100%">
     <h4 class="left" style="top: 46.5vh">sRGB(255, 0, 0, 255)</h4>
     <h4 class="left" style="top: 48.5vh">linear-rgb(1, 0, 0, 1)</h4>
@@ -70,11 +70,11 @@
     <h4 class="center" style="top: 10vh">HTMLImageElement - default visualization.<br /> Filtering, Blending & PremultipliedAlpha in sRGB</h4>
     <h4 class="center" style="top: 25vh">
       Bitmap - load bitmap from file, premultiply alpha on WebGPU texture upload (wrong - premultiplied-alpha in sRGB).<br /> 
-      Texture format "unorm-srgb" to decode before filtering.<br />
+      Texture format "rgba8unorm-srgb" to decode before filtering.<br />
       PremultipliedAlpha in sRGB</h4>
     <h4 class="center" style="top: 45vh">
       Bitmap - load bitmap from file, don't premultiply alpha before WebGPU texture upload.<br />
-      Texture format "unorm-srgb" to decode before filtering.<br />
+      Texture format "rgba8unorm-srgb" to decode before filtering.<br />
       No premultipliedAlpha applied - leads to incorrect compositing during filtering.
     </h4>
     <h4 class="center" style="top: 65vh">Manually decode .PNG file - decode sRGB encoded png data to linear-srgb (use bigger precision)<br />
