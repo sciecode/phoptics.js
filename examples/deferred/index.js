@@ -17,6 +17,7 @@ import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import { gbuffer_shader } from "../shaders/deferred_gbuffer.mjs";
 import { lighting_shader } from "../shaders/deferred_lighting.mjs";
 import { Sampler } from "../../src/renderer/objects/sampler.mjs";
+import { ResourceType } from "../../src/renderer/constants.mjs";
 
 let renderer, backend, canvas, camera, gbuffer_scene, lighting_scene;
 let gbuffer_pass, gbuffer_target, render_pass, render_target;
@@ -115,8 +116,12 @@ const init = async (geometry) => {
     bindings: [
       { binding: 0, name: "camera", resource: camera },
       { binding: 1, name: "sampler", resource: new Sampler() },
-      { binding: 2, name: "t_pos", resource: gbuffer_target.attachments.color[0].texture },
-      { binding: 3, name: "t_normal", resource: gbuffer_target.attachments.color[1].texture }
+      { binding: 2, name: "t_pos", type: ResourceType.TextureView,
+        info: { texture: gbuffer_target.attachments.color[0].texture }
+      },
+      { binding: 3, name: "t_normal", type: ResourceType.TextureView, 
+        info: { texture: gbuffer_target.attachments.color[1].texture }
+      }
     ]
   });
 

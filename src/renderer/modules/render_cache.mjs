@@ -156,13 +156,13 @@ export class RenderCache {
                 size: buffer_info.size,
                 resource: buffer_info.bid,
               };
-            case ResourceType.Texture:
-              const tex_info = this.get_texture(resource);
+            case ResourceType.TextureView:
+              const tex_info = this.get_texture(resource.texture);
               textures.push(tex_info.version);
               return {
                 binding: entry.binding,
                 type: GPUResource.TEXTURE,
-                resource: tex_info.bid,
+                resource: { texture: tex_info.bid, view: resource.view },
               };
             case ResourceType.Sampler:
               const sampler = this.get_sampler(resource);
@@ -191,8 +191,8 @@ export class RenderCache {
             case ResourceType.StructuredBuffer: 
               resource.buffer = { type: "read-only-storage" };
               break;
-            case ResourceType.Texture:
-              resource.texture = { sampleType: this.sampler_table.get_sample_type(binding.format) };
+            case ResourceType.TextureView:
+              resource.texture = { sampleType: this.sampler_table.get_sample_type(binding.texture.format) };
               break;
             case ResourceType.Sampler:
               const filtering = binding.filtering;
@@ -216,29 +216,33 @@ export class RenderCache {
       binding_obj.initialize(id, this.bindings_callback);
     }
 
+    let needs_update = false;
     const cache = this.bindings.get(id);
     if (cache.version != version) {
-      const textures = [];
-      this.backend.resources.destroy_bind_group(cache.bid);
+      needs_update = true;
       cache.version = version;
-      cache.bid = this.create_bind_group(binding_obj, cache.layout, textures);
-      cache.textures = textures;
     } else {
-      let needs_update = false, texture_id = 0;
-      for (let entry of binding_obj.info) {
-        const resource = binding_obj[entry.name];
+      let texture_id = 0;
+      for (let i = 0, il = binding_obj.info.length; (i < il) && !needs_update; i++) {
+        const resource = binding_obj[binding_obj.info[i].name];
         switch (resource.type) {
           case ResourceType.StructuredBuffer:
             this.get_buffer(resource);
             break;
-          case ResourceType.Texture:
-            const version = this.get_texture(resource).version;
+          case ResourceType.TextureView:
+            const version = this.get_texture(resource.texture).version;
             if (version != cache.textures[texture_id]) needs_update = true;
             texture_id++;
             break;
         }
       }
-      if (needs_update) this.backend.resources.update_bind_group(cache.bid);
+    }
+
+    if (needs_update) {
+      const layout = this.material_manager.get_layout(cache.layout);
+      this.backend.resources.destroy_bind_group(cache.bid);
+      cache.textures.length = 0;
+      cache.bid = this.create_bind_group(binding_obj, layout, cache.textures);
     }
 
     return cache;

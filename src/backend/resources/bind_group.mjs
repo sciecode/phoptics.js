@@ -2,18 +2,14 @@ import { GPUResource } from "../constants.mjs";
 
 export class BindGroup {
   constructor(device, resources, options = {}) {
-    this.info = options;
     this.dynamic_entries = options.dynamic_entries || 0;
-    this.update_group(device, resources);
-  }
 
-  update_group(device, resources) {
     const desc = {
-      layout: this.info.layout,
+      layout: options.layout,
       entries: []
     };
 
-    for (let entry of this.info.entries) {
+    for (let entry of options.entries) {
       let res;
       switch (entry.type) {
         case GPUResource.BUFFER:
@@ -23,10 +19,10 @@ export class BindGroup {
           }
           break;
         case GPUResource.TEXTURE:
-          const tex = resources.get_texture(entry.resource);
+          const tex = resources.get_texture(entry.resource.texture);
           res = {
             binding: entry.binding,
-            resource: tex.get_view(),
+            resource: tex.get_view(entry.resource.view),
           }
           break;
         case GPUResource.SAMPLER:

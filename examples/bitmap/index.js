@@ -125,7 +125,8 @@ const animate = () => {
   renderer.render(render_pass, scene);
 }
 
-const process_pixel = (value, alpha) => { return (Math.pow(value/255, 2.2) * alpha); }
+function SRGBToLinear( c ) { return ( c < 0.04045 ) ? c * 0.0773993808 : Math.pow( c * 0.9478672986 + 0.0521327014, 2.4 ); };
+const process_pixel = (value, alpha) => { return (SRGBToLinear(value/255) * alpha); }
 
 (async function loadImageBitmap(url) {
   const res = await fetch(url);

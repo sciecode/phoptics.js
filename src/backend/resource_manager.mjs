@@ -29,10 +29,6 @@ export class ResourceManager {
     return this.groups.allocate(new BindGroup(this.device, this, options));
   }
 
-  update_bind_group(idx) {
-    return this.groups.get(idx).update_group(this.device, this);
-  }
-
   get_bind_group(idx) {
     return this.groups.get(idx);
   }
