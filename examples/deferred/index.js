@@ -1,12 +1,14 @@
 import { Renderer } from "../../src/renderer/renderer.mjs";
 import { RenderPass } from "../../src/renderer/objects/render_pass.mjs";
 import { RenderTarget } from "../../src/renderer/objects/render_target.mjs";
-import { CanvasTexture } from "../../src/renderer/objects/canvas_texture.mjs";
+import { DynamicLayout } from "../../src/renderer/objects/dynamic_layout.mjs";
+import { StructuredBuffer } from "../../src/renderer/objects/structured_buffer.mjs";
 import { Mesh } from "../../src/renderer/objects/mesh.mjs";
 import { Shader } from "../../src/renderer/objects/shader.mjs";
+import { Sampler } from "../../src/renderer/objects/sampler.mjs";
+import { Texture } from "../../src/renderer/objects/texture.mjs";
 import { Material } from "../../src/renderer/objects/material.mjs";
-import { StructuredBuffer } from "../../src/renderer/objects/structured_buffer.mjs";
-import { DynamicLayout } from "../../src/renderer/objects/dynamic_layout.mjs";
+import { CanvasTexture } from "../../src/renderer/objects/canvas_texture.mjs";
 
 import { Vec3 } from "../../src/datatypes/vec3.mjs";
 import { Vec4 } from "../../src/datatypes/vec4.mjs";
@@ -16,11 +18,10 @@ import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import { gbuffer_shader } from "../shaders/deferred_gbuffer.mjs";
 import { lighting_shader } from "../shaders/deferred_lighting.mjs";
-import { Sampler } from "../../src/renderer/objects/sampler.mjs";
-import { ResourceType } from "../../src/renderer/constants.mjs";
 
-let renderer, backend, canvas, camera, gbuffer_scene, lighting_scene;
-let gbuffer_pass, gbuffer_target, render_pass, render_target;
+let renderer, backend, camera, gbuffer_scene, lighting_scene;
+let gbuffer_pass, gbuffer_pos, gbuffer_normal, gbuffer_depth;
+let render_pass, canvas_texture, multisampled_texture;
 let target = new Vec3(), obj_pos = new Vec3();
 
 const dpr = window.devicePixelRatio;
@@ -75,10 +76,9 @@ let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0}
 })();
 
 const init = async (geometry) => {
-  const canvas_texture = new CanvasTexture();
+  canvas_texture = new CanvasTexture({ format: navigator.gpu.getPreferredCanvasFormat() });
   canvas_texture.set_size({ width: viewport.x, height: viewport.y });
-  canvas = canvas_texture.canvas;
-  document.body.append(canvas);
+  document.body.append(canvas_texture.canvas);
 
   camera = new StructuredBuffer([
     { name: "projection", type: Mat4x4 }, 
@@ -97,40 +97,55 @@ const init = async (geometry) => {
     bindings: [{ binding: 0,  name: "camera", resource: camera }]
   });
 
-  gbuffer_target = new RenderTarget({
-    pass: gbuffer_pass,
+  gbuffer_pos = new Texture({
     size: { width: viewport.x, height: viewport.y },
+    format: "rgba32float",
+  });
+
+  gbuffer_normal = new Texture({
+    size: { width: viewport.x, height: viewport.y },
+    format: "rgba32float",
+  });
+
+  gbuffer_depth = new Texture({
+    size: { width: viewport.x, height: viewport.y },
+    format: "depth32float",
+  });
+
+  const gbuffer_target = new RenderTarget({
     color: [
-      { clear: [0, 0, 0, 0] },
-      { clear: [0, 0, 0, 0] },
+      { view: gbuffer_pos.create_view(), clear: [0, 0, 0, 0] },
+      { view: gbuffer_normal.create_view(), clear: [0, 0, 0, 0] },
     ],
-    depth: { clear: 0 }
+    depth: { view: gbuffer_depth.create_view(), clear: 0 }
   });
   gbuffer_pass.set_render_target(gbuffer_target);
+
+  multisampled_texture = new Texture({
+    size: { width: viewport.x, height: viewport.y },
+    format: canvas_texture.format,
+    multisampled: true,
+  });
 
   render_pass = new RenderPass({
     multisampled: true,
     formats: {
-      color: [navigator.gpu.getPreferredCanvasFormat()],
+      color: [canvas_texture.format],
     },
     bindings: [
       { binding: 0, name: "camera", resource: camera },
       { binding: 1, name: "sampler", resource: new Sampler() },
-      { binding: 2, name: "t_pos", type: ResourceType.TextureView,
-        info: { texture: gbuffer_target.attachments.color[0].texture }
-      },
-      { binding: 3, name: "t_normal", type: ResourceType.TextureView, 
-        info: { texture: gbuffer_target.attachments.color[1].texture }
-      }
+      { binding: 2, name: "t_pos", resource: gbuffer_pos.create_view() },
+      { binding: 3, name: "t_normal", resource: gbuffer_normal.create_view() },
     ]
   });
 
-  render_target = new RenderTarget({
-    pass: render_pass,
-    size: { width: viewport.x, height: viewport.y },
-    color: [ 
-      { resolve: canvas_texture, clear: [.05, .05, .05, 1] }
-    ],
+  const render_target = new RenderTarget({
+    color: [ { 
+      view: multisampled_texture.create_view(), 
+      resolve: canvas_texture.create_view(), 
+      clear: [.05, .05, .05, 1]
+    } ],
   });
   render_pass.set_render_target(render_target);
 
@@ -172,13 +187,15 @@ const init = async (geometry) => {
 
 const auto_resize = () => {
   const dpr = window.devicePixelRatio;
-  const newW = (canvas.clientWidth * dpr) | 0;
-  const newH = (canvas.clientHeight * dpr) | 0;
+  const newW = (canvas_texture.canvas.clientWidth * dpr) | 0;
+  const newH = (canvas_texture.canvas.clientHeight * dpr) | 0;
   
   if (viewport.x != newW || viewport.y != newH) {
     viewport.x = newW; viewport.y = newH;
-    render_target.set_size({ width: newW, height: newH });
-    gbuffer_target.set_size({ width: newW, height: newH });
+    gbuffer_pos.set_size({ width: newW, height: newH });
+    gbuffer_normal.set_size({ width: newW, height: newH });
+    canvas_texture.set_size({ width: newW, height: newH });
+    multisampled_texture.set_size({ width: newW, height: newH });
     
     camera.projection.perspective(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
   }
