@@ -1,4 +1,3 @@
-import { ResourceType } from "./constants.mjs";
 import { NULL_HANDLE } from "../backend/constants.mjs";
 import { GPUBackend } from "../backend/gpu_backend.mjs";
 import { DrawStream } from "./modules/draw_stream.mjs";
@@ -77,7 +76,7 @@ export class Renderer {
 
     this.dynamic.commit();
 
-    this.backend.render(make_pass_descriptor(target, cached_target.attachments), this.draw_stream);
+    this.backend.render(make_pass_descriptor(target, cached_target), this.draw_stream);
   }
 
   #set_pass(pass) {
@@ -125,24 +124,22 @@ const make_pass_descriptor = (target, cache) => {
     depth: null,
   };
   
-  const attachments = target.attachments;
-
-  for (let [idx, attachment] of attachments.color.entries()) {
+  for (let [idx, attach] of target.color.entries()) {
     descriptor.colorAttachments.push({
-      view: attachment.texture.type == ResourceType.CanvasTexture ? attachment.texture.get_view() : cache.color[idx].view,
-      resolveTarget: attachment.resolve ? attachment.resolve.get_view() : undefined,
-      clearValue: attachment.clear,
-      loadOp: attachment.load,
-      storeOp: attachment.store
+      view: cache.color[idx],
+      resolveTarget: attach.resolve ? attach.resolve.texture.get_current_view() : undefined,
+      clearValue: attach.clear,
+      loadOp: attach.load,
+      storeOp: attach.store
     })
   }
 
-  if (attachments.depth) {
+  if (target.depth) {
     descriptor.depthStencilAttachment = {
-      view: cache.depth.view,
-      depthClearValue: attachments.depth.clear,
-      depthLoadOp: attachments.depth.load,
-      depthStoreOp: attachments.depth.store
+      view: cache.depth,
+      depthClearValue: target.depth.clear,
+      depthLoadOp: target.depth.load,
+      depthStoreOp: target.depth.store
     }
   }
 

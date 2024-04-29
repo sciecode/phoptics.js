@@ -1,16 +1,16 @@
 import { Renderer } from "../../src/renderer/renderer.mjs";
 import { RenderPass } from "../../src/renderer/objects/render_pass.mjs";
 import { RenderTarget } from "../../src/renderer/objects/render_target.mjs";
+import { ResourceType } from "../../src/renderer/constants.mjs";
 import { CanvasTexture } from "../../src/renderer/objects/canvas_texture.mjs";
 import { Mesh } from "../../src/renderer/objects/mesh.mjs";
 import { Shader } from "../../src/renderer/objects/shader.mjs";
 import { Material } from "../../src/renderer/objects/material.mjs";
-import { Sampler } from "../../src/renderer/objects/sampler.mjs";
 import { Texture } from "../../src/renderer/objects/texture.mjs";
 
 import bitmap_shader from "../shaders/bitmap_shader.mjs";
 
-let render_pass, render_target, renderer, canvas, scene;
+let render_pass, render_target, renderer, canvas_texture, scene;
 
 const dpr = window.devicePixelRatio;
 let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
@@ -18,17 +18,15 @@ let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0}
 const init = async (bitmap, uint8) => {
   renderer = new Renderer(await Renderer.acquire_device());
 
-  const canvas_texture = new CanvasTexture();
+  canvas_texture = new CanvasTexture({ format: navigator.gpu.getPreferredCanvasFormat() });
   canvas_texture.set_size({ width: viewport.x, height: viewport.y });
-  canvas = canvas_texture.canvas;
-  document.body.append(canvas);
+  document.body.append(canvas_texture.canvas);
 
   const tex1 = new Texture({
     size: { width: 2, height: 1 },
     format: "rgba32float",
   });
 
-  
   const data = new Float32Array(uint8.length);
   for (let i = 0, il = data.length/4; i < il; i++) {
     const i4 = i * 4, as = uint8[i4 + 3] / 255;
@@ -69,31 +67,23 @@ const init = async (bitmap, uint8) => {
   );
 
   render_pass = new RenderPass({
-    formats: {
-      color: [navigator.gpu.getPreferredCanvasFormat()],
-    },
+    formats: { color: [canvas_texture.format] },
     bindings: [
-      { binding: 0, name: "sampler", resource: new Sampler( {
-        filtering: { mag: "linear", min: "nearest" },
-      } ) },
-      { binding: 1, name: "data_tex", resource: tex1 },
-      { binding: 2, name: "srgb_tex", resource: tex2 },
-      { binding: 3, name: "ext_tex", resource: tex3 },
+      { binding: 0, name: "sampler", type: ResourceType.Sampler, info: { filtering: { mag: "linear", min: "nearest" } } },
+      { binding: 1, name: "data_tex", resource: tex1.create_view()  },
+      { binding: 2, name: "srgb_tex", resource: tex2.create_view() },
+      { binding: 3, name: "ext_tex", resource: tex3.create_view() }
     ]
   });
 
   render_target = new RenderTarget({
-    pass: render_pass,
-    size: { width: viewport.x, height: viewport.y },
-    color: [ 
-      { texture: canvas_texture, clear: [.5, .5, .5, 1] }
-    ],
+    color: [ { view: canvas_texture.create_view(), clear: [.5, .5, .5, 1] } ],
   });
 
   render_pass.set_render_target(render_target);
 
   const material = new Material({
-    shader: new Shader({code: bitmap_shader}),
+    shader: new Shader({ code: bitmap_shader }),
   });
 
   const full_quad = new Mesh({
@@ -110,12 +100,12 @@ const init = async (bitmap, uint8) => {
 
 const auto_resize = () => {
   const dpr = window.devicePixelRatio;
-  const newW = (canvas.clientWidth * dpr) | 0;
-  const newH = (canvas.clientHeight * dpr) | 0;
+  const newW = (canvas_texture.canvas.clientWidth * dpr) | 0;
+  const newH = (canvas_texture.canvas.clientHeight * dpr) | 0;
   
   if (viewport.x != newW || viewport.y != newH) {
     viewport.x = newW; viewport.y = newH;
-    render_target.set_size({ width: newW, height: newH });
+    canvas_texture.set_size({ width: newW, height: newH });
   }
 }
 

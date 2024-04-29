@@ -17,9 +17,6 @@ export class Bindings {
         case ResourceType.Sampler:
           bind_resource(this, entry, new Sampler(entry.info), false);
           break;
-        case ResourceType.TextureView:
-          bind_resource(this, entry, { type: ResourceType.TextureView, ...entry.info }, false);
-          break;
         default:
           bind_resource(this, entry, entry.resource, false);
       }

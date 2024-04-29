@@ -1,13 +1,14 @@
 import { ResourceType, UNINITIALIZED } from "../constants.mjs";
+import { TextureView } from "./texture_view.mjs";
 
 export class CanvasTexture {
   #version = UNINITIALIZED;
 
-  constructor(canvas) {
+  constructor(options = {}) {
     this.type = ResourceType.CanvasTexture;
-    this.canvas = canvas || document.createElement('canvas');
+    this.canvas = options.canvas || document.createElement('canvas');
     this.context = this.canvas.getContext('webgpu');
-    this.format = null;
+    this.format = options.format;
   }
 
   set_size(size) {
@@ -15,8 +16,12 @@ export class CanvasTexture {
     this.canvas.height = size.height;
   }
 
-  get_view(descriptor) {
-    return this.context.getCurrentTexture().createView(descriptor);
+  create_view(desc) {
+    return new TextureView({ texture: this, info: desc });
+  }
+  
+  get_current_view(desc) {
+    return this.context.getCurrentTexture().createView(desc);
   }
 
   get_version() { return this.#version; }

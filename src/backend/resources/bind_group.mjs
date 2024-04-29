@@ -19,10 +19,9 @@ export class BindGroup {
           }
           break;
         case GPUResource.TEXTURE:
-          const tex = resources.get_texture(entry.resource.texture);
           res = {
             binding: entry.binding,
-            resource: tex.get_view(entry.resource.view),
+            resource: entry.resource,
           }
           break;
         case GPUResource.SAMPLER:

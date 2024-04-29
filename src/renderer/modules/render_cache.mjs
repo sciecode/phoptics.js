@@ -15,83 +15,61 @@ export class RenderCache {
 
     this.buffers = new PoolStorage();
     this.bindings = new PoolStorage();
-    this.targets = new PoolStorage();
     this.textures = new PoolStorage();
+    this.views = new PoolStorage();
     this.samplers = new SparseSet();
 
     this.texture_callback = this.free_texture.bind(this);
-    this.target_callback = this.free_target.bind(this);
     this.bindings_callback = this.free_binding.bind(this);
     this.buffer_callback = this.free_buffer.bind(this);
   }
 
   get_target(target_obj) {
-    let id = target_obj.get_id();
-    const version = target_obj.get_version();
-    const attachs = target_obj.attachments;
+    const info = {
+      color: target_obj.color.map( attach => this.get_view(attach.view).view ),
+      depth: target_obj.depth ? this.get_view(target_obj.depth.view).view : undefined,
+    };
+
+    for (let attach of target_obj.color)
+      if (attach.resolve) this.get_view(attach.resolve);
+
+    return info;
+  }
+
+  get_view(view_obj) {
+    if (view_obj.texture.type == ResourceType.CanvasTexture) {
+      const canvas_texture = view_obj.texture;
+      if (canvas_texture.get_version() == UNINITIALIZED) {
+        canvas_texture.context.configure({
+          device: this.backend.device,
+          format: canvas_texture.format
+        });
+        canvas_texture.initialize(0);
+      }
+      return { view: canvas_texture.get_current_view() };
+    }
+  
+    let id = view_obj.get_id(), cache;
+    const cache_texture = this.get_texture(view_obj.texture);
 
     if (id == UNINITIALIZED) {
-      id = this.targets.allocate({
-        version: version,
-        attachments: {
-          color: attachs.color.map( _ => { return { version: -1, view: null } }),
-          depth: attachs.depth ? { version: -1, view: null } : undefined,
-        }
-      });
-      target_obj.initialize(id, this.target_callback);
-    }
-
-    const cache = this.targets.get(id);
-    if (cache.version != version) {
-      cache.version = version;
-      for (let color of attachs.color) {
-        color.texture.set_size(target_obj.size);
-        if (color.resolve) color.resolve.set_size(target_obj.size);
+      cache = {
+        view: this.backend.resources.get_texture(cache_texture.bid).get_view(view_obj.info),
+        version: cache_texture.version,
       }
-      if (attachs.depth) attachs.depth.texture.set_size(target_obj.size);
-    }
+      id = this.views.allocate(cache);
 
-    for (let [idx, color] of attachs.color.entries()) {
-      if (color.texture.type == ResourceType.CanvasTexture) {
-        if (color.texture.get_version() == UNINITIALIZED) {
-          color.texture.context.configure({
-            device: this.backend.device,
-            format: color.texture.format
-          });
-          color.texture.initialize(0);
-        }
-      } else {
-        const cached_color = cache.attachments.color[idx];
-        const cached_texture = this.get_texture(color.texture);
-        if (cached_color.version != cached_texture.version) {
-          cached_color.version = cached_texture.version;
-          cached_color.view = this.backend.resources.get_texture(cached_texture.bid).get_view(color.view);
-        }
-        if (color.resolve && color.resolve.get_version() == UNINITIALIZED) {
-          color.resolve.context.configure({
-            device: this.backend.device,
-            format: color.texture.format, 
-          });
-          color.resolve.initialize(0);
-        }
-      }
-    }
-
-    if (attachs.depth) {
-      const depth = attachs.depth;
-      const cached_depth = cache.attachments.depth;
-      const cached_texture = this.get_texture(depth.texture);
-      if (cached_depth.version != cached_texture.version) {
-        cached_depth.version = cached_texture.version;
-        cached_depth.view = this.backend.resources.get_texture(cached_texture.bid).get_view(depth.view);
+      cache_texture.views.push(id);
+      view_obj.initialize(id);
+    } else {
+      cache = this.views.get(id);
+      if (cache.version != cache_texture.version) {
+        cache.version = cache_texture.version;
+        cache.view = this.backend.resources.get_texture(cache_texture.bid).get_view(view_obj.info);
       }
     }
 
     return cache;
-  }
-
-  free_target(id) {
-    this.targets.delete(id);
   }
 
   get_sampler(sampler_obj) {
@@ -141,7 +119,7 @@ export class RenderCache {
     return this.material_manager.get_pipeline(cache.pipeline);
   }
 
-  create_bind_group(binding_obj, layout, textures) {
+  create_bind_group(binding_obj, layout, views) {
     return this.backend.resources.create_bind_group({
         layout: layout,
         entries: binding_obj.info.map( entry => {
@@ -157,12 +135,12 @@ export class RenderCache {
                 resource: buffer_info.bid,
               };
             case ResourceType.TextureView:
-              const tex_info = this.get_texture(resource.texture);
-              textures.push(tex_info.version);
+              const view_info = this.get_view(resource);
+              views.push(view_info.version);
               return {
                 binding: entry.binding,
                 type: GPUResource.TEXTURE,
-                resource: { texture: tex_info.bid, view: resource.view },
+                resource: view_info.view,
               };
             case ResourceType.Sampler:
               const sampler = this.get_sampler(resource);
@@ -204,13 +182,13 @@ export class RenderCache {
         })
       });
 
-      const textures = [];
-      const bid = this.create_bind_group(binding_obj, layout_cache.layout, textures);
+      const views = [];
+      const bid = this.create_bind_group(binding_obj, layout_cache.layout, views);
 
       id = this.bindings.allocate({
         version: version,
         layout: layout_cache.id,
-        textures: textures,
+        views: views,
         bid: bid,
       });
       binding_obj.initialize(id, this.bindings_callback);
@@ -222,7 +200,7 @@ export class RenderCache {
       needs_update = true;
       cache.version = version;
     } else {
-      let texture_id = 0;
+      let view_id = 0;
       for (let i = 0, il = binding_obj.info.length; (i < il) && !needs_update; i++) {
         const resource = binding_obj[binding_obj.info[i].name];
         switch (resource.type) {
@@ -230,9 +208,9 @@ export class RenderCache {
             this.get_buffer(resource);
             break;
           case ResourceType.TextureView:
-            const version = this.get_texture(resource.texture).version;
-            if (version != cache.textures[texture_id]) needs_update = true;
-            texture_id++;
+            const version = this.get_view(resource).version;
+            if (version != cache.views[view_id]) needs_update = true;
+            view_id++;
             break;
         }
       }
@@ -241,8 +219,8 @@ export class RenderCache {
     if (needs_update) {
       const layout = this.material_manager.get_layout(cache.layout);
       this.backend.resources.destroy_bind_group(cache.bid);
-      cache.textures.length = 0;
-      cache.bid = this.create_bind_group(binding_obj, layout, cache.textures);
+      cache.views.length = 0;
+      cache.bid = this.create_bind_group(binding_obj, layout, cache.views);
     }
 
     return cache;
@@ -267,7 +245,8 @@ export class RenderCache {
           size: texture_obj.size,
           usage: texture_obj.usage,
           sampleCount: texture_obj.multisampled ? 4 : 1,
-        })
+        }),
+        views: [],
       });
       texture_obj.initialize(id, this.texture_callback);
     }
@@ -284,6 +263,7 @@ export class RenderCache {
   free_texture(id) {
     const cache = this.textures.get(id);
     this.backend.resources.destroy_texture(cache.bid);
+    for (let idx of cache.views) this.views.delete(idx);
     this.textures.delete(id);
   }
 

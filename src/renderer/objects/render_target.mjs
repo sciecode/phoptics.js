@@ -1,57 +1,12 @@
-import { ResourceType, UNINITIALIZED } from "../constants.mjs";
-import { Texture } from "./texture.mjs";
-
 export class RenderTarget {
-  #id = UNINITIALIZED;
-  #version = 0;
-  #free = () => {}
-
   constructor(options) {
-    const render_pass = options.pass;
-    this.size = { ...options.size };
-    this.multisampled = render_pass.multisampled || false;
-    this.attachments = {
-      color: options.color.map((entry, idx) => build_target(entry, this.size, render_pass.formats.color[idx], this.multisampled)),
-      depth: options.depth ? build_target(options.depth, this.size, render_pass.formats.depth, this.multisampled) : undefined
-    };
+    this.color = options.color.map((entry) => build_target(entry));
+    this.depth = options.depth ? build_target(options.depth) : undefined;
   }
-
-  set_size(size) {
-    this.size = { ...size };
-    this.#update();
-  }
-
-  get_id() { return this.#id; }
-  get_version() { return this.#version; }
-  initialize(id, free) { if (this.#id == UNINITIALIZED) { this.#id = id; this.#free = free } }
-  destroy() {
-    for (let entry of this.attachments.color) entry.ownership && entry.texture.destroy();
-    this.attachments.depth?.ownership && this.attachments.depth?.texture.destroy();
-    this.#free(this.#id);
-    this.#id = -1;
-  }
-  #update() { this.#version = (this.#version + 1) & UNINITIALIZED; }
 }
 
-const build_target = (desc, size, format, multisampled) => {
-  let ownership, texture;
-  if (desc.texture) {
-    ownership = false;
-    texture = desc.texture
-    if (texture.type == ResourceType.CanvasTexture) texture.format = format;
-  } else {
-    ownership = true;
-    texture = new Texture({
-      size: size,
-      format: format,
-      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-      multisampled: multisampled,
-    })
-  }
-  if (desc.resolve) desc.resolve.format = format;
+const build_target = (desc) => {
   return {
-    ownership: ownership,
-    texture: texture,
     resolve: desc.resolve,
     view: desc.view,
     clear: desc.clear,

@@ -1,4 +1,5 @@
 import { ResourceType, UNINITIALIZED } from "../constants.mjs";
+import { TextureView } from "./texture_view.mjs";
 
 export class Texture {
   #id = UNINITIALIZED;
@@ -16,6 +17,10 @@ export class Texture {
   set_size(size) {
     this.size = { ...size };
     this.#update();
+  }
+
+  create_view(desc) {
+    return new TextureView({ texture: this, info: desc });
   }
 
   get_id() { return this.#id; }

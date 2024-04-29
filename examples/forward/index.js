@@ -3,6 +3,7 @@ import { Renderer } from "../../src/renderer/renderer.mjs";
 import { RenderPass } from "../../src/renderer/objects/render_pass.mjs";
 import { RenderTarget } from "../../src/renderer/objects/render_target.mjs";
 import { CanvasTexture } from "../../src/renderer/objects/canvas_texture.mjs";
+import { Texture } from "../../src/renderer/objects/texture.mjs";
 import { Mesh } from "../../src/renderer/objects/mesh.mjs";
 import { Shader } from "../../src/renderer/objects/shader.mjs";
 import { Material } from "../../src/renderer/objects/material.mjs";
@@ -16,7 +17,7 @@ import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import { shader } from "../shaders/forward_shader.mjs";
 
-let renderer, backend, canvas, render_pass, render_target, material, scene;
+let renderer, backend, canvas_texture, render_pass, multisampled_texture, depth_texture, material, scene;
 let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
 
 const dpr = window.devicePixelRatio;
@@ -71,15 +72,14 @@ let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0}
 })();
 
 const init = async (geometry) => {
-  const canvas_texture = new CanvasTexture();
+  canvas_texture = new CanvasTexture({ format: navigator.gpu.getPreferredCanvasFormat() });
   canvas_texture.set_size({ width: viewport.x, height: viewport.y });
-  canvas = canvas_texture.canvas;
-  document.body.append(canvas);
+  document.body.append(canvas_texture.canvas);
 
   render_pass = new RenderPass({
     multisampled: true,
     formats: {
-      color: [navigator.gpu.getPreferredCanvasFormat()],
+      color: [canvas_texture.format],
       depth: "depth32float",
     },
     bindings: [
@@ -95,14 +95,26 @@ const init = async (geometry) => {
       }
     ]
   });
-  
-  render_target = new RenderTarget({
-    pass: render_pass,
+
+  multisampled_texture = new Texture({
     size: { width: viewport.x, height: viewport.y },
-    color: [
-      { resolve: canvas_texture, clear: [.05, .05, .05, 1] }
-    ],
-    depth: { clear: 0 }
+    format: canvas_texture.format,
+    multisampled: true,
+  });
+
+  depth_texture = new Texture({
+    size: { width: viewport.x, height: viewport.y },
+    format: render_pass.formats.depth,
+    multisampled: true,
+  });
+  
+  const render_target = new RenderTarget({
+    color: [ { 
+      view: multisampled_texture.create_view(), 
+      resolve: canvas_texture.create_view(), 
+      clear: [.05, .05, .05, 1]
+    } ],
+    depth: { view: depth_texture.create_view(), clear: 0 }
   });
 
   target.set(0, 30, 0);
@@ -153,12 +165,14 @@ const init = async (geometry) => {
 
 const auto_resize = () => {
   const dpr = window.devicePixelRatio;
-  const newW = (canvas.clientWidth * dpr) | 0;
-  const newH = (canvas.clientHeight * dpr) | 0;
+  const newW = (canvas_texture.canvas.clientWidth * dpr) | 0;
+  const newH = (canvas_texture.canvas.clientHeight * dpr) | 0;
   
   if (viewport.x != newW || viewport.y != newH) {
     viewport.x = newW; viewport.y = newH;
-    render_target.set_size({ width: newW, height: newH });
+    canvas_texture.set_size({ width: newW, height: newH });
+    multisampled_texture.set_size({ width: newW, height: newH });
+    depth_texture.set_size({ width: newW, height: newH });
     
     render_pass.bindings.camera.projection.perspective(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
   }
