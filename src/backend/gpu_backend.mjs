@@ -25,7 +25,7 @@ export class GPUBackend {
         dynamic_offset: [],
         draw_count: 0,
         vertex_offset: 0,
-        index_offset: 0,
+        index_offset: -1,
       }
     };
 

@@ -87,7 +87,7 @@ const init = async (bitmap, uint8) => {
   });
 
   const full_quad = new Mesh({
-    index: -1 >>> 0,
+    index: -1,
     count: 3,
     index_offset: -1,
     vertex_offset: 0,
@@ -105,7 +105,7 @@ const auto_resize = () => {
   
   if (viewport.x != newW || viewport.y != newH) {
     viewport.x = newW; viewport.y = newH;
-    canvas_texture.set_size({ width: newW, height: newH });
+    render_target.set_size({ width: newW, height: newH });
   }
 }
 

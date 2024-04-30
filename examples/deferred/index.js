@@ -20,8 +20,7 @@ import { gbuffer_shader } from "../shaders/deferred_gbuffer.mjs";
 import { lighting_shader } from "../shaders/deferred_lighting.mjs";
 
 let renderer, backend, camera, gbuffer_scene, lighting_scene;
-let gbuffer_pass, gbuffer_pos, gbuffer_normal, gbuffer_depth;
-let render_pass, canvas_texture, multisampled_texture;
+let gbuffer_pass, gbuffer_target, render_pass, render_target, canvas_texture;
 let target = new Vec3(), obj_pos = new Vec3();
 
 const dpr = window.devicePixelRatio;
@@ -97,22 +96,22 @@ const init = async (geometry) => {
     bindings: [{ binding: 0,  name: "camera", resource: camera }]
   });
 
-  gbuffer_pos = new Texture({
+  const gbuffer_pos = new Texture({
     size: { width: viewport.x, height: viewport.y },
     format: "rgba32float",
   });
 
-  gbuffer_normal = new Texture({
+  const gbuffer_normal = new Texture({
     size: { width: viewport.x, height: viewport.y },
     format: "rgba32float",
   });
 
-  gbuffer_depth = new Texture({
+  const gbuffer_depth = new Texture({
     size: { width: viewport.x, height: viewport.y },
     format: "depth32float",
   });
 
-  const gbuffer_target = new RenderTarget({
+  gbuffer_target = new RenderTarget({
     color: [
       { view: gbuffer_pos.create_view(), clear: [0, 0, 0, 0] },
       { view: gbuffer_normal.create_view(), clear: [0, 0, 0, 0] },
@@ -121,7 +120,7 @@ const init = async (geometry) => {
   });
   gbuffer_pass.set_render_target(gbuffer_target);
 
-  multisampled_texture = new Texture({
+  const multisampled_texture = new Texture({
     size: { width: viewport.x, height: viewport.y },
     format: canvas_texture.format,
     multisampled: true,
@@ -140,7 +139,7 @@ const init = async (geometry) => {
     ]
   });
 
-  const render_target = new RenderTarget({
+  render_target = new RenderTarget({
     color: [ { 
       view: multisampled_texture.create_view(), 
       resolve: canvas_texture.create_view(), 
@@ -167,15 +166,15 @@ const init = async (geometry) => {
   });
 
   const lighting_material = new Material({
-    shader: new Shader({code: lighting_shader}),
+    shader: new Shader({ code: lighting_shader }),
   });
 
   const mesh = new Mesh(geometry, gbuffer_material);
   gbuffer_scene = [mesh];
 
   const lighting = new Mesh({
-    index: geometry.index,
     count: 3,
+    index: -1,
     index_offset: -1,
     vertex_offset: 0,
     attributes: []
@@ -192,10 +191,8 @@ const auto_resize = () => {
   
   if (viewport.x != newW || viewport.y != newH) {
     viewport.x = newW; viewport.y = newH;
-    gbuffer_pos.set_size({ width: newW, height: newH });
-    gbuffer_normal.set_size({ width: newW, height: newH });
-    canvas_texture.set_size({ width: newW, height: newH });
-    multisampled_texture.set_size({ width: newW, height: newH });
+    gbuffer_target.set_size({ width: newW, height: newH });
+    render_target.set_size({ width: newW, height: newH });
     
     camera.projection.perspective(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
   }

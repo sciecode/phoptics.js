@@ -2,8 +2,8 @@ import { DrawStreamBits, DrawStreamFlags, NULL_HANDLE } from '../../backend/cons
 
 export class DrawStream {
   constructor() {
-    this.state = (new Uint32Array(32)).fill(NULL_HANDLE);
-    this.stream = new Uint32Array(32 * 64 * 1024); // TODO: dynamic resize ?
+    this.state = (new Int32Array(32)).fill(NULL_HANDLE);
+    this.stream = new Int32Array(32 * 64 * 1024); // TODO: dynamic resize ?
     this.count = 0;
     this.offset = 0;
     this.metadata = 0;

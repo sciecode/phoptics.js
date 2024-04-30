@@ -37,7 +37,7 @@ export class Renderer {
       this.draw_stream.set_globals(0);
     }
 
-    // TODO: create optimized render list - sort distance / frustum / reduce state changes 
+    // TODO: create optimized render list - sort distance / frustum-culling / reduce state changes 
 
     // TODO: temporary while shader variant isn't implemented
     this.draw_stream.set_variant(0);
@@ -62,9 +62,8 @@ export class Renderer {
       }
 
       const attrib_length = geometry.attributes.length;
-      for (let i = 0, il = 4; i < il; i++) {
+      for (let i = 0, il = 4; i < il; i++)
         this.draw_stream.set_attribute(i, i < attrib_length ? geometry.attributes[i] : NULL_HANDLE);
-      }
 
       this.draw_stream.draw({
         index: geometry.index,

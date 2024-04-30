@@ -1,4 +1,4 @@
-export const NULL_HANDLE = -1 >>> 0;
+export const NULL_HANDLE = -1;
 
 export const DrawStreamBits = {
   pipeline:         0,

@@ -17,7 +17,7 @@ import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import { shader } from "../shaders/forward_shader.mjs";
 
-let renderer, backend, canvas_texture, render_pass, multisampled_texture, depth_texture, material, scene;
+let renderer, backend, canvas_texture, render_pass, render_target, material, scene;
 let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
 
 const dpr = window.devicePixelRatio;
@@ -96,19 +96,19 @@ const init = async (geometry) => {
     ]
   });
 
-  multisampled_texture = new Texture({
+  const multisampled_texture = new Texture({
     size: { width: viewport.x, height: viewport.y },
     format: canvas_texture.format,
     multisampled: true,
   });
 
-  depth_texture = new Texture({
+  const depth_texture = new Texture({
     size: { width: viewport.x, height: viewport.y },
     format: render_pass.formats.depth,
     multisampled: true,
   });
   
-  const render_target = new RenderTarget({
+  render_target = new RenderTarget({
     color: [ { 
       view: multisampled_texture.create_view(), 
       resolve: canvas_texture.create_view(), 
@@ -170,9 +170,7 @@ const auto_resize = () => {
   
   if (viewport.x != newW || viewport.y != newH) {
     viewport.x = newW; viewport.y = newH;
-    canvas_texture.set_size({ width: newW, height: newH });
-    multisampled_texture.set_size({ width: newW, height: newH });
-    depth_texture.set_size({ width: newW, height: newH });
+    render_target.set_size({ width: newW, height: newH });
     
     render_pass.bindings.camera.projection.perspective(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
   }
