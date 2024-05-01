@@ -190,6 +190,8 @@ export class RenderCache {
         layout: layout_cache.id,
         views: views,
         bid: bid,
+        render_id: undefined,
+        render_key: undefined,
       });
       binding_obj.initialize(id, this.bindings_callback);
     }

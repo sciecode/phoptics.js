@@ -1,6 +1,7 @@
 import { NULL_HANDLE } from "../backend/constants.mjs";
 import { GPUBackend } from "../backend/gpu_backend.mjs";
 import { DrawStream } from "./modules/draw_stream.mjs";
+import { RenderQueue } from "./modules/render_queue.mjs";
 import { RenderCache } from "./modules/render_cache.mjs";
 import { DynamicManager } from "./modules/dynamic_manager.mjs";
 
@@ -9,61 +10,38 @@ export class Renderer {
     this.backend = new GPUBackend(device);
     this.cache = new RenderCache(this.backend);
     this.dynamic = new DynamicManager(this.backend);
+    this.render_queue = new RenderQueue(this.cache, this.dynamic);
     this.draw_stream = new DrawStream();
-
-    this.state = {
-      formats: null,
-      multisampled: false,
-      global_layout: undefined,
-      dynamic_id: undefined,
-    }
   }
 
   render(pass, scene) {
-    const target = pass.current_target;
-    const cached_target = this.cache.get_target(target);
-    
-    this.#set_pass(pass);
-
     this.dynamic.reset();
     this.draw_stream.clear();
+    this.#prepare_queue(pass, scene);
 
-    if (pass.bindings) {
-      const global_cache = this.cache.get_binding(pass.bindings);
-      this.state.global_layout = global_cache.layout;
-      this.draw_stream.set_globals(global_cache.bid);
-    } else {
-      this.state.global_layout = undefined;
-      this.draw_stream.set_globals(0);
-    }
-
-    // TODO: create optimized render list - sort distance / frustum-culling / reduce state changes 
+    this.draw_stream.set_globals(this.render_queue.pass);
 
     // TODO: temporary while shader variant isn't implemented
     this.draw_stream.set_variant(0);
     
-    for (let mesh of scene) {
-      const material = mesh.material, geometry = mesh.geometry;
+    for (let { index } of this.render_queue.indices) {
+      const draw = this.render_queue.draws[index];
+      this.draw_stream.set_pipeline(draw.pipeline_bid);
+      this.draw_stream.set_material(draw.material_bid);
 
-      const dynamic_layout = this.#set_dynamic_binding(material);
-      const pipeline = this.cache.get_pipeline(material, this.state, dynamic_layout);
-      this.draw_stream.set_pipeline(pipeline);
-
-      const material_group = material.bindings ? this.cache.get_binding(material.bindings).bid : 0;
-      this.draw_stream.set_material(material_group);
-
-      if (this.state.dynamic_id !== undefined) {
-        const { group, offset } = this.dynamic.allocate(this.state.dynamic_id);
-        this.draw_stream.set_dynamic(group);
-        this.draw_stream.set_dynamic_offset(offset);
-        this.dynamic.data.set(mesh.dynamic.data, offset);
-      } else {
-        this.draw_stream.set_dynamic(0);
-      }
-
+      const geometry = draw.geometry;
       const attrib_length = geometry.attributes.length;
       for (let i = 0, il = 4; i < il; i++)
         this.draw_stream.set_attribute(i, i < attrib_length ? geometry.attributes[i] : NULL_HANDLE);
+
+      if (draw.dynamic_id !== undefined) {
+        const { group, offset } = this.dynamic.allocate(draw.dynamic_id);
+        this.draw_stream.set_dynamic(group);
+        this.draw_stream.set_dynamic_offset(offset);
+        this.dynamic.data.set(draw.dynamic.data, offset);
+      } else {
+        this.draw_stream.set_dynamic(0);
+      }
 
       this.draw_stream.draw({
         index: geometry.index,
@@ -75,22 +53,19 @@ export class Renderer {
 
     this.dynamic.commit();
 
-    this.backend.render(make_pass_descriptor(target, cached_target), this.draw_stream);
+    const target = pass.current_target;
+    const descriptor = make_pass_descriptor(target, this.cache.get_target(target));
+    this.backend.render(descriptor, this.draw_stream);
   }
 
-  #set_pass(pass) {
-    this.state.formats = pass.formats;
-    this.state.multisampled = pass.multisampled;
-  }
+  #prepare_queue(pass, scene) {
+    this.render_queue.reset(scene.length);
+    this.render_queue.set_pass(pass);
 
-  #set_dynamic_binding(material) {
-    if (material.dynamic) {
-      this.state.dynamic_id = this.dynamic.get_id(material.dynamic);
-      return this.dynamic.layout;
-    } else {
-      this.state.dynamic_id = undefined;
-      return undefined;
-    }
+    for (let i = 0, il = scene.length; i < il; i++)
+      this.render_queue.push(i, scene[i]);
+
+    this.render_queue.sort();
   }
 
   static async acquire_device(options = {}) {

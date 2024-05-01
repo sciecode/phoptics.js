@@ -67,14 +67,14 @@ export class MaterialManager {
         },
         vertex: info.material.vertex,
       });
-      id = this.pipelines.set(hash, { count: 1, bid: pipeline, hash: hash });
+      id = this.pipelines.set(hash, { count: 1, bid: pipeline, hash: hash, render_id: undefined, render_key: undefined });
     }
 
     return id;
   }
 
   get_pipeline(pipeline_id) {
-    return this.pipelines.get(pipeline_id).bid;
+    return this.pipelines.get(pipeline_id);
   }
 
   free_pipeline(pipeline_id) {
