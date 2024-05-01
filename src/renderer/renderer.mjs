@@ -14,12 +14,10 @@ export class Renderer {
     this.draw_stream = new DrawStream();
   }
 
-  render(pass, scene) {
+  render(pass, renderlist) {
     this.dynamic.reset();
     this.draw_stream.clear();
-    this.#prepare_queue(pass, scene);
-
-    this.draw_stream.set_globals(this.render_queue.pass);
+    this.#prepare_queue(pass, renderlist);
 
     // TODO: temporary while shader variant isn't implemented
     this.draw_stream.set_variant(0);
@@ -58,13 +56,15 @@ export class Renderer {
     this.backend.render(descriptor, this.draw_stream);
   }
 
-  #prepare_queue(pass, scene) {
-    this.render_queue.reset(scene.length);
-    this.render_queue.set_pass(pass);
+  precompile(pass, material) {
+    this.render_queue.load_material(pass, material);
+  }
 
-    for (let i = 0, il = scene.length; i < il; i++)
-      this.render_queue.push(i, scene[i]);
+  #prepare_queue(pass, renderlist) {
+    const global_bid = this.render_queue.set_pass(pass);
+    this.draw_stream.set_globals(global_bid);
 
+    this.render_queue.set_renderlist(renderlist);
     this.render_queue.sort();
   }
 

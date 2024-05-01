@@ -12,10 +12,7 @@ export class RenderQueue {
     this.indices = [];
     this.draws = [];
 
-    this.keys_info = {
-      pipelines: 0n,
-      materials: -1n,
-    };
+    this.keys_info = { pipelines: 0n, materials: 1n };
 
     this.state = {
       formats: null,
@@ -23,8 +20,6 @@ export class RenderQueue {
       global_layout: undefined,
       dynamic_id: undefined,
     };
-
-    this.pass = undefined;
   }
 
   reset(count) {
@@ -44,10 +39,10 @@ export class RenderQueue {
     if (pass.bindings) {
       const global_cache = this.cache.get_binding(pass.bindings);
       this.state.global_layout = global_cache.layout;
-      this.pass = global_cache.bid;
+      return global_cache.bid;
     } else {
       this.state.global_layout = undefined;
-      this.pass = 0;
+      return 0;
     }
   }
 
@@ -61,40 +56,51 @@ export class RenderQueue {
     }
   }
 
-  push(i, mesh) {
-    const draw_info = this.draws[i] || {};
+  set_renderlist(renderlist) { 
+    this.reset(renderlist.length);
 
-    const material = mesh.material;
-    draw_info.geometry = mesh.geometry;
+    // TODO: experiment with temporal coherence & adaptive sorting
+    for (let i = 0, il = renderlist.length; i < il; i++) {
+      const mesh = renderlist[i], draw_info = this.draws[i] || {};
 
-    const dynamic_layout = this.set_dynamic(material);
-    const pipeline_cache = this.cache.get_pipeline(material, this.state, dynamic_layout);
-    if (pipeline_cache.render_id == this.RENDER_ID) {
-      draw_info.pipeline_key = pipeline_cache.render_key;
-    } else {
-      draw_info.pipeline_key = pipeline_cache.render_key = ++this.keys_info.pipelines;
-      pipeline_cache.render_id = this.RENDER_ID;
-    }
-    draw_info.pipeline_bid = pipeline_cache.bid;
+      const material = mesh.material;
+      draw_info.geometry = mesh.geometry;
 
-    if (material.bindings) {
-      const material_cache = this.cache.get_binding(material.bindings);
-      if (material_cache.render_id == this.RENDER_ID) {
-        draw_info.material_key = material_cache.render_key;
+      const dynamic_layout = this.set_dynamic(material);
+      const pipeline_cache = this.cache.get_pipeline(material, this.state, dynamic_layout);
+      if (pipeline_cache.render_id == this.RENDER_ID) {
+        draw_info.pipeline_key = pipeline_cache.render_key;
       } else {
-        draw_info.material_key = material_cache.render_key = ++this.keys_info.materials;
-        material_cache.render_id = this.RENDER_ID;
+        draw_info.pipeline_key = pipeline_cache.render_key = ++this.keys_info.pipelines;
+        pipeline_cache.render_id = this.RENDER_ID;
       }
-      draw_info.material_bid = material_cache.bid;
-    } else {
-      draw_info.material_bid = 0;
-      draw_info.material_key = 0n;
+      draw_info.pipeline_bid = pipeline_cache.bid;
+
+      if (material.bindings) {
+        const material_cache = this.cache.get_binding(material.bindings);
+        if (material_cache.render_id == this.RENDER_ID) {
+          draw_info.material_key = material_cache.render_key;
+        } else {
+          draw_info.material_key = material_cache.render_key = ++this.keys_info.materials;
+          material_cache.render_id = this.RENDER_ID;
+        }
+        draw_info.material_bid = material_cache.bid;
+      } else {
+        draw_info.material_bid = 0;
+        draw_info.material_key = 0n;
+      }
+
+      draw_info.dynamic = mesh.dynamic;
+      draw_info.dynamic_id = this.state.dynamic_id;
+
+      this.draws[i] = draw_info;
     }
+  }
 
-    draw_info.dynamic = mesh.dynamic;
-    draw_info.dynamic_id = this.state.dynamic_id;
-
-    this.draws[i] = draw_info;
+  load_material(pass, material) {
+    const dynamic_layout = this.set_dynamic(material);
+    this.set_pass(pass);
+    this.cache.get_pipeline(material, this.state, dynamic_layout);
   }
 
   sort() {
