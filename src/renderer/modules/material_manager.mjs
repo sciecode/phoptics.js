@@ -67,7 +67,7 @@ export class MaterialManager {
         },
         vertex: info.material.vertex,
       });
-      id = this.pipelines.set(hash, { count: 1, bid: pipeline, hash: hash, render_id: undefined, render_key: undefined });
+      id = this.pipelines.set(hash, { count: 1, bid: pipeline, hash: hash, info: { render: undefined, key: undefined } });
     }
 
     return id;
@@ -87,11 +87,13 @@ export class MaterialManager {
 
   create_material(info) {
     const pipeline_id = this.create_pipeline(info);
-    const id = this.materials.allocate({
+    const cache = {
       version: info.material.get_version(),
       pipeline: pipeline_id,
-    });
-    info.material.initialize(id, this.material_callback);
+      info: { render: undefined, key: undefined, bid: undefined }
+    };
+    const id = this.materials.allocate(cache);
+    info.material.initialize(id, cache.info, this.material_callback);
     return id;
   }
 

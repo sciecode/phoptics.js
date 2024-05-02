@@ -23,23 +23,28 @@ export class Renderer {
     this.draw_stream.set_variant(0);
     
     for (let { index } of this.render_queue.indices) {
-      const draw = this.render_queue.draws[index];
-      this.draw_stream.set_pipeline(draw.pipeline_bid);
-      this.draw_stream.set_material(draw.material_bid);
+      const mesh = renderlist[index];
 
-      const geometry = draw.geometry;
-      const attrib_length = geometry.attributes.length;
-      for (let i = 0, il = 4; i < il; i++)
-        this.draw_stream.set_attribute(i, i < attrib_length ? geometry.attributes[i] : NULL_HANDLE);
+      const material = mesh.material;
+      this.draw_stream.set_pipeline(material.get_pipeline());
 
-      if (draw.dynamic_id !== undefined) {
-        const { group, offset } = this.dynamic.allocate(draw.dynamic_id);
+      const material_bid = material.bindings ? material.bindings.get_group() : 0;
+      this.draw_stream.set_material(material_bid);
+
+      if (material.dynamic !== undefined) {
+        const dynamic_id = material.dynamic.get_id();
+        const { group, offset } = this.dynamic.allocate(dynamic_id);
         this.draw_stream.set_dynamic(group);
         this.draw_stream.set_dynamic_offset(offset);
-        this.dynamic.data.set(draw.dynamic.data, offset);
+        this.dynamic.data.set(mesh.dynamic.data, offset);
       } else {
         this.draw_stream.set_dynamic(0);
       }
+
+      const geometry = mesh.geometry;
+      const attrib_length = geometry.attributes.length;
+      for (let i = 0, il = 4; i < il; i++)
+        this.draw_stream.set_attribute(i, i < attrib_length ? geometry.attributes[i] : NULL_HANDLE);
 
       this.draw_stream.draw({
         index: geometry.index,
@@ -65,7 +70,6 @@ export class Renderer {
     this.draw_stream.set_globals(global_bid);
 
     this.render_queue.set_renderlist(renderlist);
-    this.render_queue.sort();
   }
 
   static async acquire_device(options = {}) {

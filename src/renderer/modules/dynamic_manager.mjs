@@ -30,7 +30,7 @@ export class DynamicManager {
     this.group_callback = this.free_group.bind(this);
   }
 
-  get_id(layout_obj) {
+  get_group(layout_obj) {
     let id = layout_obj.get_id();
 
     if (id == UNINITIALIZED) {

@@ -94,7 +94,7 @@ export class RenderCache {
     return this.samplers.get(id);
   }
 
-  get_pipeline(material_obj, state, dynamic_layout) {
+  get_material(material_obj, state, dynamic_layout) {
     let id = material_obj.get_id();
 
     if (id == UNINITIALIZED) {
@@ -116,7 +116,11 @@ export class RenderCache {
       });
     }
 
-    return this.material_manager.get_pipeline(cache.pipeline);
+    return cache;
+  }
+
+  get_pipeline(id) {
+    return this.material_manager.get_pipeline(id);
   }
 
   create_bind_group(binding_obj, layout, views) {
@@ -185,15 +189,15 @@ export class RenderCache {
       const views = [];
       const bid = this.create_bind_group(binding_obj, layout_cache.layout, views);
 
-      id = this.bindings.allocate({
+      const cache = {
         version: version,
         layout: layout_cache.id,
         views: views,
-        bid: bid,
-        render_id: undefined,
-        render_key: undefined,
-      });
-      binding_obj.initialize(id, this.bindings_callback);
+        info: { render: undefined, key: undefined, bid: bid },
+      }
+
+      id = this.bindings.allocate(cache);
+      binding_obj.initialize(id, cache.info, this.bindings_callback);
     }
 
     let needs_update = false;
@@ -220,9 +224,9 @@ export class RenderCache {
 
     if (needs_update) {
       const layout = this.material_manager.get_layout(cache.layout);
-      this.backend.resources.destroy_bind_group(cache.bid);
+      this.backend.resources.destroy_bind_group(cache.info.bid);
       cache.views.length = 0;
-      cache.bid = this.create_bind_group(binding_obj, layout, cache.views);
+      cache.info.bid = this.create_bind_group(binding_obj, layout, cache.views);
     }
 
     return cache;
@@ -231,7 +235,7 @@ export class RenderCache {
   free_binding(id) {
     const cache = this.bindings.get(id);
     this.material_manager.free_layout(cache.layout);
-    this.backend.resources.destroy_bind_group(cache.bid);
+    this.backend.resources.destroy_bind_group(cache.info.bid);
     this.bindings.delete(id);
   }
 
