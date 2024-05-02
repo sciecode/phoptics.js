@@ -60,26 +60,28 @@ export class RenderQueue {
     for (let i = 0, il = renderlist.length; i < il; i++) {
       const mesh = renderlist[i], material = mesh.material;
 
+      // update dynamic information (needs to be before material)
       const dynamic_layout = this.set_dynamic(material);
-      const material_cache = this.cache.get_material(material, this.state, dynamic_layout);
 
-      if (material_cache.info.render != this.RENDER_ID) {
+      // update material information
+      if (material.get_render_id() != this.RENDER_ID) {
+        const material_cache = this.cache.get_material(material, this.state, dynamic_layout);
         const pipeline_cache = this.cache.get_pipeline(material_cache.pipeline);
         material_cache.info.bid = pipeline_cache.bid;
 
         if (pipeline_cache.info.render != this.RENDER_ID) {
           material_cache.info.key = pipeline_cache.info.key = ++this.keys_info.pipelines;
-          material_cache.info.render = pipeline_cache.info.key = this.RENDER_ID;
+          material_cache.info.render = pipeline_cache.info.render = this.RENDER_ID;
         } else {
           material_cache.info.key = pipeline_cache.info.key;
-          material_cache.info.render = pipeline_cache.info.key;
+          material_cache.info.render = pipeline_cache.info.render;
         }
 
         if (material.bindings) {
           const group_cache = this.cache.get_binding(material.bindings);
           if (group_cache.info.render != this.RENDER_ID) {
             group_cache.info.key = ++this.keys_info.material_groups;
-            group_cache.material_key = this.RENDER_ID;
+            group_cache.info.render = this.RENDER_ID;
           }
         }
       }
