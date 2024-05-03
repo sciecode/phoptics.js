@@ -4,6 +4,7 @@ import { RenderPass } from "../../src/renderer/objects/render_pass.mjs";
 import { RenderTarget } from "../../src/renderer/objects/render_target.mjs";
 import { CanvasTexture } from "../../src/renderer/objects/canvas_texture.mjs";
 import { Texture } from "../../src/renderer/objects/texture.mjs";
+import { Queue } from "../../src/renderer/objects/queue.mjs";
 import { Mesh } from "../../src/renderer/objects/mesh.mjs";
 import { Shader } from "../../src/renderer/objects/shader.mjs";
 import { Material } from "../../src/renderer/objects/material.mjs";
@@ -149,16 +150,17 @@ const init = async (geometry) => {
     ],
   });
   
+  scene = new Queue();
   mesh1 = new Mesh(geometry, material);
   obj_pos.set(-30, 0, 0);
   mesh1.dynamic.world.translate(obj_pos);
+  scene.add(mesh1);
   
   mesh2 = new Mesh(geometry, material);
   obj_pos.x = 30;
   mesh2.dynamic.world.translate(obj_pos);
+  scene.add(mesh2);
   
-  scene = [];
-  scene.push(mesh1, mesh2);
 
   animate();
 }

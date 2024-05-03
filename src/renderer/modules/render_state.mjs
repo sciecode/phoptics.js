@@ -2,14 +2,12 @@ import { UNINITIALIZED } from "../constants.mjs";
 
 const key_bits = (n) => (32 - Math.clz32(Number(n)));
 
-export class RenderQueue {
+export class RenderState {
   constructor(cache, dynamic) {
     this.RENDER_ID = 0;
 
     this.cache = cache;
     this.dynamic = dynamic;
-
-    this.indices = [];
     this.keys_info = { pipelines: 0n, material_groups: 1n };
 
     this.state = {
@@ -20,13 +18,25 @@ export class RenderQueue {
     };
   }
 
-  reset(count) {
+  reset(queue) {
     this.RENDER_ID = (this.RENDER_ID + 1) & UNINITIALIZED;
     
     this.keys_info.pipelines = 0n;
     this.keys_info.material_groups = 1n;
-    
-    this.indices.length = count;
+
+    const size = queue.size, max = queue.indices.length;
+
+    if (size >= max) {
+      for (let i = max, il = size; i < il; i++)
+        queue.indices.push({ key: 0n, index: i })
+    } else {
+      let upper = 0, diff = max - size;
+      for (let i = 0, il = size; i < il && upper != diff; i++) {
+        const current = queue.indices[i];
+        while (current.index >= size) current.index = queue.indices[max - upper++];
+      }
+    }
+
   }
 
   set_pass(pass) {
@@ -53,12 +63,12 @@ export class RenderQueue {
     }
   }
 
-  set_renderlist(renderlist) { 
-    this.reset(renderlist.length);
+  set_queue(queue) { 
+    this.reset(queue);
 
-    // TODO: experiment with temporal coherence & adaptive sorting
-    for (let i = 0, il = renderlist.length; i < il; i++) {
-      const mesh = renderlist[i], material = mesh.material;
+    for (let i = 0, il = queue.size; i < il; i++) {
+      const index = queue.indices[i].index;
+      const mesh = queue.meshes[index], material = mesh.material;
 
       // update dynamic information (needs to be before material)
       const dynamic_layout = this.set_dynamic(material);
@@ -90,17 +100,18 @@ export class RenderQueue {
     const pipeline_bits = BigInt(key_bits(this.keys_info.pipelines));
     const group_bits = BigInt(key_bits(this.keys_info.material_groups));
     
-    for (let i = 0, il = renderlist.length; i < il; i++) {
-      const material = renderlist[i].material;
+    for (let i = 0, il = queue.size; i < il; i++) {
+      const index = queue.indices[i].index;
+      const material = queue.meshes[index].material;
       const group_key = material.bindings? material.bindings.get_key() : 0n;
 
       let key = 0n, bits = 0n;
       key |= group_key << bits; bits += group_bits;
       key |= material.get_key() << bits; bits += pipeline_bits;
-      this.indices[i] = { key: key, index: i };
+      queue.indices[i].key = key;
     }
 
-    this.indices.sort( render_list_compare ); // TODO: use adaptive MSB Hybrid-Sort 64b
+    queue.indices.sort( render_list_compare ); // TODO: use adaptive MSB Hybrid-Sort 64b
   }
 
   load_material(pass, material) {

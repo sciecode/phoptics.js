@@ -3,6 +3,7 @@ import { RenderPass } from "../../src/renderer/objects/render_pass.mjs";
 import { RenderTarget } from "../../src/renderer/objects/render_target.mjs";
 import { DynamicLayout } from "../../src/renderer/objects/dynamic_layout.mjs";
 import { StructuredBuffer } from "../../src/renderer/objects/structured_buffer.mjs";
+import { Queue } from "../../src/renderer/objects/queue.mjs";
 import { Mesh } from "../../src/renderer/objects/mesh.mjs";
 import { Shader } from "../../src/renderer/objects/shader.mjs";
 import { Sampler } from "../../src/renderer/objects/sampler.mjs";
@@ -19,7 +20,7 @@ import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import { gbuffer_shader } from "../shaders/deferred_gbuffer.mjs";
 import { lighting_shader } from "../shaders/deferred_lighting.mjs";
 
-let renderer, backend, camera, gbuffer_scene, lighting_scene;
+let renderer, backend, camera, gbuffer_scene, lighting_scene, mesh;
 let gbuffer_pass, gbuffer_target, render_pass, render_target, canvas_texture;
 let target = new Vec3(), obj_pos = new Vec3();
 
@@ -153,7 +154,7 @@ const init = async (geometry) => {
   ]);
 
   const gbuffer_material = new Material({
-    shader: new Shader({code: gbuffer_shader}),
+    shader: new Shader({ code: gbuffer_shader }),
     dynamic: transform_layout,
     vertex: [
       { arrayStride: 12, attributes: [
@@ -169,8 +170,9 @@ const init = async (geometry) => {
     shader: new Shader({ code: lighting_shader }),
   });
 
-  const mesh = new Mesh(geometry, gbuffer_material);
-  gbuffer_scene = [mesh];
+  mesh = new Mesh(geometry, gbuffer_material);
+  gbuffer_scene = new Queue();
+  gbuffer_scene.add(mesh);
 
   const lighting = new Mesh({
     count: 3,
@@ -179,7 +181,8 @@ const init = async (geometry) => {
     vertex_offset: 0,
     attributes: []
   }, lighting_material);
-  lighting_scene = [lighting];
+  lighting_scene = new Queue();
+  lighting_scene.add(lighting);
 
   animate();
 }
@@ -211,7 +214,7 @@ const animate = () => {
   {
     const amplitude = 10 * Math.sin(phase);
     obj_pos.set(0, amplitude, 0);
-    gbuffer_scene[0].dynamic.world.translate(obj_pos);
+    mesh.dynamic.world.translate(obj_pos);
   }
 
   renderer.render(gbuffer_pass, gbuffer_scene);

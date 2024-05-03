@@ -9,6 +9,7 @@ import { Material } from "../../src/renderer/objects/material.mjs";
 import { Texture } from "../../src/renderer/objects/texture.mjs";
 
 import bitmap_shader from "../shaders/bitmap_shader.mjs";
+import { Queue } from "../../src/renderer/objects/queue.mjs";
 
 let render_pass, render_target, renderer, canvas_texture, scene;
 
@@ -93,7 +94,8 @@ const init = async (bitmap, uint8) => {
     vertex_offset: 0,
     attributes: []
   }, material);
-  scene = [full_quad];
+  scene = new Queue();
+  scene.add(full_quad);
 
   animate();
 }

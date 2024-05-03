@@ -1,7 +1,7 @@
 import { NULL_HANDLE } from "../backend/constants.mjs";
 import { GPUBackend } from "../backend/gpu_backend.mjs";
 import { DrawStream } from "./modules/draw_stream.mjs";
-import { RenderQueue } from "./modules/render_queue.mjs";
+import { RenderState } from "./modules/render_state.mjs";
 import { RenderCache } from "./modules/render_cache.mjs";
 import { DynamicManager } from "./modules/dynamic_manager.mjs";
 
@@ -10,22 +10,24 @@ export class Renderer {
     this.backend = new GPUBackend(device);
     this.cache = new RenderCache(this.backend);
     this.dynamic = new DynamicManager(this.backend);
-    this.render_queue = new RenderQueue(this.cache, this.dynamic);
+    this.state = new RenderState(this.cache, this.dynamic);
     this.draw_stream = new DrawStream();
   }
 
-  render(pass, renderlist) {
+  render(pass, queue) {
     this.dynamic.reset();
     this.draw_stream.clear();
-    this.#prepare_queue(pass, renderlist);
 
+    const global_bid = this.state.set_pass(pass);
+    this.state.set_queue(queue);
+    
+    this.draw_stream.set_globals(global_bid);
     // TODO: temporary while shader variant isn't implemented
     this.draw_stream.set_variant(0);
     
-    for (let { index } of this.render_queue.indices) {
-      const mesh = renderlist[index];
+    for (let i = 0, il = queue.size; i < il; i++) {
+      const mesh = queue.meshes[queue.indices[i].index], material = mesh.material;
 
-      const material = mesh.material;
       this.draw_stream.set_pipeline(material.get_pipeline());
 
       const material_bid = material.bindings ? material.bindings.get_group() : 0;
@@ -62,14 +64,7 @@ export class Renderer {
   }
 
   precompile(pass, material) {
-    this.render_queue.load_material(pass, material);
-  }
-
-  #prepare_queue(pass, renderlist) {
-    const global_bid = this.render_queue.set_pass(pass);
-    this.draw_stream.set_globals(global_bid);
-
-    this.render_queue.set_renderlist(renderlist);
+    this.state.load_material(pass, material);
   }
 
   static async acquire_device(options = {}) {
