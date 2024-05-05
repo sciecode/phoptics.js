@@ -21,9 +21,9 @@ struct FragInput {
 }
 
 @group(0) @binding(0) var usampler: sampler;
-@group(0) @binding(1) var data_tex: texture_2d<f32>;
-@group(0) @binding(2) var srgb_tex: texture_2d<f32>;
-@group(0) @binding(3) var ext_tex: texture_2d<f32>;
+@group(0) @binding(1) var decoded: texture_2d<f32>;
+@group(0) @binding(2) var float: texture_2d<f32>;
+@group(0) @binding(3) var byte: texture_2d<f32>;
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
   let x = clamp(in.uv.x * 2. - .5, 0, 1);
@@ -31,9 +31,9 @@ struct FragInput {
   const color2 = vec4f(0, .5, 0, 1) * .25;
   var color = mix(color1, color2, x);
 
-  let t_color = textureSample(data_tex, usampler, vec2f(in.uv.x, .5));
-  let e_color = textureSample(ext_tex, usampler, vec2f(in.uv.x, .5));
-  let s_color = textureSample(srgb_tex, usampler, vec2f(in.uv.x, .5));
+  let t_color = textureSample(decoded, usampler, vec2f(in.uv.x, .5));
+  let e_color = textureSample(float, usampler, vec2f(in.uv.x, .5));
+  let s_color = textureSample(byte, usampler, vec2f(in.uv.x, .5));
 
   if (in.uv.y > .75) { color = s_color; }
   else if (in.uv.y > .5) { color = e_color; }

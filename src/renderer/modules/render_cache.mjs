@@ -1,5 +1,5 @@
 import { GPUResource } from "../../backend/constants.mjs";
-import { ResourceType, UNINITIALIZED } from "../constants.mjs";
+import { ResourceType, TextureSourceType, UNINITIALIZED } from "../constants.mjs";
 import { BufferManager } from "./buffer_manager.mjs";
 import { SamplerTable } from "./sampler_table.mjs";
 import { MaterialManager } from "./material_manager.mjs";
@@ -263,6 +263,13 @@ export class RenderCache {
       this.backend.resources.update_texture(cache.bid, texture_obj.size);
     }
 
+    let source = texture_obj.get_source();
+    if (source) {
+      if (source.type == TextureSourceType.Image)
+        this.copy_image(texture_obj, cache, source.options);
+      texture_obj.clear_source();
+    }
+
     return cache;
   }
 
@@ -302,5 +309,15 @@ export class RenderCache {
     const cache = this.buffers.get(buffer_id);
     this.buffer_manager.delete(cache.slot_id);
     this.buffers.delete(buffer_id);
+  }
+
+  copy_image(texture_obj, cache, options) {
+    const gpu_tex = this.backend.resources.get_texture(cache.bid).texture;
+    this.backend.device.queue.copyExternalImageToTexture(
+      { source: options.source, flipY: options.flipY, origin: options.source_origin },
+      { texture: gpu_tex, origin: options.target_origin, colorSpace: options.encoding,
+        premultipliedAlpha: options.alpha, mipLevel: options.mip_level },
+      texture_obj.size
+    );
   }
 }

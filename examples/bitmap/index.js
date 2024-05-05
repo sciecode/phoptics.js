@@ -3,13 +3,13 @@ import { RenderPass } from "../../src/renderer/objects/render_pass.mjs";
 import { RenderTarget } from "../../src/renderer/objects/render_target.mjs";
 import { ResourceType } from "../../src/renderer/constants.mjs";
 import { CanvasTexture } from "../../src/renderer/objects/canvas_texture.mjs";
+import { Queue } from "../../src/renderer/objects/queue.mjs";
 import { Mesh } from "../../src/renderer/objects/mesh.mjs";
 import { Shader } from "../../src/renderer/objects/shader.mjs";
 import { Material } from "../../src/renderer/objects/material.mjs";
 import { Texture } from "../../src/renderer/objects/texture.mjs";
 
 import bitmap_shader from "../shaders/bitmap_shader.mjs";
-import { Queue } from "../../src/renderer/objects/queue.mjs";
 
 let render_pass, render_target, renderer, canvas_texture, scene;
 
@@ -23,7 +23,7 @@ const init = async (bitmap, uint8) => {
   canvas_texture.set_size({ width: viewport.x, height: viewport.y });
   document.body.append(canvas_texture.canvas);
 
-  const tex1 = new Texture({
+  const decoded = new Texture({
     size: { width: 2, height: 1 },
     format: "rgba32float",
   });
@@ -37,43 +37,37 @@ const init = async (bitmap, uint8) => {
     data[i4 + 3] = as;
   }
 
-  const data_tex = renderer.cache.get_texture(tex1);
+  const data_tex = renderer.cache.get_texture(decoded);
   const data_gpu = renderer.backend.resources.get_texture(data_tex.bid).texture;
-  renderer.backend.device.queue.writeTexture( { texture: data_gpu }, data, {}, tex1.size );
+  renderer.backend.device.queue.writeTexture({ texture: data_gpu }, data, {}, decoded.size);
 
-  const tex2 = new Texture({
+  const bitmap_float = new Texture({
     size: { width: 2, height: 1 },
     format: "rgba16float",
   });
+  bitmap_float.set_image({
+    source: bitmap,
+    alpha: true,
+    encoding: "srgb-linear"
+  });
 
-  const srgb_tex = renderer.cache.get_texture(tex2);
-  const srgb_gpu = renderer.backend.resources.get_texture(srgb_tex.bid).texture;
-  renderer.backend.device.queue.copyExternalImageToTexture(
-    { source: bitmap },
-    { texture: srgb_gpu, premultipliedAlpha: true, colorSpace: "srgb-linear" },
-    { width: bitmap.width, height: bitmap.height },
-  );
-
-  const tex3 = new Texture({
+  const bitmap_byte = new Texture({
     size: { width: 2, height: 1 },
     format: "rgba8unorm",
   });
-
-  const ext_tex = renderer.cache.get_texture(tex3);
-  const ext_gpu = renderer.backend.resources.get_texture(ext_tex.bid).texture;
-  renderer.backend.device.queue.copyExternalImageToTexture(
-    { source: bitmap },
-    { texture: ext_gpu, premultipliedAlpha: true, colorSpace: "srgb-linear" },
-    { width: bitmap.width, height: bitmap.height },
-  );
-
+  bitmap_byte.set_image({
+    source: bitmap,
+    alpha: true,
+    encoding: "srgb-linear"
+  });
+  
   render_pass = new RenderPass({
     formats: { color: [canvas_texture.format] },
     bindings: [
       { binding: 0, name: "sampler", type: ResourceType.Sampler, info: { filtering: { mag: "linear", min: "nearest" } } },
-      { binding: 1, name: "data_tex", resource: tex1.create_view()  },
-      { binding: 2, name: "srgb_tex", resource: tex2.create_view() },
-      { binding: 3, name: "ext_tex", resource: tex3.create_view() }
+      { binding: 1, name: "decoded", resource: decoded.create_view()  },
+      { binding: 2, name: "float", resource: bitmap_float.create_view() },
+      { binding: 3, name: "byte", resource: bitmap_byte.create_view() }
     ]
   });
 
