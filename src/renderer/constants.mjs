@@ -9,8 +9,9 @@ export const ResourceType = {
 };
 
 export const TextureSourceType = {
-  Image:              0,
-  Data:               1,
+  Null:               0,
+  Image:              1,
+  Data:               2,
 };
 
 export const UNINITIALIZED = 0x3FFFFFFF;
