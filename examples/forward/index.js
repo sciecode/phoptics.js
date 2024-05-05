@@ -16,13 +16,12 @@ import { Mat3x4 } from "../../src/datatypes/mat34.mjs";
 import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
-import { shader } from "../shaders/forward_shader.mjs";
-
-let renderer, backend, canvas_texture, render_pass, render_target, material, scene;
-let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
+import forward_shader from "../shaders/forward_shader.mjs";
 
 const dpr = window.devicePixelRatio;
 let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
+let renderer, backend, canvas_texture, render_pass, render_target, material, scene;
+let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
 
 (() => {
   const loader = new OBJLoader();
@@ -128,7 +127,7 @@ const init = async (geometry) => {
     { name: "world", type: Mat3x4 }
   ]);
 
-  const shader_base = new Shader({code: shader});
+  const shader_base = new Shader({ code: forward_shader });
   material = new Material({
     shader: shader_base,
     graphics: {

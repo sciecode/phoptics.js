@@ -17,15 +17,14 @@ import { Mat3x4 } from "../../src/datatypes/mat34.mjs";
 import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
-import { gbuffer_shader } from "../shaders/deferred_gbuffer.mjs";
-import { lighting_shader } from "../shaders/deferred_lighting.mjs";
-
-let renderer, backend, camera, gbuffer_scene, lighting_scene, mesh;
-let gbuffer_pass, gbuffer_target, render_pass, render_target, canvas_texture;
-let target = new Vec3(), obj_pos = new Vec3();
+import gbuffer_shader from "../shaders/deferred_gbuffer.mjs";
+import lighting_shader from "../shaders/deferred_lighting.mjs";
 
 const dpr = window.devicePixelRatio;
 let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
+let renderer, backend, camera, gbuffer_scene, lighting_scene, mesh;
+let gbuffer_pass, gbuffer_target, render_pass, render_target, canvas_texture;
+let target = new Vec3(), obj_pos = new Vec3();
 
 (() => {
   const loader = new OBJLoader();

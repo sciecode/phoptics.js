@@ -1,4 +1,4 @@
-export const gbuffer_shader = `
+export default `
 const PI = 3.14159265359;
 
 struct Attributes {

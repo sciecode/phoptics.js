@@ -8,29 +8,18 @@ import { Mesh } from "../../src/renderer/objects/mesh.mjs";
 import { Shader } from "../../src/renderer/objects/shader.mjs";
 import { Material } from "../../src/renderer/objects/material.mjs";
 import { Texture } from "../../src/renderer/objects/texture.mjs";
-
 import bitmap_shader from "../shaders/bitmap_shader.mjs";
-
-let render_pass, render_target, renderer, canvas_texture, scene;
 
 const dpr = window.devicePixelRatio;
 let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
+let render_pass, render_target, renderer, canvas_texture, scene;
 
-const init = async (bitmap, uint8) => {
+const init = async (bitmap, data) => {
   renderer = new Renderer(await Renderer.acquire_device());
 
   canvas_texture = new CanvasTexture({ format: navigator.gpu.getPreferredCanvasFormat() });
   canvas_texture.set_size({ width: viewport.x, height: viewport.y });
   document.body.append(canvas_texture.canvas);
-
-  const data = new Float32Array(uint8.length);
-  for (let i = 0, il = data.length/4; i < il; i++) {
-    const i4 = i * 4, as = uint8[i4 + 3] / 255;
-    data[i4 + 0] = process_pixel(uint8[i4 + 0], as);
-    data[i4 + 1] = process_pixel(uint8[i4 + 1], as);
-    data[i4 + 2] = process_pixel(uint8[i4 + 2], as);
-    data[i4 + 3] = as;
-  }
 
   const decoded = new Texture({ size: { width: 2, height: 1 }, format: "rgba32float" });
   decoded.upload_data({ data: data, bytes: 16 });
@@ -87,19 +76,30 @@ const auto_resize = () => {
 
 const animate = () => {
   requestAnimationFrame(animate);
+
   auto_resize();
   renderer.render(render_pass, scene);
 }
 
-function SRGBToLinear( c ) { return ( c < 0.04045 ) ? c * 0.0773993808 : Math.pow( c * 0.9478672986 + 0.0521327014, 2.4 ); };
-const process_pixel = (value, alpha) => { return (SRGBToLinear(value/255) * alpha); }
-
-(async function loadImageBitmap(url) {
+(async function (url) {
   const res = await fetch(url);
   const blob = await res.blob();
   const arraybuffer = await blob.arrayBuffer();
-  const imageBitmap = await createImageBitmap(blob, { premultiplyAlpha: 'none' });
+
+  const srgb_to_linear = ( c ) => { return ( c < 0.04045 ) ? c * 0.0773993808 : Math.pow( c * 0.9478672986 + 0.0521327014, 2.4 ); };
+  const process_pixel = (value, alpha) => { return srgb_to_linear(value/255) * alpha; }
+
   const info = UPNG.decode(arraybuffer);
   const uint8 = new Uint8Array(UPNG.toRGBA8(info)[0]);
-  init(imageBitmap, uint8);
+  const data = new Float32Array(uint8.length);
+  for (let i = 0, il = data.length / 4; i < il; i++) {
+    const i4 = i * 4, as = uint8[i4 + 3] / 255;
+    data[i4 + 0] = process_pixel(uint8[i4 + 0], as);
+    data[i4 + 1] = process_pixel(uint8[i4 + 1], as);
+    data[i4 + 2] = process_pixel(uint8[i4 + 2], as);
+    data[i4 + 3] = as;
+  }
+
+  const image_bitmap = await createImageBitmap(blob, { premultiplyAlpha: 'none' });
+  init(image_bitmap, data);
 })('../textures/2px.png');
