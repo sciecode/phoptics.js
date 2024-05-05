@@ -27,6 +27,11 @@ export class Texture {
     return this;
   }
 
+  upload_data(options) {
+    this.#source = { type: TextureSourceType.Data, options: options };
+    return this;
+  }
+
   create_view(desc) {
     return new TextureView({ texture: this, info: desc });
   }

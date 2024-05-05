@@ -23,11 +23,6 @@ const init = async (bitmap, uint8) => {
   canvas_texture.set_size({ width: viewport.x, height: viewport.y });
   document.body.append(canvas_texture.canvas);
 
-  const decoded = new Texture({
-    size: { width: 2, height: 1 },
-    format: "rgba32float",
-  });
-
   const data = new Float32Array(uint8.length);
   for (let i = 0, il = data.length/4; i < il; i++) {
     const i4 = i * 4, as = uint8[i4 + 3] / 255;
@@ -37,35 +32,20 @@ const init = async (bitmap, uint8) => {
     data[i4 + 3] = as;
   }
 
-  const data_tex = renderer.cache.get_texture(decoded);
-  const data_gpu = renderer.backend.resources.get_texture(data_tex.bid).texture;
-  renderer.backend.device.queue.writeTexture({ texture: data_gpu }, data, {}, decoded.size);
+  const decoded = new Texture({ size: { width: 2, height: 1 }, format: "rgba32float" });
+  decoded.upload_data({ data: data, bytes: 16 });
 
-  const bitmap_float = new Texture({
-    size: { width: 2, height: 1 },
-    format: "rgba16float",
-  });
-  bitmap_float.upload_image({
-    source: bitmap,
-    alpha: true,
-    encoding: "srgb-linear"
-  });
+  const bitmap_float = new Texture({ size: { width: 2, height: 1 }, format: "rgba16float" });
+  bitmap_float.upload_image({ source: bitmap, alpha: true, encoding: "srgb-linear" });
 
-  const bitmap_byte = new Texture({
-    size: { width: 2, height: 1 },
-    format: "rgba8unorm",
-  });
-  bitmap_byte.upload_image({
-    source: bitmap,
-    alpha: true,
-    encoding: "srgb-linear"
-  });
+  const bitmap_byte = new Texture({ size: { width: 2, height: 1 }, format: "rgba8unorm" });
+  bitmap_byte.upload_image({ source: bitmap, alpha: true, encoding: "srgb-linear" });
   
   render_pass = new RenderPass({
     formats: { color: [canvas_texture.format] },
     bindings: [
       { binding: 0, name: "sampler", type: ResourceType.Sampler, info: { filtering: { mag: "linear", min: "nearest" } } },
-      { binding: 1, name: "decoded", resource: decoded.create_view()  },
+      { binding: 1, name: "decoded", resource: decoded.create_view() },
       { binding: 2, name: "float", resource: bitmap_float.create_view() },
       { binding: 3, name: "byte", resource: bitmap_byte.create_view() }
     ]

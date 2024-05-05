@@ -265,8 +265,11 @@ export class RenderCache {
 
     let source = texture_obj.get_source();
     if (source) {
-      if (source.type == TextureSourceType.Image)
-        this.copy_image(texture_obj, cache, source.options);
+      if (source.type == TextureSourceType.Image) {
+        this.copy_image_texture(texture_obj, cache, source.options);
+      } else {
+        this.copy_data_texture(texture_obj, cache, source.options);
+      }
       texture_obj.clear_source();
     }
 
@@ -311,13 +314,39 @@ export class RenderCache {
     this.buffers.delete(buffer_id);
   }
 
-  copy_image(texture_obj, cache, options) {
+  copy_image_texture(texture_obj, cache, options) {
+    let size;
+    if (options.width || options.height || options.depth) {
+      size.width = options.width || texture_obj.size.width;
+      size.height = options.height || texture_obj.size.height;
+      size.width = options.depth;
+    } else {
+      size = texture_obj.size;
+    }
     const gpu_tex = this.backend.resources.get_texture(cache.bid).texture;
     this.backend.device.queue.copyExternalImageToTexture(
       { source: options.source, flipY: options.flipY, origin: options.source_origin },
       { texture: gpu_tex, origin: options.target_origin, colorSpace: options.encoding,
         premultipliedAlpha: options.alpha, mipLevel: options.mip_level },
-      texture_obj.size
+      size
+    );
+  }
+
+  copy_data_texture(texture_obj, cache, options) {
+    let size;
+    if (options.width || options.height || options.depth) {
+      size.width = options.width || texture_obj.size.width;
+      size.height = options.height || texture_obj.size.height;
+      size.width = options.depth;
+    } else {
+      size = texture_obj.size;
+    }
+    const gpu_tex = this.backend.resources.get_texture(cache.bid).texture;
+    this.backend.device.queue.writeTexture(
+      { texture: gpu_tex, origin: options.target_origin, mipLevel: options.mipLevel },
+      options.data,
+      { offset: options.offset, bytesPerRow: options.bytes ? options.bytes * size.width : undefined },
+      size
     );
   }
 }
