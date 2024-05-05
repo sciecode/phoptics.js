@@ -22,7 +22,7 @@ export class Texture {
     return this;
   }
 
-  set_image(options) {
+  upload_image(options) {
     this.#source = { type: TextureSourceType.Image, options: options };
     return this;
   }

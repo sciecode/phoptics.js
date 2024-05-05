@@ -45,7 +45,7 @@ const init = async (bitmap, uint8) => {
     size: { width: 2, height: 1 },
     format: "rgba16float",
   });
-  bitmap_float.set_image({
+  bitmap_float.upload_image({
     source: bitmap,
     alpha: true,
     encoding: "srgb-linear"
@@ -55,7 +55,7 @@ const init = async (bitmap, uint8) => {
     size: { width: 2, height: 1 },
     format: "rgba8unorm",
   });
-  bitmap_byte.set_image({
+  bitmap_byte.upload_image({
     source: bitmap,
     alpha: true,
     encoding: "srgb-linear"
