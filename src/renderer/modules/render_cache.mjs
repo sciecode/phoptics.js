@@ -318,38 +318,30 @@ export class RenderCache {
   }
 
   copy_image_texture(texture_obj, gpu_tex, source) {
-    let size, options = source.options;
-    if (options.width || options.height || options.depth) {
-      size.width = options.width || texture_obj.size.width;
-      size.height = options.height || texture_obj.size.height;
-      size.width = options.depth;
-    } else {
-      size = texture_obj.size;
-    }
-
+    const options = source.options, level = options.mip_level;
+    const size = {
+      width: options.size?.width || Math.max(1, texture_obj.size.width >> level),
+      height: options.size?.height || Math.max(1, texture_obj.size.height >> level),
+    };
     this.backend.device.queue.copyExternalImageToTexture(
       { source: options.source, flipY: options.flipY, origin: options.source_origin },
       { texture: gpu_tex, origin: options.target_origin, colorSpace: options.encoding,
-        premultipliedAlpha: options.alpha, mipLevel: options.mip_level },
-      size
-    );
+        premultipliedAlpha: options.alpha, mipLevel: level },
+        size
+      );
 
     source.type = TextureSourceType.Null;
     source.options = null;
   }
 
   copy_data_texture(texture_obj, gpu_tex, source) {
-    let size, options = source.options;
-    if (options.width || options.height || options.depth) {
-      size.width = options.width || texture_obj.size.width;
-      size.height = options.height || texture_obj.size.height;
-      size.width = options.depth;
-    } else {
-      size = texture_obj.size;
-    }
-
+    const options = source.options, level = options.mip_level;
+    const size = {
+      width: options.size?.width || Math.max(1, texture_obj.size.width >> level),
+      height: options.size?.height || Math.max(1, texture_obj.size.height >> level),
+    };
     this.backend.device.queue.writeTexture(
-      { texture: gpu_tex, origin: options.target_origin, mipLevel: options.mip_level },
+      { texture: gpu_tex, origin: options.target_origin, mipLevel: level },
       options.data,
       { offset: options.offset, bytesPerRow: options.bytes ? options.bytes * size.width : undefined },
       size

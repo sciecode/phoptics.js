@@ -61,4 +61,9 @@ export class Texture {
   initialize(id, free) { if (this.#id == UNINITIALIZED) { this.#id = id; this.#free = free } }
   destroy() { this.#free(this.#id); this.#id = -1; }
   #update() { this.#version = (this.#version + 1) & UNINITIALIZED; }
+
+  static max_mip_levels(width = 1, height = 1) {
+    const max = Math.max(width, height);
+    return 32 - Math.clz32(max);
+  }
 }
