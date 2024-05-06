@@ -250,7 +250,8 @@ export class RenderCache {
           format: texture_obj.format,
           size: texture_obj.size,
           usage: texture_obj.usage,
-          sampleCount: texture_obj.multisampled ? 4 : 1,
+          samples: texture_obj.multisampled ? 4 : 1,
+          mip_levels: texture_obj.mip_levels,
         }),
         views: [],
       });

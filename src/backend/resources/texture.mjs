@@ -4,9 +4,9 @@ export class Texture {
       format: options.format,
       size: options.size,
       usage: options.usage,
-      sampleCount: options.sampleCount,
+      sampleCount: options.samples,
       dimensions: options.dimensions,
-      mipLevelCount: options.mipLevelCount,
+      mipLevelCount: options.mip_levels || 1,
     });
   }
 
@@ -16,9 +16,9 @@ export class Texture {
       format: current.format,
       size: size,
       usage: current.usage,
-      sampleCount: current.sampleCount,
+      sampleCount: current.samples,
       dimensions: current.dimensions,
-      mipLevelCount: current.mipLevelCount,
+      mipLevelCount: current.mip_levels || 1,
     });
     current.destroy();
   }
