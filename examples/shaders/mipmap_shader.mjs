@@ -18,12 +18,12 @@ struct Globals {
   var output : FragInput;
 
   let pos_arr = array(
-    vec2f( -1, -1 ),
-    vec2f(  1, -1 ),
-    vec2f(  1,  1 ),
-    vec2f( -1, -1 ),
-    vec2f(  1,  1 ),
-    vec2f( -1,  1 ),
+    vec3f( -3, -3,    3 ),
+    vec3f(  3, -3,    3 ),
+    vec3f(  3, -3, -600 ),
+    vec3f( -3, -3,    3 ),
+    vec3f(  3, -3, -600 ),
+    vec3f( -3, -3, -600 ),
   );
 
   let uv_arr = array(
@@ -35,8 +35,8 @@ struct Globals {
     vec2f(0, 0),
   );
 
-  var w_pos = vec4f( pos_arr[vertexIndex], 0, 1 ) * obj;
-  var c_pos = vec4f( vec4f(w_pos, 1 ) * globals.view_matrix, 1 ) * globals.projection_matrix;
+  var w_pos = vec4f( pos_arr[vertexIndex], 1 );
+  var c_pos = vec4f( w_pos * globals.view_matrix, 1 ) * globals.projection_matrix;
   output.position = c_pos;
   output.uv = uv_arr[vertexIndex];
   return output;

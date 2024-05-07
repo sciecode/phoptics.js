@@ -3,7 +3,6 @@ import { RenderPass } from "../../src/renderer/objects/render_pass.mjs";
 import { RenderTarget } from "../../src/renderer/objects/render_target.mjs";
 import { CanvasTexture } from "../../src/renderer/objects/canvas_texture.mjs";
 import { StructuredBuffer } from "../../src/renderer/objects/structured_buffer.mjs";
-import { DynamicLayout } from "../../src/renderer/objects/dynamic_layout.mjs";
 import { Queue } from "../../src/renderer/objects/queue.mjs";
 import { Mesh } from "../../src/renderer/objects/mesh.mjs";
 import { Shader } from "../../src/renderer/objects/shader.mjs";
@@ -22,8 +21,6 @@ const dpr = window.devicePixelRatio;
 let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
 let render_pass, render_target, renderer, canvas_texture, scene, camera, quad;
 
-const obj_pos = new Vec3();
-
 const init = async () => {
   renderer = new Renderer(await Renderer.acquire_device());
 
@@ -31,24 +28,20 @@ const init = async () => {
   canvas_texture.set_size({ width: viewport.x, height: viewport.y });
   document.body.append(canvas_texture.canvas);
 
-  const data0 = new Float32Array([
-    1, 0, 0, 1,
-    1, 0, 0, 1,
-    1, 0, 0, 1,
-    1, 0, 0, 1,
-  ]);
-
-  const data1 = new Float32Array([
-    0, 1, 0, 1
-  ]);
+  const tex_size = 1024;
   const mipmap = new Texture({ 
-    size: { width: 2, height: 2}, 
+    size: { width: tex_size, height: tex_size}, 
     format: "rgba32float",
-    mip_levels: Texture.max_mip_levels(2),
+    mip_levels: Texture.max_mip_levels(tex_size),
   });
 
-  mipmap.upload_data({ data: data0, bytes: 16, mip_level: 0 });
-  mipmap.upload_data({ data: data1, bytes: 16, mip_level: 1 });
+  const multisampled_texture = new Texture({
+    multisampled: true,
+    size: { width: viewport.x, height: viewport.y },
+    format: canvas_texture.format,
+  });
+
+  populate_mipmap_texture(mipmap);
 
   camera = new StructuredBuffer([
     { name: "projection", type: Mat4x4 }, 
@@ -57,24 +50,27 @@ const init = async () => {
   ]);
   
   render_pass = new RenderPass({
+    multisampled: true,
     formats: { color: [canvas_texture.format] },
     bindings: [{ binding: 0,  name: "camera", resource: camera }]
   });
 
-  camera.position.set(0, 0, 10, 0);
+  const target = new Vec3();
+  target.set(0, -1, 0);
+  camera.position.set(0, 0, 4, 0);
   camera.projection.perspective(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 610);
-  camera.view.translate(render_pass.bindings.camera.position).view_inverse();
+  camera.view.translate(camera.position).look_at(target).view_inverse();
   camera.update();
 
   render_target = new RenderTarget({
-    color: [ { view: canvas_texture.create_view(), clear: [.5, .5, .5, 1] } ],
+    color: [ {
+      view: multisampled_texture.create_view(), 
+      resolve: canvas_texture.create_view(),
+      clear: [.25, .25, .25, 1] 
+    } ],
   });
 
   render_pass.set_render_target(render_target);
-
-  const transform_layout = new DynamicLayout([
-    { name: "world", type: Mat3x4 }
-  ]);
 
   const material = new Material({
     shader: new Shader({ code: mipmap_shader }),
@@ -84,7 +80,6 @@ const init = async () => {
       }) },
       { binding: 1, name: "mipmap", resource: mipmap.create_view() },
     ],
-    dynamic: transform_layout,
   });
 
   quad = new Mesh({
@@ -98,6 +93,24 @@ const init = async () => {
   scene.add(quad);
 
   animate();
+}
+
+const populate_mipmap_texture = (tex) => {
+  const info = [1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1];
+
+  for (let i = 0; i < tex.mip_levels; i++) {
+    const size = Math.max(1, tex.size.width >> i);
+    const tot = size * size * 4;
+    const data = new Float32Array(tot);
+    const e = i % 3, e4 = e * 4;
+    for (let j = 0; j < tot; j += 4) {
+      data[j + 0] = info[e4 + 0];
+      data[j + 1] = info[e4 + 1];
+      data[j + 2] = info[e4 + 2];
+      data[j + 3] = info[e4 + 3];
+    }
+    tex.upload_data({ data: data, bytes: 16, mip_level: i });
+  }
 }
 
 const auto_resize = () => {
@@ -116,11 +129,6 @@ const auto_resize = () => {
 
 const animate = () => {
   requestAnimationFrame(animate);
-
-  const phase = performance.now() / 500;
-  const amp = 5 * Math.sin(phase);
-  obj_pos.set(0, 0, amp);
-  quad.dynamic.world.translate(obj_pos);
 
   auto_resize();
   renderer.render(render_pass, scene);
