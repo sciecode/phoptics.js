@@ -132,7 +132,7 @@ export class OffsetAllocator {
       this.nodes[c6 + 5] = new_id;
     }
     
-    return { offset: offset, id: node_id };
+    return { offset: offset, slot: node_id };
   }
 
   free(id) {

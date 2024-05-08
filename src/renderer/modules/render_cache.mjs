@@ -130,7 +130,7 @@ export class RenderCache {
           const resource = binding_obj[entry.name];
           switch (resource.type) {
             case ResourceType.StructuredBuffer:
-              const buffer_info = this.get_buffer(resource);
+              const buffer_info = this.get_uniform(resource);
               return {
                 binding: entry.binding,
                 type: GPUResource.BUFFER,
@@ -211,7 +211,7 @@ export class RenderCache {
         const resource = binding_obj[binding_obj.info[i].name];
         switch (resource.type) {
           case ResourceType.StructuredBuffer:
-            this.get_buffer(resource);
+            this.get_uniform(resource);
             break;
           case ResourceType.TextureView:
             const version = this.get_view(resource).version;
@@ -287,14 +287,15 @@ export class RenderCache {
     this.textures.delete(id);
   }
 
-  get_buffer(buffer_obj) {
+  get_uniform(buffer_obj) {
     let id = buffer_obj.get_id();
 
     if (id == UNINITIALIZED) {
-      const { slot_id, offset, bid } = this.buffer_manager.create(buffer_obj.total_size);
+      const { heap, slot, offset, bid } = this.buffer_manager.create_uniform(buffer_obj.total_size);
       id = this.buffers.allocate({
         version: -1,
-        slot_id: slot_id,
+        heap: heap,
+        slot: slot,
         bid: bid,
         offset: offset,
         size: buffer_obj.total_bytes,
@@ -306,7 +307,7 @@ export class RenderCache {
     if (cache.version != version) {
       cache.version = version;
       // TODO: if we implement arraybuffer allocator, implement offset / size for front-end bufffer
-      this.buffer_manager.update(cache.bid, cache.offset, buffer_obj.buffer);
+      this.buffer_manager.update_uniform(cache.bid, cache.offset, buffer_obj.buffer);
     }
 
     return cache;
@@ -314,7 +315,7 @@ export class RenderCache {
 
   free_buffer(buffer_id) {
     const cache = this.buffers.get(buffer_id);
-    this.buffer_manager.delete(cache.slot_id);
+    this.buffer_manager.delete_uniform(cache.heap, cache.slot);
     this.buffers.delete(buffer_id);
   }
 
