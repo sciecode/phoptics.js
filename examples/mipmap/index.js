@@ -83,10 +83,7 @@ const init = async () => {
   });
 
   quad = new Mesh({
-    index: -1,
     count: 6,
-    index_offset: -1,
-    vertex_offset: 0,
     attributes: []
   }, material);
   scene = new Queue();

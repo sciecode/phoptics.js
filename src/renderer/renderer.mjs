@@ -22,6 +22,7 @@ export class Renderer {
     this.state.set_queue(queue);
     
     this.draw_stream.set_globals(global_bid);
+    
     // TODO: temporary while shader variant isn't implemented
     this.draw_stream.set_variant(0);
 
@@ -52,23 +53,43 @@ export class Renderer {
 
       const geometry = mesh.geometry;
       draw_info.draw_count = geometry.count;
-      draw_info.vertex_offset = geometry.vertex_offset;
-
-      if (geometry.index) {
-        const index_cache = this.cache.get_index(geometry.index); // TODO: rename?
-        draw_info.index = index_cache.bid;
-        draw_info.index_offset = index_cache.offset;
-      } else {
-        draw_info.index = NULL_HANDLE;
-        draw_info.index_offset = NULL_HANDLE;
-      }
 
       const attributes = geometry.attributes;
-      for (let i = 0, il = 4; i < il; i++) {
-        if (i < attributes.length) {
-          const attrib_cache = this.cache.get_attribute(attributes[i]);
-          this.draw_stream.set_attribute(i, attrib_cache.attrib_id);
+      if (attributes.length != 1) {
+        draw_info.vertex_offset = 0; // TODO: impl geometry draw range
+
+        if (geometry.index) {
+          const index_cache = this.cache.get_index(geometry.index, false);
+          draw_info.index = index_cache.bid;
+          draw_info.index_offset = index_cache.offset;
         } else {
+          draw_info.index = NULL_HANDLE;
+          draw_info.index_offset = NULL_HANDLE;
+        }
+
+        for (let i = 0, il = 4; i < il; i++) {
+          if (i < attributes.length) {
+            const attrib_cache = this.cache.get_attribute(attributes[i]);
+            this.draw_stream.set_attribute(i, attrib_cache.attrib_bid);
+          } else {
+            this.draw_stream.set_attribute(i, NULL_HANDLE);
+          }
+        }
+      } else {
+        if (geometry.index) {
+          const index_cache = this.cache.get_index(geometry.index, true);
+          draw_info.index = index_cache.bid;
+          draw_info.index_offset = index_cache.offset;
+        } else {
+          draw_info.index = NULL_HANDLE;
+          draw_info.index_offset = NULL_HANDLE;
+        }
+
+        const attrib_cache = this.cache.get_interleaved(attributes[i]);
+        this.draw_stream.set_attribute(0, attrib_cache.attrib_bid);
+        draw_info.vertex_offset = attrib_cache.vertex_offset; // TODO: impl geometry draw range
+
+        for (let i = 1, il = 4; i < il; i++) {
           this.draw_stream.set_attribute(i, NULL_HANDLE);
         }
       }

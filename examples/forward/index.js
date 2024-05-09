@@ -118,9 +118,8 @@ let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
   index_data.set(geo.indices);
 
   const geometry = {
-    index: new Buffer({ data: index_data }),
     count: index_count,
-    vertex_offset: 0,
+    index: new Buffer({ data: index_data }),
     attributes: [
       new Buffer({ data: pos_data }),
       new Buffer({ data: norm_data })

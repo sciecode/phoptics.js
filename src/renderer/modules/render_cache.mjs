@@ -361,7 +361,7 @@ export class RenderCache {
       const size = attrib_obj.total_bytes;
       const { heap, slot, offset, bid } = this.buffer_manager.create_attribute(size);
 
-      const attrib_id = this.backend.resources.create_attribute({
+      const attrib_bid = this.backend.resources.create_attribute({
         buffer: bid,
         byte_offset: offset,
         byte_size: size,
@@ -372,7 +372,7 @@ export class RenderCache {
         heap: heap,
         slot: slot,
         bid: bid,
-        attrib_id: attrib_id,
+        attrib_bid: attrib_bid,
         offset: offset,
       });
       attrib_obj.initialize(id, this.attribute_callback);
@@ -390,7 +390,7 @@ export class RenderCache {
   free_attribute(attrib_id) {
     const cache = this.attributes.get(attrib_id);
     this.buffer_manager.delete_attribute(cache.heap, cache.slot);
-    this.backend.resources.destroy_attribute(cache.attrib_id);
+    this.backend.resources.destroy_attribute(cache.attrib_bid);
     this.attributes.delete(attrib_id);
   }
 
