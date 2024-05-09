@@ -24,6 +24,13 @@ export class Renderer {
     this.draw_stream.set_globals(global_bid);
     // TODO: temporary while shader variant isn't implemented
     this.draw_stream.set_variant(0);
+
+    const draw_info = {
+      index: -1,
+      draw_count: -1,
+      vertex_offset: -1,
+      index_offset: -1,
+    };
     
     for (let i = 0, il = queue.size; i < il; i++) {
       const mesh = queue.meshes[queue.indices[i].index], material = mesh.material;
@@ -44,16 +51,29 @@ export class Renderer {
       }
 
       const geometry = mesh.geometry;
-      const attrib_length = geometry.attributes.length;
-      for (let i = 0, il = 4; i < il; i++)
-        this.draw_stream.set_attribute(i, i < attrib_length ? geometry.attributes[i] : NULL_HANDLE);
+      draw_info.draw_count = geometry.count;
+      draw_info.vertex_offset = geometry.vertex_offset;
 
-      this.draw_stream.draw({
-        index: geometry.index,
-        draw_count: geometry.count,
-        vertex_offset: geometry.vertex_offset,
-        index_offset: geometry.index_offset,
-      });
+      if (geometry.index) {
+        const index_cache = this.cache.get_index(geometry.index); // TODO: rename?
+        draw_info.index = index_cache.bid;
+        draw_info.index_offset = index_cache.offset;
+      } else {
+        draw_info.index = NULL_HANDLE;
+        draw_info.index_offset = NULL_HANDLE;
+      }
+
+      const attributes = geometry.attributes;
+      for (let i = 0, il = 4; i < il; i++) {
+        if (i < attributes.length) {
+          const attrib_cache = this.cache.get_attribute(attributes[i]);
+          this.draw_stream.set_attribute(i, attrib_cache.attrib_id);
+        } else {
+          this.draw_stream.set_attribute(i, NULL_HANDLE);
+        }
+      }
+
+      this.draw_stream.draw(draw_info);
     }
 
     this.dynamic.commit();

@@ -1,77 +1,31 @@
-import { ResourceType } from "../../src/renderer/constants.mjs";
 import { Renderer } from "../../src/renderer/renderer.mjs";
 import { RenderPass } from "../../src/renderer/objects/render_pass.mjs";
 import { RenderTarget } from "../../src/renderer/objects/render_target.mjs";
+import { ResourceType } from "../../src/renderer/constants.mjs";
 import { CanvasTexture } from "../../src/renderer/objects/canvas_texture.mjs";
-import { Texture } from "../../src/renderer/objects/texture.mjs";
+import { DynamicLayout } from "../../src/renderer/objects/dynamic_layout.mjs";
 import { Queue } from "../../src/renderer/objects/queue.mjs";
 import { Mesh } from "../../src/renderer/objects/mesh.mjs";
+import { Buffer } from "../../src/renderer/objects/buffer.mjs";
 import { Shader } from "../../src/renderer/objects/shader.mjs";
+import { Texture } from "../../src/renderer/objects/texture.mjs";
 import { Material } from "../../src/renderer/objects/material.mjs";
-import { DynamicLayout } from "../../src/renderer/objects/dynamic_layout.mjs";
+import forward_shader from "../shaders/forward_shader.mjs";
 
 import { Vec3 } from "../../src/datatypes/vec3.mjs";
 import { Vec4 } from "../../src/datatypes/vec4.mjs";
 import { Mat3x4 } from "../../src/datatypes/mat34.mjs";
 import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
-
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
-import forward_shader from "../shaders/forward_shader.mjs";
 
 const dpr = window.devicePixelRatio;
 let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
-let renderer, backend, canvas_texture, render_pass, render_target, material, scene;
+let renderer, canvas_texture, render_pass, render_target, material, scene;
 let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
 
-(() => {
-  const loader = new OBJLoader();
-  loader.load('../models/walt.obj').then(async (geo) => {
-    renderer = new Renderer(await Renderer.acquire_device());
-    backend = renderer.backend;
+(async () => {
+  renderer = new Renderer(await Renderer.acquire_device());
 
-    const vertex_count = geo.positions.length, index_count = geo.indices.length;
-    const geo_byte_size = (vertex_count * 2 + index_count) * 4;
-
-    const geometry_buffer = backend.resources.create_buffer({
-      size: geo_byte_size,
-      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
-    });
-
-    const data = new ArrayBuffer(geo_byte_size);
-    const pos_data = new Float32Array(data, 0, vertex_count);
-    const norm_data = new Float32Array(data, vertex_count * 4, vertex_count);
-    const index_data = new Uint32Array(data, vertex_count * 8, index_count);
-    pos_data.set(geo.positions);
-    norm_data.set(geo.normals);
-    index_data.set(geo.indices);
-    
-    backend.write_buffer(geometry_buffer, 0, data);
-
-    const geometry = {
-      index: geometry_buffer,
-      count: index_count,
-      index_offset: vertex_count * 2,
-      vertex_offset: 0,
-      attributes: [],
-    }
-
-    geometry.attributes.push(backend.resources.create_attribute({
-      buffer: geometry_buffer,
-      byte_offset: 0,
-      byte_size: vertex_count * 4,
-    }));
-
-    geometry.attributes.push(backend.resources.create_attribute({
-      buffer: geometry_buffer,
-      byte_offset: vertex_count * 4,
-      byte_size: vertex_count * 4,
-    }));
-
-    init(geometry)
-  });
-})();
-
-const init = async (geometry) => {
   canvas_texture = new CanvasTexture({ format: navigator.gpu.getPreferredCanvasFormat() });
   canvas_texture.set_size({ width: viewport.x, height: viewport.y });
   document.body.append(canvas_texture.canvas);
@@ -148,6 +102,30 @@ const init = async (geometry) => {
       ], },
     ],
   });
+
+  const loader = new OBJLoader();
+  const geo = await loader.load('../models/walt.obj');
+
+  const vertex_count = geo.positions.length, index_count = geo.indices.length;
+  const geo_byte_size = (vertex_count * 2 + index_count) * 4;
+
+  const data = new ArrayBuffer(geo_byte_size);
+  const pos_data = new Float32Array(data, 0, vertex_count);
+  const norm_data = new Float32Array(data, vertex_count * 4, vertex_count);
+  const index_data = new Uint32Array(data, vertex_count * 8, index_count);
+  pos_data.set(geo.positions);
+  norm_data.set(geo.normals);
+  index_data.set(geo.indices);
+
+  const geometry = {
+    index: new Buffer({ data: index_data }),
+    count: index_count,
+    vertex_offset: 0,
+    attributes: [
+      new Buffer({ data: pos_data }),
+      new Buffer({ data: norm_data })
+    ],
+  }
   
   scene = new Queue();
   mesh1 = new Mesh(geometry, material);
@@ -160,9 +138,8 @@ const init = async (geometry) => {
   mesh2.dynamic.world.translate(obj_pos);
   scene.add(mesh2);
   
-
   animate();
-}
+})();
 
 const auto_resize = () => {
   const dpr = window.devicePixelRatio;

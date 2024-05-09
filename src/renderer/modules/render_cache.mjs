@@ -13,15 +13,18 @@ export class RenderCache {
     this.material_manager = new MaterialManager(backend);
     this.sampler_table = new SamplerTable(backend.device.features);
 
-    this.buffers = new PoolStorage();
     this.bindings = new PoolStorage();
     this.textures = new PoolStorage();
     this.views = new PoolStorage();
     this.samplers = new SparseSet();
+    this.uniforms = new PoolStorage();
+    this.attributes = new PoolStorage();
 
     this.texture_callback = this.free_texture.bind(this);
     this.bindings_callback = this.free_binding.bind(this);
-    this.buffer_callback = this.free_buffer.bind(this);
+    this.uniform_callback = this.free_uniform.bind(this);
+    this.attribute_callback = this.free_attribute.bind(this);
+    this.index_callback = this.free_index.bind(this);
   }
 
   get_target(target_obj) {
@@ -292,7 +295,7 @@ export class RenderCache {
 
     if (id == UNINITIALIZED) {
       const { heap, slot, offset, bid } = this.buffer_manager.create_uniform(buffer_obj.total_bytes);
-      id = this.buffers.allocate({
+      id = this.uniforms.allocate({
         version: -1,
         heap: heap,
         slot: slot,
@@ -300,10 +303,10 @@ export class RenderCache {
         offset: offset,
         size: buffer_obj.total_bytes,
       });
-      buffer_obj.initialize(id, this.buffer_callback);
+      buffer_obj.initialize(id, this.uniform_callback);
     }
 
-    const cache = this.buffers.get(id), version = buffer_obj.get_version();
+    const cache = this.uniforms.get(id), version = buffer_obj.get_version();
     if (cache.version != version) {
       cache.version = version;
       // TODO: if we implement arraybuffer allocator, implement offset / size for front-end bufffer
@@ -313,10 +316,82 @@ export class RenderCache {
     return cache;
   }
 
-  free_buffer(buffer_id) {
-    const cache = this.buffers.get(buffer_id);
+  free_uniform(buffer_id) {
+    const cache = this.uniforms.get(buffer_id);
     this.buffer_manager.delete_uniform(cache.heap, cache.slot);
-    this.buffers.delete(buffer_id);
+    this.uniforms.delete(buffer_id);
+  }
+
+  get_index(index_obj) {
+    let id = index_obj.get_id();
+
+    if (id == UNINITIALIZED) {
+      const { heap, slot, offset, bid } = this.buffer_manager.create_attribute(index_obj.total_bytes);
+      
+      id = this.attributes.allocate({
+        version: -1,
+        heap: heap,
+        slot: slot,
+        bid: bid,
+        offset: offset,
+        size: index_obj.total_bytes,
+      });
+      index_obj.initialize(id, this.index_callback);
+    }
+
+    const cache = this.attributes.get(id), version = index_obj.get_version();
+    if (cache.version != version) {
+      cache.version = version;
+      this.buffer_manager.update(cache.bid, cache.offset, index_obj.data);
+    }
+
+    return cache;
+  }
+
+  free_index(index_id) {
+    const cache = this.attributes.get(index_id);
+    this.buffer_manager.delete_attribute(cache.heap, cache.slot);
+    this.attributes.delete(index_id);
+  }
+
+  get_attribute(attrib_obj) {
+    let id = attrib_obj.get_id();
+
+    if (id == UNINITIALIZED) {
+      const size = attrib_obj.total_bytes;
+      const { heap, slot, offset, bid } = this.buffer_manager.create_attribute(size);
+
+      const attrib_id = this.backend.resources.create_attribute({
+        buffer: bid,
+        byte_offset: offset,
+        byte_size: size,
+      });
+
+      id = this.attributes.allocate({
+        version: -1,
+        heap: heap,
+        slot: slot,
+        bid: bid,
+        attrib_id: attrib_id,
+        offset: offset,
+      });
+      attrib_obj.initialize(id, this.attribute_callback);
+    }
+
+    const cache = this.attributes.get(id), version = attrib_obj.get_version();
+    if (cache.version != version) {
+      cache.version = version;
+      this.buffer_manager.update(cache.bid, cache.offset, attrib_obj.data);
+    }
+
+    return cache;
+  }
+
+  free_attribute(attrib_id) {
+    const cache = this.attributes.get(attrib_id);
+    this.buffer_manager.delete_attribute(cache.heap, cache.slot);
+    this.backend.resources.destroy_attribute(cache.attrib_id);
+    this.attributes.delete(attrib_id);
   }
 
   copy_image_texture(texture_obj, gpu_tex, source) {
