@@ -53,18 +53,18 @@ export class Renderer {
 
       const geometry = mesh.geometry, attributes = geometry.attributes;
       draw_info.draw_count = geometry.count;
+      
+      if (geometry.index) {
+        const index_cache = this.cache.get_index(geometry.index);
+        draw_info.index = index_cache.bid;
+        draw_info.index_offset = index_cache.index_offset;
+      } else {
+        draw_info.index = NULL_HANDLE;
+        draw_info.index_offset = NULL_HANDLE;
+      }
 
       if (attributes.length != 1) {
         draw_info.vertex_offset = 0; // TODO: impl geometry draw range
-
-        if (geometry.index) {
-          const index_cache = this.cache.get_index(geometry.index, false);
-          draw_info.index = index_cache.bid;
-          draw_info.index_offset = index_cache.index_offset;
-        } else {
-          draw_info.index = NULL_HANDLE;
-          draw_info.index_offset = NULL_HANDLE;
-        }
 
         for (let i = 0, il = 4; i < il; i++) {
           if (i < attributes.length) {
@@ -75,15 +75,6 @@ export class Renderer {
           }
         }
       } else {
-        if (geometry.index) {
-          const index_cache = this.cache.get_index(geometry.index, true);
-          draw_info.index = index_cache.bid;
-          draw_info.index_offset = index_cache.index_offset;
-        } else {
-          draw_info.index = NULL_HANDLE;
-          draw_info.index_offset = NULL_HANDLE;
-        }
-
         const attrib_cache = this.cache.get_interleaved(attributes[0]);
         this.draw_stream.set_attribute(0, attrib_cache.attrib_bid);
         draw_info.vertex_offset = attrib_cache.vertex_offset; // TODO: impl geometry draw range

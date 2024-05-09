@@ -1,40 +1,29 @@
 import { UniformPool } from "./uniform_pool.mjs";
 import { AttributePool } from "./attribute_pool.mjs";
 import { InterleavedPool } from "./interleaved_pool.mjs";
+import { IndexdPool } from "./index_pool.mjs";
 
 export class BufferManager {
   constructor(backend) {
-    this.backend = backend;
     this.uniforms = new UniformPool(backend);
     this.attributes = new AttributePool(backend);
     this.interleaved = new InterleavedPool(backend);
+    this.indices = new IndexdPool(backend);
   }
 
-  update(bid, offset, data) {
-    this.backend.write_buffer(bid, offset, data);
+  get_uniform(uniform_obj) {
+    return this.uniforms.get(uniform_obj);
   }
 
-  create_uniform(bytes) {
-    return this.uniforms.create(this.backend, bytes);
+  get_attribute(attrib_obj) {
+    return this.attributes.get(attrib_obj);
   }
 
-  delete_uniform(heap, slot) {
-    this.uniforms.delete(heap, slot);
+  get_interleaved(inter_obj) {
+    return this.interleaved.get(inter_obj);
   }
 
-  create_attribute(bytes) {
-    return this.attributes.create(this.backend, bytes);
-  }
-
-  delete_attribute(heap, slot) {
-    this.attributes.delete(heap, slot);
-  }
-
-  create_interleaved(bytes, stride) {
-    return this.interleaved.create(this.backend, bytes, stride);
-  }
-
-  delete_interleaved(heap, slot) {
-    this.interleaved.delete(heap, slot);
+  get_index(index_obj) {
+    return this.indices.get(index_obj);
   }
 }
