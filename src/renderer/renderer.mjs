@@ -27,10 +27,10 @@ export class Renderer {
     this.draw_stream.set_variant(0);
 
     const draw_info = {
-      index: -1,
-      draw_count: -1,
-      vertex_offset: -1,
-      index_offset: -1,
+      index: NULL_HANDLE,
+      draw_count: NULL_HANDLE,
+      vertex_offset: NULL_HANDLE,
+      index_offset: NULL_HANDLE,
     };
     
     for (let i = 0, il = queue.size; i < il; i++) {
@@ -60,7 +60,7 @@ export class Renderer {
         if (geometry.index) {
           const index_cache = this.cache.get_index(geometry.index, false);
           draw_info.index = index_cache.bid;
-          draw_info.index_offset = index_cache.offset;
+          draw_info.index_offset = index_cache.index_offset;
         } else {
           draw_info.index = NULL_HANDLE;
           draw_info.index_offset = NULL_HANDLE;
@@ -78,7 +78,7 @@ export class Renderer {
         if (geometry.index) {
           const index_cache = this.cache.get_index(geometry.index, true);
           draw_info.index = index_cache.bid;
-          draw_info.index_offset = index_cache.offset;
+          draw_info.index_offset = index_cache.index_offset;
         } else {
           draw_info.index = NULL_HANDLE;
           draw_info.index_offset = NULL_HANDLE;

@@ -18,7 +18,7 @@ export class RenderCache {
     this.views = new PoolStorage();
     this.samplers = new SparseSet();
     this.uniforms = new PoolStorage();
-    this.attributes = new PoolStorage();
+    this.buffers = new PoolStorage(); // TODO: separate index/attrib/interleaved into own pools?
 
     this.texture_callback = this.free_texture.bind(this);
     this.bindings_callback = this.free_binding.bind(this);
@@ -331,18 +331,19 @@ export class RenderCache {
         this.buffer_manager.create_interleaved(index_obj.total_bytes) :
         this.buffer_manager.create_attribute(index_obj.total_bytes);
       
-      id = this.attributes.allocate({
+      id = this.buffers.allocate({
         version: -1,
         opt: optimized,
         heap: heap,
         slot: slot,
         bid: bid,
         offset: offset,
+        index_offset: optimized ? offset / index_obj.stride : 0,
       });
       index_obj.initialize(id, this.index_callback);
     }
 
-    const cache = this.attributes.get(id), version = index_obj.get_version();
+    const cache = this.buffers.get(id), version = index_obj.get_version();
     if (cache.version != version) {
       cache.version = version;
       this.buffer_manager.update(cache.bid, cache.offset, index_obj.data);
@@ -352,13 +353,13 @@ export class RenderCache {
   }
 
   free_index(index_id) {
-    const cache = this.attributes.get(index_id);
+    const cache = this.buffers.get(index_id);
     if (cache.opt) {
       this.buffer_manager.delete_interleaved(cache.heap, cache.slot);
     } else {
       this.buffer_manager.delete_attribute(cache.heap, cache.slot);
     }
-    this.attributes.delete(index_id);
+    this.buffers.delete(index_id);
   }
 
   get_interleaved(inter_obj) {
@@ -367,7 +368,7 @@ export class RenderCache {
     if (id == UNINITIALIZED) {
       const { heap, slot, offset, bid, attrib_bid } = this.buffer_manager.create_interleaved(inter_obj.total_bytes, inter_obj.stride);
      
-      id = this.attributes.allocate({
+      id = this.buffers.allocate({
         version: -1,
         heap: heap,
         slot: slot,
@@ -379,7 +380,7 @@ export class RenderCache {
       inter_obj.initialize(id, this.interleaved_callback);
     }
 
-    const cache = this.attributes.get(id), version = inter_obj.get_version();
+    const cache = this.buffers.get(id), version = inter_obj.get_version();
     if (cache.version != version) {
       cache.version = version;
       this.buffer_manager.update(cache.bid, cache.offset, inter_obj.data);
@@ -389,9 +390,9 @@ export class RenderCache {
   }
 
   free_interleaved(inter_id) {
-    const cache = this.attributes.get(inter_id);
+    const cache = this.buffers.get(inter_id);
     this.buffer_manager.delete_interleaved(cache.heap, cache.slot);
-    this.attributes.delete(inter_id);
+    this.buffers.delete(inter_id);
   }
 
   get_attribute(attrib_obj) {
@@ -407,7 +408,7 @@ export class RenderCache {
         byte_size: size,
       });
 
-      id = this.attributes.allocate({
+      id = this.buffers.allocate({
         version: -1,
         heap: heap,
         slot: slot,
@@ -418,7 +419,7 @@ export class RenderCache {
       attrib_obj.initialize(id, this.attribute_callback);
     }
 
-    const cache = this.attributes.get(id), version = attrib_obj.get_version();
+    const cache = this.buffers.get(id), version = attrib_obj.get_version();
     if (cache.version != version) {
       cache.version = version;
       this.buffer_manager.update(cache.bid, cache.offset, attrib_obj.data);
@@ -428,10 +429,10 @@ export class RenderCache {
   }
 
   free_attribute(attrib_id) {
-    const cache = this.attributes.get(attrib_id);
+    const cache = this.buffers.get(attrib_id);
     this.buffer_manager.delete_attribute(cache.heap, cache.slot);
     this.backend.resources.destroy_attribute(cache.attrib_bid);
-    this.attributes.delete(attrib_id);
+    this.buffers.delete(attrib_id);
   }
 
   copy_image_texture(texture_obj, gpu_tex, source) {
