@@ -6,12 +6,12 @@ export class BufferManager {
     this.uniforms = new UniformPool(backend);
   }
 
-  create_uniform(bytes) {
-    return this.uniforms.create(this.backend, bytes);
+  update(bid, offset, data) {
+    this.backend.write_buffer(bid, offset, data);
   }
 
-  update_uniform(bid, offset, data) {
-    this.backend.write_buffer(bid, offset, data);
+  create_uniform(bytes) {
+    return this.uniforms.create(this.backend, bytes);
   }
 
   delete_uniform(heap, slot) {

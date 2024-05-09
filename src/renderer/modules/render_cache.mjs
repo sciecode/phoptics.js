@@ -291,7 +291,7 @@ export class RenderCache {
     let id = buffer_obj.get_id();
 
     if (id == UNINITIALIZED) {
-      const { heap, slot, offset, bid } = this.buffer_manager.create_uniform(buffer_obj.total_size);
+      const { heap, slot, offset, bid } = this.buffer_manager.create_uniform(buffer_obj.total_bytes);
       id = this.buffers.allocate({
         version: -1,
         heap: heap,
@@ -307,7 +307,7 @@ export class RenderCache {
     if (cache.version != version) {
       cache.version = version;
       // TODO: if we implement arraybuffer allocator, implement offset / size for front-end bufffer
-      this.buffer_manager.update_uniform(cache.bid, cache.offset, buffer_obj.buffer);
+      this.buffer_manager.update(cache.bid, cache.offset, buffer_obj.buffer);
     }
 
     return cache;

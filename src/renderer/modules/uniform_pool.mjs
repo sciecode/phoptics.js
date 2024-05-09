@@ -1,9 +1,9 @@
 import { OffsetAllocator } from "../../common/offset_allocator.mjs";
 
 const BITS = 8;
-const MAX_ALLOC = 0x7FFFF;
-const STORAGE_MASK = (1 << BITS) - 1;
 const BLOCK_SIZE = 128 * 1024 * 1024;
+const MAX_ALLOC = (BLOCK_SIZE >> BITS) - 1;
+const STORAGE_MASK = (1 << BITS) - 1;
 
 const aligned = (x) => (x + STORAGE_MASK) & ~STORAGE_MASK;
 
@@ -17,10 +17,10 @@ export class UniformPool {
     let heap, slot, offset;
     const aligned_bytes = aligned(bytes) >> BITS;
     for (let i = this.allocators.length - 1; i >= 0; i--) {
-      const info = this.allocators[heap].malloc(aligned_bytes);
+      const info = this.allocators[i].malloc(aligned_bytes);
       if (info.slot !== undefined) {
         heap = i;
-        offset = info.offset;
+        offset = info.offset << BITS;
         slot = info.slot;
         break;
       }
@@ -35,7 +35,7 @@ export class UniformPool {
         })
       );
       const info = this.allocators[heap].malloc(aligned_bytes);
-      offset = info.offset;
+      offset = info.offset << BITS;
       slot = info.slot;
     }
 
