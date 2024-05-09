@@ -1,11 +1,13 @@
 import { UniformPool } from "./uniform_pool.mjs";
 import { AttributePool } from "./attribute_pool.mjs";
+import { InterleavedPool } from "./interleaved_pool.mjs";
 
 export class BufferManager {
   constructor(backend) {
     this.backend = backend;
     this.uniforms = new UniformPool(backend);
     this.attributes = new AttributePool(backend);
+    this.interleaved = new InterleavedPool(backend);
   }
 
   update(bid, offset, data) {
@@ -26,5 +28,13 @@ export class BufferManager {
 
   delete_attribute(heap, slot) {
     this.attributes.delete(heap, slot);
+  }
+
+  create_interleaved(bytes, stride) {
+    return this.interleaved.create(this.backend, bytes, stride);
+  }
+
+  delete_interleaved(heap, slot) {
+    this.interleaved.delete(heap, slot);
   }
 }

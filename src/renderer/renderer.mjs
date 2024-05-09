@@ -22,7 +22,7 @@ export class Renderer {
     this.state.set_queue(queue);
     
     this.draw_stream.set_globals(global_bid);
-    
+
     // TODO: temporary while shader variant isn't implemented
     this.draw_stream.set_variant(0);
 
@@ -51,10 +51,9 @@ export class Renderer {
         this.draw_stream.set_dynamic(0);
       }
 
-      const geometry = mesh.geometry;
+      const geometry = mesh.geometry, attributes = geometry.attributes;
       draw_info.draw_count = geometry.count;
 
-      const attributes = geometry.attributes;
       if (attributes.length != 1) {
         draw_info.vertex_offset = 0; // TODO: impl geometry draw range
 
@@ -85,7 +84,7 @@ export class Renderer {
           draw_info.index_offset = NULL_HANDLE;
         }
 
-        const attrib_cache = this.cache.get_interleaved(attributes[i]);
+        const attrib_cache = this.cache.get_interleaved(attributes[0]);
         this.draw_stream.set_attribute(0, attrib_cache.attrib_bid);
         draw_info.vertex_offset = attrib_cache.vertex_offset; // TODO: impl geometry draw range
 

@@ -16,7 +16,7 @@ export class AttributePool {
   create(backend, bytes) {
     let heap, slot, offset;
     const aligned_bytes = aligned(bytes) >> BITS;
-    for (let i = this.allocators.length - 1; i >= 0; i--) {
+    for (let i = 0, il = this.allocators.length; i < il; i++) {
       const info = this.allocators[i].malloc(aligned_bytes);
       if (info.slot !== undefined) {
         heap = i;

@@ -84,22 +84,12 @@ let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
   const shader_base = new Shader({ code: forward_shader });
   material = new Material({
     shader: shader_base,
-    graphics: {
-      cull: "back",
-      primitive: "triangle-list",
-      depth: {
-        write: true,
-        test: "greater"
-      }
-    },
     dynamic: transform_layout,
     vertex: [
-      { arrayStride: 12, attributes: [
+      { arrayStride: 24, attributes: [
         { shaderLocation: 0, offset: 0, format: 'float32x3' },
-      ], },
-      { arrayStride: 12, attributes: [
-        { shaderLocation: 1, offset: 0, format: 'float32x3' },
-      ], },
+        { shaderLocation: 1, offset: 12, format: 'float32x3' } ], 
+      },
     ],
   });
 
@@ -110,22 +100,28 @@ let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
   const geo_byte_size = (vertex_count * 2 + index_count) * 4;
 
   const data = new ArrayBuffer(geo_byte_size);
-  const pos_data = new Float32Array(data, 0, vertex_count);
-  const norm_data = new Float32Array(data, vertex_count * 4, vertex_count);
+  const vertex_data = new Float32Array(data, 0, vertex_count * 2);
   const index_data = new Uint32Array(data, vertex_count * 8, index_count);
-  pos_data.set(geo.positions);
-  norm_data.set(geo.normals);
   index_data.set(geo.indices);
+
+  for (let i = 0; i < vertex_count; i+=3) {
+    const i6 = i * 2;
+
+    vertex_data[i6] = geo.positions[i];
+    vertex_data[i6 + 1] = geo.positions[i + 1];
+    vertex_data[i6 + 2] = geo.positions[i + 2];
+
+    vertex_data[i6 + 3] = geo.normals[i];
+    vertex_data[i6 + 4] = geo.normals[i + 1];
+    vertex_data[i6 + 5] = geo.normals[i + 2];
+  }
 
   const geometry = {
     count: index_count,
     index: new Buffer({ data: index_data }),
-    attributes: [
-      new Buffer({ data: pos_data }),
-      new Buffer({ data: norm_data })
-    ],
+    attributes: [ new Buffer({ data: vertex_data, stride: 24 }) ],
   }
-  
+
   scene = new Queue();
   mesh1 = new Mesh(geometry, material);
   obj_pos.set(-30, 0, 0);

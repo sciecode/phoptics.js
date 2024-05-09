@@ -24,6 +24,7 @@ export class RenderCache {
     this.bindings_callback = this.free_binding.bind(this);
     this.uniform_callback = this.free_uniform.bind(this);
     this.attribute_callback = this.free_attribute.bind(this);
+    this.interleaved_callback = this.free_interleaved.bind(this);
     this.index_callback = this.free_index.bind(this);
   }
 
@@ -322,19 +323,21 @@ export class RenderCache {
     this.uniforms.delete(buffer_id);
   }
 
-  get_index(index_obj) {
+  get_index(index_obj, optimized = false) {
     let id = index_obj.get_id();
 
     if (id == UNINITIALIZED) {
-      const { heap, slot, offset, bid } = this.buffer_manager.create_attribute(index_obj.total_bytes);
+      const { heap, slot, offset, bid } = (optimized) ? 
+        this.buffer_manager.create_interleaved(index_obj.total_bytes) :
+        this.buffer_manager.create_attribute(index_obj.total_bytes);
       
       id = this.attributes.allocate({
         version: -1,
+        opt: optimized,
         heap: heap,
         slot: slot,
         bid: bid,
         offset: offset,
-        size: index_obj.total_bytes,
       });
       index_obj.initialize(id, this.index_callback);
     }
@@ -350,8 +353,45 @@ export class RenderCache {
 
   free_index(index_id) {
     const cache = this.attributes.get(index_id);
-    this.buffer_manager.delete_attribute(cache.heap, cache.slot);
+    if (cache.opt) {
+      this.buffer_manager.delete_interleaved(cache.heap, cache.slot);
+    } else {
+      this.buffer_manager.delete_attribute(cache.heap, cache.slot);
+    }
     this.attributes.delete(index_id);
+  }
+
+  get_interleaved(inter_obj) {
+    let id = inter_obj.get_id();
+
+    if (id == UNINITIALIZED) {
+      const { heap, slot, offset, bid, attrib_bid } = this.buffer_manager.create_interleaved(inter_obj.total_bytes, inter_obj.stride);
+     
+      id = this.attributes.allocate({
+        version: -1,
+        heap: heap,
+        slot: slot,
+        bid: bid,
+        attrib_bid: attrib_bid,
+        offset: offset,
+        vertex_offset: offset / inter_obj.stride
+      });
+      inter_obj.initialize(id, this.interleaved_callback);
+    }
+
+    const cache = this.attributes.get(id), version = inter_obj.get_version();
+    if (cache.version != version) {
+      cache.version = version;
+      this.buffer_manager.update(cache.bid, cache.offset, inter_obj.data);
+    }
+
+    return cache;
+  }
+
+  free_interleaved(inter_id) {
+    const cache = this.attributes.get(inter_id);
+    this.buffer_manager.delete_interleaved(cache.heap, cache.slot);
+    this.attributes.delete(inter_id);
   }
 
   get_attribute(attrib_obj) {
