@@ -16,7 +16,7 @@ export class Texture {
       format: current.format,
       size: size,
       usage: current.usage,
-      sampleCount: current.samples,
+      sampleCount: current.sampleCount,
       dimensions: current.dimensions,
       mipLevelCount: current.mip_levels || 1,
     });
