@@ -26,7 +26,7 @@ fn dec_oct32(data : u32) -> vec3f {
   let v = vec2f(vec2u(data & 65535, data >> 16)) / 32767.5 - 1.0;
   var nor = vec3f(v, 1.0 - abs(v.x) - abs(v.y));
   let t = vec2f(max(-nor.z, 0.0));
-  nor += vec3f(select(t, -t, nor.xy > vec2f()), nor.z);
+  nor += vec3f(select(t, -t, nor.xy > vec2f()), 0);
   return normalize(nor);
 }
 
@@ -34,7 +34,7 @@ fn dec_oct32(data : u32) -> vec3f {
   var output : FragInput;
 
   var w_pos = vec4f(attrib.position, 1) * obj;
-  var c_pos = vec4f( vec4f(w_pos, 1 ) * globals.view_matrix, 1 ) * globals.projection_matrix;
+  var c_pos = vec4f(vec4f(w_pos, 1) * globals.view_matrix, 1) * globals.projection_matrix;
 
   output.position = c_pos;
   output.w_pos = w_pos;
@@ -98,5 +98,4 @@ fn point_light(frag : ptr<function, RenderInfo>, l_pos : vec3f, l_color : vec3f,
   let L = albedo * frag.Ld_dif;
   let Lf = pow(L / globals.nits, vec3f(1./2.2));
   return vec4f(Lf, 1);
-}
-`;
+}`;
