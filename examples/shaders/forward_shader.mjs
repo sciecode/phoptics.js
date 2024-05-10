@@ -22,14 +22,12 @@ struct Globals {
 @group(0) @binding(0) var<storage, read> globals: Globals;
 @group(3) @binding(0) var<storage, read> obj: mat3x4f;
 
-fn decode_normal(data : u32) -> vec3f {
-  let iv = vec2u( data & 65535, (data >> 16) & 65535);
-  let v = vec2f(iv) / 32767.5 - 1.0;
+fn dec_oct32(data : u32) -> vec3f {
+  let v = vec2f(vec2u(data & 65535, data >> 16)) / 32767.5 - 1.0;
   var nor = vec3f(v, 1.0 - abs(v.x) - abs(v.y));
-  let t = max(-nor.z, 0.0);
-  nor.x += select( t, -t, nor.x > 0 );
-  nor.y += select( t, -t, nor.y > 0 );
-  return normalize( nor );
+  let t = vec2f(max(-nor.z, 0.0));
+  nor += vec3f(select(t, -t, nor.xy > vec2f()), nor.z);
+  return normalize(nor);
 }
 
 @vertex fn vs(attrib : Attributes) -> FragInput {
@@ -40,7 +38,7 @@ fn decode_normal(data : u32) -> vec3f {
 
   output.position = c_pos;
   output.w_pos = w_pos;
-  output.w_normal = decode_normal(attrib.normal);
+  output.w_normal = dec_oct32(attrib.normal);
 
   return output;
 }
