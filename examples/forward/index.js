@@ -86,9 +86,9 @@ let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
     shader: shader_base,
     dynamic: transform_layout,
     vertex: [
-      { arrayStride: 24, attributes: [
+      { arrayStride: 16, attributes: [
         { shaderLocation: 0, offset: 0, format: 'float32x3' },
-        { shaderLocation: 1, offset: 12, format: 'float32x3' } ], 
+        { shaderLocation: 1, offset: 12, format: 'uint32' } ], 
       },
     ],
   });
@@ -96,30 +96,28 @@ let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
   const loader = new OBJLoader();
   const geo = await loader.load('../models/walt.obj');
 
-  const vertex_count = geo.positions.length, index_count = geo.indices.length;
-  const geo_byte_size = (vertex_count * 2 + index_count) * 4;
+  const vertex_count = geo.positions.length / 3, index_count = geo.indices.length;
+  const geo_byte_size = (vertex_count * 4 + index_count) * 4;
 
   const data = new ArrayBuffer(geo_byte_size);
-  const vertex_data = new Float32Array(data, 0, vertex_count * 2);
-  const index_data = new Uint32Array(data, vertex_count * 8, index_count);
+  const vertex_data_f32 = new Float32Array(data, 0, vertex_count * 4);
+  const vertex_data_u32 = new Uint32Array(data, 0, vertex_count * 4);
+  const index_data = new Uint32Array(data, vertex_count * 16, index_count);
   index_data.set(geo.indices);
 
-  for (let i = 0; i < vertex_count; i+=3) {
-    const i6 = i * 2;
+  for (let i = 0; i < vertex_count; i++) {
+    const i3 = i * 3, i4 = i * 4;
 
-    vertex_data[i6] = geo.positions[i];
-    vertex_data[i6 + 1] = geo.positions[i + 1];
-    vertex_data[i6 + 2] = geo.positions[i + 2];
-
-    vertex_data[i6 + 3] = geo.normals[i];
-    vertex_data[i6 + 4] = geo.normals[i + 1];
-    vertex_data[i6 + 5] = geo.normals[i + 2];
+    vertex_data_f32[i4] = geo.positions[i3];
+    vertex_data_f32[i4 + 1] = geo.positions[i3 + 1];
+    vertex_data_f32[i4 + 2] = geo.positions[i3 + 2];
+    vertex_data_u32[i4 + 3] = encode_normal(geo.normals[i3], geo.normals[i3 + 1], geo.normals[i3 + 2]);
   }
 
   const geometry = {
     count: index_count,
     index: new Buffer({ data: index_data }),
-    attributes: [ new Buffer({ data: vertex_data, stride: 24 }) ],
+    attributes: [ new Buffer({ data: vertex_data_f32, stride: 16 }) ],
   }
 
   scene = new Queue();
@@ -148,6 +146,22 @@ const auto_resize = () => {
     render_pass.bindings.camera.projection.perspective(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
   }
 }
+
+const encode_normal = (x, y, z) => {
+  const abs = Math.abs(x) + Math.abs(y) + Math.abs(z);
+  let nx = x / abs, ny = y / abs, vx, vy;
+
+  if (z >= 0) {
+    vx = nx;
+    vy = ny;
+  } else {
+    vx = (1. - Math.abs(ny)) * Math.sign(nx);
+    vy = (1. - Math.abs(nx)) * Math.sign(ny);
+  }
+
+  const dx = Math.round(32767.5 + vx*32767.5), dy = Math.round(32767.5 + vy*32767.5);
+  return dx | (dy << 16);
+ }
 
 const animate = () => {
   requestAnimationFrame(animate);

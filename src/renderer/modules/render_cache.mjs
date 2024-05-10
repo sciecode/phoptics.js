@@ -24,7 +24,7 @@ export class RenderCache {
 
   get_target(target_obj) {
     const info = {
-      color: target_obj.color.map( attach => this.get_view(attach.view).view ),
+      color: target_obj.color.map(attach => this.get_view(attach.view).view),
       depth: target_obj.depth ? this.get_view(target_obj.depth.view).view : undefined,
     };
 

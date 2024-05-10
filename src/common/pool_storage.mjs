@@ -1,6 +1,6 @@
 export class PoolStorage {
 
-  constructor(capacity = 1024) {
+  constructor(capacity = 128) {
     this.count = 0;
     this.data = new Array(capacity);
     this.freelist = [];
