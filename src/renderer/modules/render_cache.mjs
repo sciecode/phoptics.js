@@ -191,11 +191,11 @@ export class RenderCache {
         version: version,
         layout: layout_cache.id,
         views: views,
-        info: { render: undefined, key: undefined, bid: bid },
+        bid: bid,
       }
 
       id = this.bindings.allocate(cache);
-      binding_obj.initialize(id, cache.info, this.bindings_callback);
+      binding_obj.initialize(id, this.bindings_callback);
     }
 
     let needs_update = false;
@@ -222,9 +222,9 @@ export class RenderCache {
 
     if (needs_update) {
       const layout = this.material_manager.get_layout(cache.layout);
-      this.backend.resources.destroy_bind_group(cache.info.bid);
+      this.backend.resources.destroy_bind_group(cache.bid);
       cache.views.length = 0;
-      cache.info.bid = this.create_bind_group(binding_obj, layout, cache.views);
+      cache.bid = this.create_bind_group(binding_obj, layout, cache.views);
     }
 
     return cache;
@@ -233,7 +233,7 @@ export class RenderCache {
   free_binding(id) {
     const cache = this.bindings.get(id);
     this.material_manager.free_layout(cache.layout);
-    this.backend.resources.destroy_bind_group(cache.info.bid);
+    this.backend.resources.destroy_bind_group(cache.bid);
     this.bindings.delete(id);
   }
 

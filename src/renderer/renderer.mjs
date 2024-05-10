@@ -34,11 +34,12 @@ export class Renderer {
     };
     
     for (let i = 0, il = queue.size; i < il; i++) {
-      const mesh = queue.meshes[queue.indices[i].index], material = mesh.material;
-
-      this.draw_stream.set_pipeline(material.get_pipeline());
-
-      const material_bid = material.bindings ? material.bindings.get_group() : 0;
+      const entry = queue.indices[i];
+      const mesh = queue.meshes[entry.index], material = mesh.material;
+      
+      this.draw_stream.set_pipeline(Number(entry.key));
+      
+      const material_bid = material.bindings ? this.cache.get_binding(material.bindings).bid : 0;
       this.draw_stream.set_material(material_bid);
 
       if (material.dynamic !== undefined) {

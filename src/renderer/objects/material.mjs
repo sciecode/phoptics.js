@@ -4,7 +4,6 @@ import { Bindings } from "./bindings.mjs";
 export class Material {
   #id = UNINITIALIZED;
   #version = 0;
-  #info = null;
   #free = () => {}
 
   constructor(options) {
@@ -24,10 +23,7 @@ export class Material {
   
   get_id() { return this.#id; }
   get_version() { return this.#version; }
-  get_key() { return this.#info.key; }
-  get_render_id() { return this.#info?.render; }
-  get_pipeline() { return this.#info.bid; }
-  initialize(id, info, free) { if (this.#id == UNINITIALIZED) { this.#id = id; this.#info = info, this.#free = free; } }
+  initialize(id, free) { if (this.#id == UNINITIALIZED) { this.#id = id; this.#free = free; } }
   destroy() {
     this.shader.destroy();
     this.bindings?.destroy();

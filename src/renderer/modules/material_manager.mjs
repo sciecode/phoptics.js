@@ -90,10 +90,9 @@ export class MaterialManager {
     const cache = {
       version: info.material.get_version(),
       pipeline: pipeline_id,
-      info: { render: undefined, key: undefined, bid: undefined }
     };
     const id = this.materials.allocate(cache);
-    info.material.initialize(id, cache.info, this.material_callback);
+    info.material.initialize(id, this.material_callback);
     return id;
   }
 

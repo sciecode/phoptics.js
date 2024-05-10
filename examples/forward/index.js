@@ -10,13 +10,13 @@ import { Buffer } from "../../src/renderer/objects/buffer.mjs";
 import { Shader } from "../../src/renderer/objects/shader.mjs";
 import { Texture } from "../../src/renderer/objects/texture.mjs";
 import { Material } from "../../src/renderer/objects/material.mjs";
-import forward_shader from "../shaders/forward_shader.mjs";
 
 import { Vec3 } from "../../src/datatypes/vec3.mjs";
 import { Vec4 } from "../../src/datatypes/vec4.mjs";
 import { Mat3x4 } from "../../src/datatypes/mat34.mjs";
 import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
+import forward_shader from "../shaders/forward_shader.mjs";
 
 const dpr = window.devicePixelRatio;
 let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
