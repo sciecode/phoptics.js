@@ -1,16 +1,16 @@
-import { Renderer } from "../../src/renderer/renderer.mjs";
-import { RenderPass } from "../../src/renderer/objects/render_pass.mjs";
-import { RenderTarget } from "../../src/renderer/objects/render_target.mjs";
-import { ResourceType } from "../../src/renderer/constants.mjs";
-import { CanvasTexture } from "../../src/renderer/objects/canvas_texture.mjs";
-import { DynamicLayout } from "../../src/renderer/objects/dynamic_layout.mjs";
-import { Queue } from "../../src/renderer/objects/queue.mjs";
-import { Mesh } from "../../src/renderer/objects/mesh.mjs";
-import { Buffer } from "../../src/renderer/objects/buffer.mjs";
-import { Shader } from "../../src/renderer/objects/shader.mjs";
-import { Texture } from "../../src/renderer/objects/texture.mjs";
-import { Geometry } from "../../src/renderer/objects/geometry.mjs";
-import { Material } from "../../src/renderer/objects/material.mjs";
+import { Engine } from "../../src/engine/engine.mjs";
+import { RenderPass } from "../../src/engine/objects/render_pass.mjs";
+import { RenderTarget } from "../../src/engine/objects/render_target.mjs";
+import { ResourceType } from "../../src/engine/constants.mjs";
+import { CanvasTexture } from "../../src/engine/objects/canvas_texture.mjs";
+import { DynamicLayout } from "../../src/engine/objects/dynamic_layout.mjs";
+import { Queue } from "../../src/engine/objects/queue.mjs";
+import { Mesh } from "../../src/engine/objects/mesh.mjs";
+import { Buffer } from "../../src/engine/objects/buffer.mjs";
+import { Shader } from "../../src/engine/objects/shader.mjs";
+import { Texture } from "../../src/engine/objects/texture.mjs";
+import { Geometry } from "../../src/engine/objects/geometry.mjs";
+import { Material } from "../../src/engine/objects/material.mjs";
 
 import { Vec3 } from "../../src/datatypes/vec3.mjs";
 import { Vec4 } from "../../src/datatypes/vec4.mjs";
@@ -21,11 +21,11 @@ import forward_shader from "../shaders/forward_shader.mjs";
 
 const dpr = window.devicePixelRatio;
 let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
-let renderer, canvas_texture, render_pass, render_target, material, scene;
+let engine, canvas_texture, render_pass, render_target, material, scene;
 let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
 
 (async () => {
-  renderer = new Renderer(await Renderer.acquire_device());
+  engine = new Engine(await Engine.acquire_device());
 
   canvas_texture = new CanvasTexture({ format: navigator.gpu.getPreferredCanvasFormat() });
   canvas_texture.set_size({ width: viewport.x, height: viewport.y });
@@ -121,6 +121,7 @@ let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
     attributes: [ new Buffer({ data: vertex_data_f32, stride: 16 }) ],
   });
 
+  
   scene = new Queue();
   mesh1 = new Mesh(geometry, material);
   obj_pos.set(-30, 0, 0);
@@ -131,6 +132,8 @@ let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
   obj_pos.x = 30;
   mesh2.dynamic.world.translate(obj_pos);
   scene.add(mesh2);
+
+  engine.preload(render_pass, mesh1);
   
   animate();
 })();
@@ -183,5 +186,5 @@ const animate = () => {
     mesh2.dynamic.world.translate(obj_pos);
   }
 
-  renderer.render(render_pass, scene);
+  engine.render(render_pass, scene);
 }

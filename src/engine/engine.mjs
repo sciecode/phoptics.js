@@ -6,11 +6,13 @@ import { RenderCache } from "./modules/render_cache.mjs";
 import { DynamicManager } from "./modules/dynamic_manager.mjs";
 import Keys from "./modules/keys.mjs";
 
-export class Renderer {
+export class Engine {
   constructor(device) {
     this.backend = new GPUBackend(device);
+
     this.cache = new RenderCache(this.backend);
     this.dynamic = new DynamicManager(this.backend);
+    
     this.state = new RenderState(this.cache, this.dynamic);
     this.draw_stream = new DrawStream();
   }
@@ -74,8 +76,8 @@ export class Renderer {
     this.backend.render(descriptor, this.draw_stream);
   }
 
-  precompile(pass, material) {
-    this.state.load_material(pass, material);
+  preload(pass, mesh) {
+    this.state.preload(pass, mesh);
   }
 
   static async acquire_device(options = {}) {

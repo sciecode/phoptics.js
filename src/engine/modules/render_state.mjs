@@ -1,4 +1,3 @@
-import { NULL_HANDLE } from "../../backend/constants.mjs";
 import Keys from "./keys.mjs";
 
 export class RenderState {
@@ -67,23 +66,19 @@ export class RenderState {
       const pipeline_cache = this.cache.get_pipeline(material, this.state, dynamic_layout);
       Keys.set_pipeline(entry, pipeline_cache.bid);
 
-      const geometry = mesh.geometry, attributes = geometry.attributes;
-      this.cache.get_geometry(geometry);
-      
-      const index_bid = geometry.index ? geometry.index.get_bid() : NULL_HANDLE;
-      Keys.set_index(entry, index_bid);
-      
-      let attrib_bid = (attributes.length) ? attributes[0].get_bid() : NULL_HANDLE;
-      Keys.set_buffer(entry, attrib_bid);
+      const geometry_cache = this.cache.get_geometry(mesh.geometry);
+      Keys.set_index(entry, geometry_cache.index_bid);
+      Keys.set_buffer(entry, geometry_cache.buffer_bid);
     }
 
     queue.indices.sort(render_list_compare); // TODO: use adaptive MSB Hybrid-Sort 64b
   }
 
-  load_material(pass, material) {
-    const dynamic_layout = this.set_dynamic(material);
+  preload(pass, mesh) {
     this.set_pass(pass);
-    this.cache.get_material(material, this.state, dynamic_layout);
+    const dynamic_layout = this.set_dynamic(mesh.material);
+    this.cache.get_pipeline(mesh.material, this.state, dynamic_layout);
+    this.cache.get_geometry(mesh.geometry);
   }
 }
 

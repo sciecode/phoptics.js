@@ -9,7 +9,7 @@ import { SparseSet } from "../../common/sparse_set.mjs";
 export class RenderCache {
   constructor(backend) {
     this.backend = backend;
-    
+
     this.buffer_manager = new BufferManager(backend);
     this.material_manager = new MaterialManager(backend);
 
@@ -97,18 +97,34 @@ export class RenderCache {
   get_geometry(geometry_obj) {
     let id = geometry_obj.get_id();
 
-    const index_offset = geometry_obj.index ? this.get_index(geometry_obj.index).index_offset : NULL_HANDLE;
+    let cache = {
+      index_offset: NULL_HANDLE,
+      index_bid: NULL_HANDLE,
+      vertex_offset: 0,
+      buffer_bid: NULL_HANDLE,
+    };
 
-    let vertex_offset = 0, attrib = 0;
+    if (geometry_obj.index) {
+      const index_cache = this.get_index(geometry_obj.index);
+      cache.index_bid = index_cache.bid;
+      cache.index_offset = index_cache.index_offset;
+    }
+
+    let attrib = 0;
     const attributes = geometry_obj.attributes, attrib_count = attributes.length;
     if (attrib_count == 1) {
-      vertex_offset = this.get_interleaved(attributes[attrib++]).vertex_offset;
+      const inter_cache = this.get_interleaved(attributes[attrib++]);
+      cache.buffer_bid = inter_cache.bid;
+      cache.vertex_offset = inter_cache.vertex_offset;
     } else if (attrib_count > 1) {
-      this.get_attribute(attributes[attrib++]);
+      const attrib_cache = this.get_attribute(attributes[attrib++]);
+      cache.buffer_bid = attrib_cache.bid;
       for (; attrib < attrib_count; attrib++) this.get_attribute(attributes[attrib]);
     }
     
-    if (id == UNINITIALIZED) geometry_obj.initialize(0, index_offset, vertex_offset);
+    if (id == UNINITIALIZED) geometry_obj.initialize(0, cache.index_offset, cache.vertex_offset);
+
+    return cache;
   }
 
   get_pipeline(material_obj, state, dynamic_layout) {

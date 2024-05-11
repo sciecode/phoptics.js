@@ -1,15 +1,15 @@
-import { Renderer } from "../../src/renderer/renderer.mjs";
-import { RenderPass } from "../../src/renderer/objects/render_pass.mjs";
-import { RenderTarget } from "../../src/renderer/objects/render_target.mjs";
-import { CanvasTexture } from "../../src/renderer/objects/canvas_texture.mjs";
-import { StructuredBuffer } from "../../src/renderer/objects/structured_buffer.mjs";
-import { Queue } from "../../src/renderer/objects/queue.mjs";
-import { Mesh } from "../../src/renderer/objects/mesh.mjs";
-import { Shader } from "../../src/renderer/objects/shader.mjs";
-import { Sampler } from "../../src/renderer/objects/sampler.mjs";
-import { Texture } from "../../src/renderer/objects/texture.mjs";
-import { Material } from "../../src/renderer/objects/material.mjs";
-import { Geometry } from "../../src/renderer/objects/geometry.mjs";
+import { Engine } from "../../src/engine/engine.mjs";
+import { RenderPass } from "../../src/engine/objects/render_pass.mjs";
+import { RenderTarget } from "../../src/engine/objects/render_target.mjs";
+import { CanvasTexture } from "../../src/engine/objects/canvas_texture.mjs";
+import { StructuredBuffer } from "../../src/engine/objects/structured_buffer.mjs";
+import { Queue } from "../../src/engine/objects/queue.mjs";
+import { Mesh } from "../../src/engine/objects/mesh.mjs";
+import { Shader } from "../../src/engine/objects/shader.mjs";
+import { Sampler } from "../../src/engine/objects/sampler.mjs";
+import { Texture } from "../../src/engine/objects/texture.mjs";
+import { Material } from "../../src/engine/objects/material.mjs";
+import { Geometry } from "../../src/engine/objects/geometry.mjs";
 
 import { Vec3 } from "../../src/datatypes/vec3.mjs";
 import { Vec4 } from "../../src/datatypes/vec4.mjs";
@@ -19,10 +19,10 @@ import mipmap_shader from "../shaders/mipmap_shader.mjs";
 
 const dpr = window.devicePixelRatio;
 let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
-let render_pass, render_target, renderer, canvas_texture, scene, camera, quad;
+let render_pass, render_target, engine, canvas_texture, scene, camera, quad;
 
 const init = async () => {
-  renderer = new Renderer(await Renderer.acquire_device());
+  engine = new Engine(await Engine.acquire_device());
 
   canvas_texture = new CanvasTexture({ format: navigator.gpu.getPreferredCanvasFormat() });
   canvas_texture.set_size({ width: viewport.x, height: viewport.y });
@@ -128,7 +128,7 @@ const animate = () => {
   requestAnimationFrame(animate);
 
   auto_resize();
-  renderer.render(render_pass, scene);
+  engine.render(render_pass, scene);
 }
 
 init();
