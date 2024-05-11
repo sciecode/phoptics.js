@@ -4,6 +4,7 @@ import { DrawStream } from "./modules/draw_stream.mjs";
 import { RenderState } from "./modules/render_state.mjs";
 import { RenderCache } from "./modules/render_cache.mjs";
 import { DynamicManager } from "./modules/dynamic_manager.mjs";
+import Keys from "./modules/keys.mjs";
 
 export class Renderer {
   constructor(device) {
@@ -19,10 +20,9 @@ export class Renderer {
     this.draw_stream.clear();
 
     const global_bid = this.state.set_pass(pass);
+    this.draw_stream.set_globals(global_bid);
     this.state.set_queue(queue);
     
-    this.draw_stream.set_globals(global_bid);
-
     // TODO: temporary while shader variant isn't implemented
     this.draw_stream.set_variant(0);
 
@@ -37,7 +37,7 @@ export class Renderer {
       const entry = queue.indices[i];
       const mesh = queue.meshes[entry.index], material = mesh.material;
       
-      this.draw_stream.set_pipeline(Number(entry.key));
+      this.draw_stream.set_pipeline(Keys.get_pipeline(entry));
       
       const material_bid = material.bindings ? this.cache.get_binding(material.bindings).bid : 0;
       this.draw_stream.set_material(material_bid);
@@ -54,13 +54,12 @@ export class Renderer {
 
       const geometry = mesh.geometry, attributes = geometry.attributes;
       draw_info.draw_count = geometry.count;
-      
+
+      draw_info.index = Keys.get_index(entry);
       if (geometry.index) {
         const index_cache = this.cache.get_index(geometry.index);
-        draw_info.index = index_cache.bid;
         draw_info.index_offset = index_cache.index_offset;
       } else {
-        draw_info.index = NULL_HANDLE;
         draw_info.index_offset = NULL_HANDLE;
       }
 
