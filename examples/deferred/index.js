@@ -10,15 +10,16 @@ import { Buffer } from "../../src/renderer/objects/buffer.mjs";
 import { Shader } from "../../src/renderer/objects/shader.mjs";
 import { Sampler } from "../../src/renderer/objects/sampler.mjs";
 import { Texture } from "../../src/renderer/objects/texture.mjs";
+import { Geometry } from "../../src/renderer/objects/geometry.mjs";
 import { Material } from "../../src/renderer/objects/material.mjs";
-import gbuffer_shader from "../shaders/deferred_gbuffer.mjs";
-import lighting_shader from "../shaders/deferred_lighting.mjs";
 
 import { Vec3 } from "../../src/datatypes/vec3.mjs";
 import { Vec4 } from "../../src/datatypes/vec4.mjs";
 import { Mat3x4 } from "../../src/datatypes/mat34.mjs";
 import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
+import gbuffer_shader from "../shaders/deferred_gbuffer.mjs";
+import lighting_shader from "../shaders/deferred_lighting.mjs";
 
 const dpr = window.devicePixelRatio;
 let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
@@ -133,15 +134,14 @@ let target = new Vec3(), obj_pos = new Vec3();
   norm_data.set(geo.normals);
   index_data.set(geo.indices);
 
-  const geometry = {
-    index: new Buffer({ data: index_data }),
+  const geometry = new Geometry({
     count: index_count,
-    vertex_offset: 0,
+    index: new Buffer({ data: index_data }),
     attributes: [
       new Buffer({ data: pos_data }),
       new Buffer({ data: norm_data })
     ],
-  }
+  });
 
   mesh = new Mesh(geometry, gbuffer_material);
   gbuffer_scene = new Queue();
@@ -151,10 +151,10 @@ let target = new Vec3(), obj_pos = new Vec3();
     shader: new Shader({ code: lighting_shader }),
   });
 
-  const lighting = new Mesh({
-    count: 3,
-    attributes: []
-  }, lighting_material);
+  const lighting = new Mesh(
+    new Geometry({ count: 3 }),
+    lighting_material
+  );
   lighting_scene = new Queue();
   lighting_scene.add(lighting);
 

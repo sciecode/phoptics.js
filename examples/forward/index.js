@@ -9,6 +9,7 @@ import { Mesh } from "../../src/renderer/objects/mesh.mjs";
 import { Buffer } from "../../src/renderer/objects/buffer.mjs";
 import { Shader } from "../../src/renderer/objects/shader.mjs";
 import { Texture } from "../../src/renderer/objects/texture.mjs";
+import { Geometry } from "../../src/renderer/objects/geometry.mjs";
 import { Material } from "../../src/renderer/objects/material.mjs";
 
 import { Vec3 } from "../../src/datatypes/vec3.mjs";
@@ -114,11 +115,11 @@ let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
     vertex_data_u32[i4 + 3] = encode_normal(geo.normals[i3], geo.normals[i3 + 1], geo.normals[i3 + 2]);
   }
 
-  const geometry = {
+  const geometry = new Geometry({
     count: index_count,
     index: new Buffer({ data: index_data }),
     attributes: [ new Buffer({ data: vertex_data_f32, stride: 16 }) ],
-  }
+  });
 
   scene = new Queue();
   mesh1 = new Mesh(geometry, material);

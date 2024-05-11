@@ -41,7 +41,7 @@ export class AttributePool {
         attrib_bid: attrib_bid,
         offset: offset,
       });
-      attrib_obj.initialize(id, this.free_callback);
+      attrib_obj.initialize(id, attrib_bid, this.free_callback);
     }
 
     const cache = this.attributes.get(id), version = attrib_obj.get_version();

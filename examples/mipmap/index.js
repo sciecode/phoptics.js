@@ -6,15 +6,15 @@ import { StructuredBuffer } from "../../src/renderer/objects/structured_buffer.m
 import { Queue } from "../../src/renderer/objects/queue.mjs";
 import { Mesh } from "../../src/renderer/objects/mesh.mjs";
 import { Shader } from "../../src/renderer/objects/shader.mjs";
-import { Material } from "../../src/renderer/objects/material.mjs";
 import { Sampler } from "../../src/renderer/objects/sampler.mjs";
 import { Texture } from "../../src/renderer/objects/texture.mjs";
+import { Material } from "../../src/renderer/objects/material.mjs";
+import { Geometry } from "../../src/renderer/objects/geometry.mjs";
 
 import { Vec3 } from "../../src/datatypes/vec3.mjs";
 import { Vec4 } from "../../src/datatypes/vec4.mjs";
 import { Mat3x4 } from "../../src/datatypes/mat34.mjs";
 import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
-
 import mipmap_shader from "../shaders/mipmap_shader.mjs";
 
 const dpr = window.devicePixelRatio;
@@ -82,10 +82,10 @@ const init = async () => {
     ],
   });
 
-  quad = new Mesh({
-    count: 6,
-    attributes: []
-  }, material);
+  quad = new Mesh(
+    new Geometry({ count: 6 }),
+    material
+  );
   scene = new Queue();
   scene.add(quad);
 

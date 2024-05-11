@@ -32,7 +32,7 @@ export class IndexdPool {
         offset: offset,
         index_offset: offset >> BITS,
       });
-      index_obj.initialize(id, this.index_callback);
+      index_obj.initialize(id, bid, this.index_callback);
     }
 
     const cache = this.indices.get(id), version = index_obj.get_version();

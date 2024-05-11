@@ -1,4 +1,4 @@
-import { GPUResource } from "../../backend/constants.mjs";
+import { GPUResource, NULL_HANDLE } from "../../backend/constants.mjs";
 import { ResourceType, TextureSourceType, UNINITIALIZED } from "../constants.mjs";
 import { BufferManager } from "./buffer_manager.mjs";
 import { SamplerTable } from "./sampler_table.mjs";
@@ -9,15 +9,17 @@ import { SparseSet } from "../../common/sparse_set.mjs";
 export class RenderCache {
   constructor(backend) {
     this.backend = backend;
+    
     this.buffer_manager = new BufferManager(backend);
     this.material_manager = new MaterialManager(backend);
-    this.sampler_table = new SamplerTable(backend.device.features);
 
+    this.samplers = new SparseSet();
+    this.sampler_table = new SamplerTable(backend.device.features);
+    
+    this.views = new PoolStorage();
     this.bindings = new PoolStorage();
     this.textures = new PoolStorage();
-    this.views = new PoolStorage();
-    this.samplers = new SparseSet();
-
+    
     this.texture_callback = this.free_texture.bind(this);
     this.bindings_callback = this.free_binding.bind(this);
   }
@@ -92,7 +94,24 @@ export class RenderCache {
     return this.samplers.get(id);
   }
 
-  get_material(material_obj, state, dynamic_layout) {
+  get_geometry(geometry_obj) {
+    let id = geometry_obj.get_id();
+
+    const index_offset = geometry_obj.index ? this.get_index(geometry_obj.index).index_offset : NULL_HANDLE;
+
+    let vertex_offset = 0, attrib = 0;
+    const attributes = geometry_obj.attributes, attrib_count = attributes.length;
+    if (attrib_count == 1) {
+      vertex_offset = this.get_interleaved(attributes[attrib++]).vertex_offset;
+    } else if (attrib_count > 1) {
+      this.get_attribute(attributes[attrib++]);
+      for (; attrib < attrib_count; attrib++) this.get_attribute(attributes[attrib]);
+    }
+    
+    if (id == UNINITIALIZED) geometry_obj.initialize(0, index_offset, vertex_offset);
+  }
+
+  get_pipeline(material_obj, state, dynamic_layout) {
     let id = material_obj.get_id();
 
     if (id == UNINITIALIZED) {
@@ -114,11 +133,7 @@ export class RenderCache {
       });
     }
 
-    return cache;
-  }
-
-  get_pipeline(id) {
-    return this.material_manager.get_pipeline(id);
+    return this.material_manager.get_pipeline(cache.pipeline);
   }
 
   create_bind_group(binding_obj, layout, views) {

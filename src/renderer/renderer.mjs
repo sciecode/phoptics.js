@@ -35,10 +35,9 @@ export class Renderer {
     
     for (let i = 0, il = queue.size; i < il; i++) {
       const entry = queue.indices[i];
-      const mesh = queue.meshes[entry.index], material = mesh.material;
-      
       this.draw_stream.set_pipeline(Keys.get_pipeline(entry));
       
+      const mesh = queue.meshes[entry.index], material = mesh.material;
       const material_bid = material.bindings ? this.cache.get_binding(material.bindings).bid : 0;
       this.draw_stream.set_material(material_bid);
 
@@ -52,45 +51,26 @@ export class Renderer {
         this.draw_stream.set_dynamic(0);
       }
 
-      const geometry = mesh.geometry, attributes = geometry.attributes;
+      const geometry = mesh.geometry;
       draw_info.draw_count = geometry.count;
+      draw_info.index_offset = geometry.get_index_offset();
+      draw_info.vertex_offset = geometry.get_vertex_offset();
+      draw_info.index = geometry.index ? geometry.index.get_bid() : NULL_HANDLE;
 
-      draw_info.index = Keys.get_index(entry);
-      if (geometry.index) {
-        const index_cache = this.cache.get_index(geometry.index);
-        draw_info.index_offset = index_cache.index_offset;
-      } else {
-        draw_info.index_offset = NULL_HANDLE;
-      }
-
-      if (attributes.length != 1) {
-        draw_info.vertex_offset = 0; // TODO: impl geometry draw range
-
-        for (let i = 0, il = 4; i < il; i++) {
-          if (i < attributes.length) {
-            const attrib_cache = this.cache.get_attribute(attributes[i]);
-            this.draw_stream.set_attribute(i, attrib_cache.attrib_bid);
-          } else {
-            this.draw_stream.set_attribute(i, NULL_HANDLE);
-          }
-        }
-      } else {
-        const attrib_cache = this.cache.get_interleaved(attributes[0]);
-        this.draw_stream.set_attribute(0, attrib_cache.attrib_bid);
-        draw_info.vertex_offset = attrib_cache.vertex_offset; // TODO: impl geometry draw range
-
-        for (let i = 1, il = 4; i < il; i++) {
-          this.draw_stream.set_attribute(i, NULL_HANDLE);
-        }
-      }
+      let attrib = 0;
+      const attributes = geometry.attributes;
+      for (const al = attributes.length; attrib < al; attrib++)
+        this.draw_stream.set_attribute(attrib, attributes[attrib].get_bid());
+      for (; attrib < 4; attrib++)
+        this.draw_stream.set_attribute(attrib, NULL_HANDLE);
 
       this.draw_stream.draw(draw_info);
     }
 
     this.dynamic.commit();
 
-    const target = pass.current_target;
-    const descriptor = make_pass_descriptor(target, this.cache.get_target(target));
+    const target = pass.current_target, target_cache = this.cache.get_target(target);
+    const descriptor = make_pass_descriptor(target, target_cache);
     this.backend.render(descriptor, this.draw_stream);
   }
 

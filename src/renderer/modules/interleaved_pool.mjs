@@ -32,7 +32,7 @@ export class InterleavedPool {
         offset: offset,
         vertex_offset: offset / inter_obj.stride
       });
-      inter_obj.initialize(id, this.free_callback);
+      inter_obj.initialize(id, attrib_bid, this.free_callback);
     }
 
     const cache = this.interleaved.get(id), version = inter_obj.get_version();
