@@ -1,28 +1,13 @@
-import { Engine } from "../../src/engine/engine.mjs";
-import { RenderPass } from "../../src/engine/objects/render_pass.mjs";
-import { RenderTarget } from "../../src/engine/objects/render_target.mjs";
-import { DynamicLayout } from "../../src/engine/objects/dynamic_layout.mjs";
-import { CanvasTexture } from "../../src/engine/objects/canvas_texture.mjs";
-import { StructuredBuffer } from "../../src/engine/objects/structured_buffer.mjs";
-import { Queue } from "../../src/engine/objects/queue.mjs";
-import { Mesh } from "../../src/engine/objects/mesh.mjs";
-import { Buffer } from "../../src/engine/objects/buffer.mjs";
-import { Shader } from "../../src/engine/objects/shader.mjs";
-import { Sampler } from "../../src/engine/objects/sampler.mjs";
-import { Texture } from "../../src/engine/objects/texture.mjs";
-import { Geometry } from "../../src/engine/objects/geometry.mjs";
-import { Material } from "../../src/engine/objects/material.mjs";
+import { Engine, Mesh, Queue, Buffer, Shader, Sampler, Geometry, Material, Texture, CanvasTexture,
+  RenderPass, RenderTarget, StructuredBuffer, DynamicLayout } from 'phoptics';
+import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
 
-import { Vec3 } from "../../src/datatypes/vec3.mjs";
-import { Vec4 } from "../../src/datatypes/vec4.mjs";
-import { Mat3x4 } from "../../src/datatypes/mat34.mjs";
-import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import gbuffer_shader from "../shaders/deferred_gbuffer.mjs";
 import lighting_shader from "../shaders/deferred_lighting.mjs";
 
 const dpr = window.devicePixelRatio;
-let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
+let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
 let engine, camera, gbuffer_scene, lighting_scene, mesh;
 let gbuffer_pass, gbuffer_target, render_pass, render_target, canvas_texture;
 let target = new Vec3(), obj_pos = new Vec3();
@@ -31,7 +16,7 @@ let target = new Vec3(), obj_pos = new Vec3();
   engine = new Engine(await Engine.acquire_device());
 
   canvas_texture = new CanvasTexture({ format: navigator.gpu.getPreferredCanvasFormat() });
-  canvas_texture.set_size({ width: viewport.x, height: viewport.y });
+  canvas_texture.set_size(viewport);
   document.body.append(canvas_texture.canvas);
 
   camera = new StructuredBuffer([
@@ -41,7 +26,7 @@ let target = new Vec3(), obj_pos = new Vec3();
   ]);
 
   target.set(0, 30, 0);
-  camera.projection.perspective(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 600);
+  camera.projection.perspective(Math.PI / 2.5, viewport.width / viewport.height, 1, 600);
 
   gbuffer_pass = new RenderPass({
     formats: {
@@ -51,20 +36,10 @@ let target = new Vec3(), obj_pos = new Vec3();
     bindings: [{ binding: 0,  name: "camera", resource: camera }]
   });
 
-  const gbuffer_pos = new Texture({
-    size: { width: viewport.x, height: viewport.y },
-    format: "rgba32float",
-  });
-
-  const gbuffer_normal = new Texture({
-    size: { width: viewport.x, height: viewport.y },
-    format: "rgba32float",
-  });
-
-  const gbuffer_depth = new Texture({
-    size: { width: viewport.x, height: viewport.y },
-    format: "depth32float",
-  });
+  const gbuffer_pos = new Texture({ size: viewport, format: "rgba32float" });
+  const gbuffer_normal = new Texture({ size: viewport, format: "rgba32float" });
+  const gbuffer_depth = new Texture({ size: viewport, format: "depth32float" });
+  const multisampled_texture = new Texture({ size: viewport, format: canvas_texture.format, multisampled: true });
 
   gbuffer_target = new RenderTarget({
     color: [
@@ -74,12 +49,6 @@ let target = new Vec3(), obj_pos = new Vec3();
     depth: { view: gbuffer_depth.create_view(), clear: 0 }
   });
   gbuffer_pass.set_render_target(gbuffer_target);
-
-  const multisampled_texture = new Texture({
-    size: { width: viewport.x, height: viewport.y },
-    format: canvas_texture.format,
-    multisampled: true,
-  });
 
   render_pass = new RenderPass({
     multisampled: true,
@@ -166,12 +135,12 @@ const auto_resize = () => {
   const newW = (canvas_texture.canvas.clientWidth * dpr) | 0;
   const newH = (canvas_texture.canvas.clientHeight * dpr) | 0;
   
-  if (viewport.x != newW || viewport.y != newH) {
-    viewport.x = newW; viewport.y = newH;
-    gbuffer_target.set_size({ width: newW, height: newH });
-    render_target.set_size({ width: newW, height: newH });
+  if (viewport.width != newW || viewport.height != newH) {
+    viewport.width = newW; viewport.height = newH;
+    gbuffer_target.set_size(viewport);
+    render_target.set_size(viewport);
     
-    camera.projection.perspective(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
+    camera.projection.perspective(Math.PI / 2.5, viewport.width / viewport.height, 1, 600);
   }
 }
 

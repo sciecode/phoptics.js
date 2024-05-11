@@ -1,31 +1,18 @@
-import { Engine } from "../../src/engine/engine.mjs";
-import { RenderPass } from "../../src/engine/objects/render_pass.mjs";
-import { RenderTarget } from "../../src/engine/objects/render_target.mjs";
-import { CanvasTexture } from "../../src/engine/objects/canvas_texture.mjs";
-import { StructuredBuffer } from "../../src/engine/objects/structured_buffer.mjs";
-import { Queue } from "../../src/engine/objects/queue.mjs";
-import { Mesh } from "../../src/engine/objects/mesh.mjs";
-import { Shader } from "../../src/engine/objects/shader.mjs";
-import { Sampler } from "../../src/engine/objects/sampler.mjs";
-import { Texture } from "../../src/engine/objects/texture.mjs";
-import { Material } from "../../src/engine/objects/material.mjs";
-import { Geometry } from "../../src/engine/objects/geometry.mjs";
+import { Engine, Mesh, Queue, Shader, Sampler, Geometry, Material, Texture, CanvasTexture,
+  RenderPass, RenderTarget, StructuredBuffer } from 'phoptics';
+import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
 
-import { Vec3 } from "../../src/datatypes/vec3.mjs";
-import { Vec4 } from "../../src/datatypes/vec4.mjs";
-import { Mat3x4 } from "../../src/datatypes/mat34.mjs";
-import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 import mipmap_shader from "../shaders/mipmap_shader.mjs";
 
 const dpr = window.devicePixelRatio;
-let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
+let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
 let render_pass, render_target, engine, canvas_texture, scene, camera, quad;
 
 const init = async () => {
   engine = new Engine(await Engine.acquire_device());
 
   canvas_texture = new CanvasTexture({ format: navigator.gpu.getPreferredCanvasFormat() });
-  canvas_texture.set_size({ width: viewport.x, height: viewport.y });
+  canvas_texture.set_size(viewport);
   document.body.append(canvas_texture.canvas);
 
   const tex_size = 1024;
@@ -37,7 +24,7 @@ const init = async () => {
 
   const multisampled_texture = new Texture({
     multisampled: true,
-    size: { width: viewport.x, height: viewport.y },
+    size: viewport,
     format: canvas_texture.format,
   });
 
@@ -58,7 +45,7 @@ const init = async () => {
   const target = new Vec3();
   target.set(0, -1, 0);
   camera.position.set(0, 0, 4, 0);
-  camera.projection.perspective(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 610);
+  camera.projection.perspective(Math.PI / 2.5, viewport.width / viewport.height, 1, 610);
   camera.view.translate(camera.position).look_at(target).view_inverse();
   camera.update();
 
@@ -76,16 +63,14 @@ const init = async () => {
     shader: new Shader({ code: mipmap_shader }),
     bindings: [
       { binding: 0, name: "sampler", resource: new Sampler({
-        filtering: { mag: "linear", min: "linear", mipmap: "linear" } 
-      }) },
+          filtering: { mag: "linear", min: "linear", mipmap: "linear" } 
+        })
+      },
       { binding: 1, name: "mipmap", resource: mipmap.create_view() },
     ],
   });
 
-  quad = new Mesh(
-    new Geometry({ count: 6 }),
-    material
-  );
+  quad = new Mesh(new Geometry({ count: 6 }), material);
   scene = new Queue();
   scene.add(quad);
 
@@ -115,11 +100,11 @@ const auto_resize = () => {
   const newW = (canvas_texture.canvas.clientWidth * dpr) | 0;
   const newH = (canvas_texture.canvas.clientHeight * dpr) | 0;
   
-  if (viewport.x != newW || viewport.y != newH) {
-    viewport.x = newW; viewport.y = newH;
-    render_target.set_size({ width: newW, height: newH });
+  if (viewport.width != newW || viewport.height != newH) {
+    viewport.width = newW; viewport.height = newH;
+    render_target.set_size(viewport);
     
-    camera.projection.perspective(Math.PI / 2.5, viewport.x / viewport.y, 1, 610);
+    camera.projection.perspective(Math.PI / 2.5, viewport.width / viewport.height, 1, 610);
     camera.update();
   }
 }

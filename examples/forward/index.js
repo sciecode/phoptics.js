@@ -1,35 +1,27 @@
-import { Engine } from "../../src/engine/engine.mjs";
-import { RenderPass } from "../../src/engine/objects/render_pass.mjs";
-import { RenderTarget } from "../../src/engine/objects/render_target.mjs";
-import { ResourceType } from "../../src/engine/constants.mjs";
-import { CanvasTexture } from "../../src/engine/objects/canvas_texture.mjs";
-import { DynamicLayout } from "../../src/engine/objects/dynamic_layout.mjs";
-import { Queue } from "../../src/engine/objects/queue.mjs";
-import { Mesh } from "../../src/engine/objects/mesh.mjs";
-import { Buffer } from "../../src/engine/objects/buffer.mjs";
-import { Shader } from "../../src/engine/objects/shader.mjs";
-import { Texture } from "../../src/engine/objects/texture.mjs";
-import { Geometry } from "../../src/engine/objects/geometry.mjs";
-import { Material } from "../../src/engine/objects/material.mjs";
+import { Engine, Mesh, Queue, Buffer, Shader, Geometry, Material, Texture, CanvasTexture,
+  RenderPass, RenderTarget, StructuredBuffer, DynamicLayout } from 'phoptics';
+import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
 
-import { Vec3 } from "../../src/datatypes/vec3.mjs";
-import { Vec4 } from "../../src/datatypes/vec4.mjs";
-import { Mat3x4 } from "../../src/datatypes/mat34.mjs";
-import { Mat4x4 } from "../../src/datatypes/mat44.mjs";
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import forward_shader from "../shaders/forward_shader.mjs";
 
 const dpr = window.devicePixelRatio;
-let viewport = {x: window.innerWidth * dpr | 0, y: window.innerHeight * dpr | 0};
-let engine, canvas_texture, render_pass, render_target, material, scene;
+let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
+let engine, canvas_texture, render_pass, render_target, material, scene, camera;
 let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
 
 (async () => {
   engine = new Engine(await Engine.acquire_device());
 
   canvas_texture = new CanvasTexture({ format: navigator.gpu.getPreferredCanvasFormat() });
-  canvas_texture.set_size({ width: viewport.x, height: viewport.y });
+  canvas_texture.set_size(viewport);
   document.body.append(canvas_texture.canvas);
+
+  camera = new StructuredBuffer([
+    { name: "projection", type: Mat4x4 }, 
+    { name: "view", type: Mat3x4 }, 
+    { name: "position", type: Vec4 }, 
+  ]);
 
   render_pass = new RenderPass({
     multisampled: true,
@@ -37,31 +29,11 @@ let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
       color: [canvas_texture.format],
       depth: "depth32float",
     },
-    bindings: [
-      {
-        binding: 0,
-        name: "camera",
-        type: ResourceType.StructuredBuffer,
-        info: [
-          { name: "projection", type: Mat4x4 }, 
-          { name: "view", type: Mat3x4 }, 
-          { name: "position", type: Vec4 }, 
-        ]
-      }
-    ]
+    bindings: [{ binding: 0,  name: "camera", resource: camera }]
   });
 
-  const multisampled_texture = new Texture({
-    size: { width: viewport.x, height: viewport.y },
-    format: canvas_texture.format,
-    multisampled: true,
-  });
-
-  const depth_texture = new Texture({
-    size: { width: viewport.x, height: viewport.y },
-    format: render_pass.formats.depth,
-    multisampled: true,
-  });
+  const multisampled_texture = new Texture({ size: viewport, format: canvas_texture.format, multisampled: true });
+  const depth_texture = new Texture({ size: viewport, format: render_pass.formats.depth, multisampled: true });
   
   render_target = new RenderTarget({
     color: [ { 
@@ -73,9 +45,9 @@ let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
   });
 
   target.set(0, 30, 0);
-  render_pass.bindings.camera.position.set(0, 30, 120, 250);
-  render_pass.bindings.camera.projection.perspective(Math.PI / 2.5, window.innerWidth / window.innerHeight, 1, 600);
-  render_pass.bindings.camera.view.translate(render_pass.bindings.camera.position).view_inverse();
+  camera.position.set(0, 30, 120, 250);
+  camera.projection.perspective(Math.PI / 2.5, viewport.width / viewport.height, 1, 600);
+  camera.view.translate(camera.position).view_inverse();
   render_pass.set_render_target(render_target);
 
   const transform_layout = new DynamicLayout([
@@ -121,7 +93,6 @@ let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
     attributes: [ new Buffer({ data: vertex_data_f32, stride: 16 }) ],
   });
 
-  
   scene = new Queue();
   mesh1 = new Mesh(geometry, material);
   obj_pos.set(-30, 0, 0);
@@ -143,11 +114,11 @@ const auto_resize = () => {
   const newW = (canvas_texture.canvas.clientWidth * dpr) | 0;
   const newH = (canvas_texture.canvas.clientHeight * dpr) | 0;
   
-  if (viewport.x != newW || viewport.y != newH) {
-    viewport.x = newW; viewport.y = newH;
-    render_target.set_size({ width: newW, height: newH });
+  if (viewport.width != newW || viewport.height != newH) {
+    viewport.width = newW; viewport.height = newH;
+    render_target.set_size(viewport);
     
-    render_pass.bindings.camera.projection.perspective(Math.PI / 2.5, viewport.x / viewport.y, 1, 600);
+    camera.projection.perspective(Math.PI / 2.5, viewport.width / viewport.height, 1, 600);
   }
 }
 
@@ -163,7 +134,7 @@ const encode_normal = (x, y, z) => {
     vy = (1. - Math.abs(nx)) * Math.sign(ny);
   }
 
-  const dx = Math.round(32767.5 + vx*32767.5), dy = Math.round(32767.5 + vy*32767.5);
+  const dx = Math.round(32767.5 + vx * 32767.5), dy = Math.round(32767.5 + vy * 32767.5);
   return dx | (dy << 16);
  }
 
@@ -173,9 +144,9 @@ const animate = () => {
   auto_resize();
 
   const phase = performance.now() / 500;
-  render_pass.bindings.camera.position.set(120 * Math.sin(phase / 4), 30, 120 * Math.cos(phase / 4), 250);
-  render_pass.bindings.camera.view.translate(render_pass.bindings.camera.position).look_at(target).view_inverse();
-  render_pass.bindings.camera.update();
+  camera.position.set(120 * Math.sin(phase / 4), 30, 120 * Math.cos(phase / 4), 250);
+  camera.view.translate(render_pass.bindings.camera.position).look_at(target).view_inverse();
+  camera.update();
 
   {
     const amplitude = 10 * Math.sin(phase);
