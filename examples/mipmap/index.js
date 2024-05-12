@@ -70,7 +70,7 @@ const init = async () => {
     ],
   });
 
-  quad = new Mesh(new Geometry({ count: 6 }), material);
+  quad = new Mesh(new Geometry({ draw: { count: 6 } }), material);
   scene = new Queue();
   scene.add(quad);
 

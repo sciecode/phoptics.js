@@ -88,7 +88,7 @@ let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
   }
 
   const geometry = new Geometry({
-    count: index_count,
+    draw: { count: index_count },
     index: new Buffer({ data: index_data }),
     attributes: [ new Buffer({ data: vertex_data_f32, stride: 16 }) ],
   });
@@ -145,7 +145,7 @@ const animate = () => {
 
   const phase = performance.now() / 500;
   camera.position.set(120 * Math.sin(phase / 4), 30, 120 * Math.cos(phase / 4), 250);
-  camera.view.translate(render_pass.bindings.camera.position).look_at(target).view_inverse();
+  camera.view.translate(camera.position).look_at(target).view_inverse();
   camera.update();
 
   {

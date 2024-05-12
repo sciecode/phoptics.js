@@ -104,7 +104,7 @@ let target = new Vec3(), obj_pos = new Vec3();
   index_data.set(geo.indices);
 
   const geometry = new Geometry({
-    count: index_count,
+    draw: { count: index_count },
     index: new Buffer({ data: index_data }),
     attributes: [
       new Buffer({ data: pos_data }),
@@ -121,7 +121,7 @@ let target = new Vec3(), obj_pos = new Vec3();
   });
 
   const lighting = new Mesh(
-    new Geometry({ count: 3 }),
+    new Geometry({ draw: { count: 3 } }),
     lighting_material
   );
   lighting_scene = new Queue();

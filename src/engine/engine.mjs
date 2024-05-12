@@ -54,7 +54,7 @@ export class Engine {
       }
 
       const geometry = mesh.geometry;
-      draw_info.draw_count = geometry.count;
+      draw_info.draw_count = geometry.draw.count;
       draw_info.index_offset = geometry.get_index_offset();
       draw_info.vertex_offset = geometry.get_vertex_offset();
       draw_info.index = geometry.index ? geometry.index.get_bid() : NULL_HANDLE;

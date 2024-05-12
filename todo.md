@@ -3,7 +3,7 @@
   - [ ] Add scene management - renderlist filtering - frustum culling
   - [ ] Add distance-based renderlist sorting (opaque/transparent)
   - [ ] Improve pipeline vertex-format material interface
-  - [ ] Add support for draw-range geometries
+  - [x] Add support for draw-range geometries
   - [ ] Add support for texture arrays
 
 
