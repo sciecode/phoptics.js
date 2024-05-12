@@ -13,17 +13,17 @@ export class RenderState {
     };
   }
 
-  reset(queue) {
-    const size = queue.size, max = queue.indices.length;
+  reset(list) {
+    const size = list.size, max = list.indices.length;
 
     if (size >= max) {
       for (let i = max, il = size; i < il; i++)
-        queue.indices.push({ key: 0n, index: i })
+        list.indices.push({ key: 0n, index: i })
     } else {
       let upper = 0, diff = max - size;
       for (let i = 0, il = size; i < il && upper != diff; i++) {
-        const current = queue.indices[i];
-        while (current.index >= size) current.index = queue.indices[max - upper++];
+        const current = list.indices[i];
+        while (current.index >= size) current.index = list.indices[max - upper++];
       }
     }
   }
@@ -52,17 +52,19 @@ export class RenderState {
     }
   }
 
-  set_queue(queue) { 
-    this.reset(queue);
+  set_renderlist(list) { 
+    this.reset(list);
 
-    for (let i = 0, il = queue.size; i < il; i++) {
-      const entry = queue.indices[i], index = entry.index;
-      const mesh = queue.meshes[index], material = mesh.material;
+    for (let i = 0, il = list.size; i < il; i++) {
+      const entry = list.indices[i], index = entry.index;
+      const mesh = list.meshes[index], material = mesh.material;
       
-      // needs to be before material
+      // needs to be before pipeline update
       const dynamic_layout = this.set_dynamic(material);
-      
+
       entry.key = 0n;
+      if (material.get_transparent()) Keys.set_blend(entry, 1n);
+      
       const pipeline_cache = this.cache.get_pipeline(material, this.state, dynamic_layout);
       Keys.set_pipeline(entry, pipeline_cache.bid);
 
@@ -71,7 +73,9 @@ export class RenderState {
       Keys.set_buffer(entry, geometry_cache.buffer_bid);
     }
 
-    queue.indices.sort(render_list_compare); // TODO: use adaptive MSB Hybrid-Sort 64b
+    list.indices.sort(render_list_compare); // TODO: use adaptive MSB Hybrid-Sort 64b
+
+
   }
 
   preload(pass, mesh) {

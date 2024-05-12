@@ -1,7 +1,8 @@
 ### Priority
-  - [ ] Add support to blend Materials
+  - [x] Add support to blended Materials
+  - [x] Render transparent objects after opaque
   - [ ] Add scene management - renderlist filtering - frustum culling
-  - [ ] Add distance-based renderlist sorting (opaque/transparent)
+  - [ ] Add distance-based renderlist sorting
   - [ ] Improve pipeline vertex-format material interface
   - [x] Add support for draw-range geometries
   - [ ] Add support for texture arrays

@@ -17,13 +17,13 @@ export class Engine {
     this.draw_stream = new DrawStream();
   }
 
-  render(pass, queue) {
+  render(pass, list) {
     this.dynamic.reset();
     this.draw_stream.clear();
 
     const global_bid = this.state.set_pass(pass);
     this.draw_stream.set_globals(global_bid);
-    this.state.set_queue(queue);
+    this.state.set_renderlist(list);
     
     // TODO: temporary while shader variant isn't implemented
     this.draw_stream.set_variant(0);
@@ -35,11 +35,11 @@ export class Engine {
       index_offset: NULL_HANDLE,
     };
     
-    for (let i = 0, il = queue.size; i < il; i++) {
-      const entry = queue.indices[i];
+    for (let i = 0, il = list.size; i < il; i++) {
+      const entry = list.indices[i];
       this.draw_stream.set_pipeline(Keys.get_pipeline(entry));
       
-      const mesh = queue.meshes[entry.index], material = mesh.material;
+      const mesh = list.meshes[entry.index], material = mesh.material;
       const material_bid = material.bindings ? this.cache.get_binding(material.bindings).bid : 0;
       this.draw_stream.set_material(material_bid);
 

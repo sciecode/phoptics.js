@@ -97,5 +97,5 @@ fn point_light(frag : ptr<function, RenderInfo>, l_pos : vec3f, l_color : vec3f,
   let albedo = .5;
   let L = albedo * frag.Ld_dif;
   let Lf = pow(L / globals.nits, vec3f(1./2.2));
-  return vec4f(Lf, 1);
+  return vec4f(Lf, .5);
 }`;

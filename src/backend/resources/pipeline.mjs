@@ -18,6 +18,11 @@ export class Pipeline {
       code: options.shader.code,
     });
 
+    const blend = {
+      color: parse_blend(graphics.blend.color),
+      alpha: parse_blend(graphics.blend.alpha)
+    };
+
     const descriptor = {
       layout: layout,
       vertex: {
@@ -33,7 +38,7 @@ export class Pipeline {
         targets: graphics.formats.color.map( format => { 
           return {
             format: format,
-            // blend: blend
+            blend: blend
           };
         }),
       },
@@ -52,4 +57,9 @@ export class Pipeline {
 
     this.pipeline = device.createRenderPipeline(descriptor);
   }
+}
+
+const parse_blend = (info) => {
+  const blend = { dstFactor: info.dst, srcFactor: info.src, operation: info.op };
+  return blend;
 }

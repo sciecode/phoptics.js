@@ -1,4 +1,4 @@
-import { Engine, Mesh, Queue, Shader, Sampler, Geometry, Material, Texture, CanvasTexture,
+import { Engine, Mesh, RenderList, Shader, Sampler, Geometry, Material, Texture, CanvasTexture,
   RenderPass, RenderTarget, StructuredBuffer } from 'phoptics';
 import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
 
@@ -71,7 +71,7 @@ const init = async () => {
   });
 
   quad = new Mesh(new Geometry({ draw: { count: 6 } }), material);
-  scene = new Queue();
+  scene = new RenderList();
   scene.add(quad);
 
   animate();

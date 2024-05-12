@@ -1,5 +1,5 @@
 
-export class Queue {
+export class RenderList {
   constructor() {
     this.size = 0;
     this.meshes = [];

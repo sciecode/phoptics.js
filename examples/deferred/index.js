@@ -1,4 +1,4 @@
-import { Engine, Mesh, Queue, Buffer, Shader, Sampler, Geometry, Material, Texture, CanvasTexture,
+import { Engine, Mesh, RenderList, Buffer, Shader, Sampler, Geometry, Material, Texture, CanvasTexture,
   RenderPass, RenderTarget, StructuredBuffer, DynamicLayout } from 'phoptics';
 import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
 
@@ -113,7 +113,7 @@ let target = new Vec3(), obj_pos = new Vec3();
   });
 
   mesh = new Mesh(geometry, gbuffer_material);
-  gbuffer_scene = new Queue();
+  gbuffer_scene = new RenderList();
   gbuffer_scene.add(mesh);
 
   const lighting_material = new Material({
@@ -124,7 +124,7 @@ let target = new Vec3(), obj_pos = new Vec3();
     new Geometry({ draw: { count: 3 } }),
     lighting_material
   );
-  lighting_scene = new Queue();
+  lighting_scene = new RenderList();
   lighting_scene.add(lighting);
 
   animate();

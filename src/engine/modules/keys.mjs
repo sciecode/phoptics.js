@@ -1,6 +1,7 @@
 const BUFFER_OFFSET = 0n, BUFFER_MASK = (1n << 10n) - 1n;
 const INDEX_OFFSET = 10n, INDEX_MASK = (1n << 4n) - 1n;
 const PIPELINE_OFFSET = 14n, PIPELINE_MASK = (1n << 10n) - 1n;
+const BLEND_OFFSET = 32n;
 
 export default class Keys {
   static set_pipeline(entry, bid) {
@@ -17,5 +18,9 @@ export default class Keys {
 
   static set_buffer(entry, bid) {
     entry.key |= (BigInt(bid) & BUFFER_MASK) << BUFFER_OFFSET;
+  }
+
+  static set_blend(entry, blend) {
+    entry.key |= blend << BLEND_OFFSET;
   }
 }

@@ -1,5 +1,5 @@
 import { Mesh } from "./objects/mesh.mjs";
-import { Queue } from "./objects/queue.mjs";
+import { RenderList } from "./objects/render_list.mjs";
 import { Shader } from "./objects/shader.mjs"; 
 import { Buffer } from "./objects/buffer.mjs";
 import { Sampler } from "./objects/sampler.mjs";
@@ -17,6 +17,6 @@ import { StructuredDynamic } from "./objects/structured_dynamic.mjs";
 import { Engine } from "./engine.mjs";
 
 export {
-  Engine, Mesh, Queue, Shader, Buffer, Sampler, Texture, Material, Geometry, Bindings,
+  Engine, Mesh, RenderList, Shader, Buffer, Sampler, Texture, Material, Geometry, Bindings,
   RenderPass, TextureView, RenderTarget, CanvasTexture, DynamicLayout, StructuredBuffer, StructuredDynamic,
 };

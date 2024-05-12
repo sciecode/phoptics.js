@@ -1,4 +1,4 @@
-import { Engine, Mesh, Queue, Buffer, Shader, Geometry, Material, Texture, CanvasTexture,
+import { Engine, Mesh, RenderList, Buffer, Shader, Geometry, Material, Texture, CanvasTexture,
   RenderPass, RenderTarget, StructuredBuffer, DynamicLayout } from 'phoptics';
 import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
 
@@ -64,6 +64,7 @@ let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
         { shaderLocation: 1, offset: 12, format: 'uint32' } ], 
       },
     ],
+    graphics: { blend: true }
   });
 
   const loader = new OBJLoader();
@@ -93,7 +94,7 @@ let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
     attributes: [ new Buffer({ data: vertex_data_f32, stride: 16 }) ],
   });
 
-  scene = new Queue();
+  scene = new RenderList();
   mesh1 = new Mesh(geometry, material);
   obj_pos.set(-30, 0, 0);
   mesh1.dynamic.world.translate(obj_pos);
