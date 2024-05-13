@@ -30,7 +30,7 @@ export class Mat3x4 extends Float32Array {
     return this;
   }
 
-  affine(mat) {
+  mul(mat) {
     let x, y, z;
     const m = this, n = mat;
 
