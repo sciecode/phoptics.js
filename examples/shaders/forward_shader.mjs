@@ -83,13 +83,13 @@ fn point_light(frag : ptr<function, RenderInfo>, l_pos : vec3f, l_color : vec3f,
   );
 
   point_light(&frag,
-    vec3f(60, 0, 20),     // position
+    vec3f(120, 0, 20),     // position
     vec3f(0, .1, 1),      // color
     200.                  // intensity
   );
 
   point_light(&frag,
-    vec3f(-100, 30, -20), // position
+    vec3f(-120, 30, -20), // position
     vec3f(1, .3, .2),     // color 
     500.                  // intensity
   );

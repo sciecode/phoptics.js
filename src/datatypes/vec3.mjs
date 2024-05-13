@@ -93,7 +93,6 @@ export class Vec3 extends Float32Array {
 		m[0] = y * n[2] - z * n[1];
 		m[1] = z * n[0] - x * n[2];
 		m[2] = x * n[1] - y * n[0];
-
 		return this;
   }
 
@@ -102,14 +101,13 @@ export class Vec3 extends Float32Array {
 		return dx * dx + dy * dy + dz * dz;
   }
 
-  transform(mat) {
+  affine(mat) {
     const v = this, m = mat,
           x = v[0], y = v[1], z = v[2];
 
     v[0] = x * m[0] + y * m[1] + z * m[2]  + m[3];
     v[1] = x * m[4] + y * m[5] + z * m[6]  + m[7];
     v[2] = x * m[8] + y * m[9] + z * m[10] + m[11];
-
     return this;
   }
 }

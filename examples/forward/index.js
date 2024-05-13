@@ -42,7 +42,7 @@ const renderlist = new RenderList();
     color: [ { 
       view: multisampled_texture.create_view(), 
       resolve: canvas_texture.create_view(), 
-      clear: [.05, .05, .05, 1]
+      clear: [.05, .05, .05, 0]
     } ],
     depth: { view: depth_texture.create_view(), clear: 0 }
   });
@@ -61,13 +61,13 @@ const renderlist = new RenderList();
   const material_trans = new Material({
     shader: shader_base,
     dynamic: transform_layout,
+    graphics: { blend: true },
     vertex: [
       { arrayStride: 16, attributes: [
         { shaderLocation: 0, offset: 0, format: 'float32x3' },
         { shaderLocation: 1, offset: 12, format: 'uint32' } ], 
       },
-    ],
-    graphics: { blend: true }
+    ]
   });
 
   const material = new Material({
@@ -95,7 +95,6 @@ const renderlist = new RenderList();
 
   for (let i = 0; i < vertex_count; i++) {
     const i3 = i * 3, i4 = i * 4;
-
     vertex_data_f32[i4] = geo.positions[i3];
     vertex_data_f32[i4 + 1] = geo.positions[i3 + 1];
     vertex_data_f32[i4 + 2] = geo.positions[i3 + 2];

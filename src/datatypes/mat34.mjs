@@ -30,7 +30,7 @@ export class Mat3x4 extends Float32Array {
     return this;
   }
 
-  mul(mat) {
+  affine(mat) {
     let x, y, z;
     const m = this, n = mat;
 
@@ -62,7 +62,11 @@ export class Mat3x4 extends Float32Array {
     return this;
   }
 
-  compose_rigid(pos) {
+  compose_rigid(pos) { // pos / rot
+    return this.translate(pos);
+  }
+
+  compose_affine(pos) { // pos / rot / scl
     return this.translate(pos);
   }
 
@@ -108,7 +112,7 @@ export class Mat3x4 extends Float32Array {
     m[1] *= sy; m[5] *= sy; m[9] *= sy;
     m[2] *= sz; m[6] *= sz; m[10] *= sz;
 
-    return this.view();
+    return this.view_inverse();
   }
 }
 

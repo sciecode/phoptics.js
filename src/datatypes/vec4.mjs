@@ -56,7 +56,7 @@ export class Vec4 extends Float32Array {
     return this;
   }
 
-  transform(mat) {
+  affine(mat) {
     const v = this, m = mat,
           x = v[0], y = v[1], z = v[2];
 
@@ -66,7 +66,7 @@ export class Vec4 extends Float32Array {
     return this;
   }
 
-  mat44(mat) {
+  project(mat) {
     const v = this, m = mat,
           x = v[0], y = v[1], z = v[2], w = v[3];
 
