@@ -66,7 +66,7 @@ export class RenderState {
 
       if (material.get_transparent()) {
         transparent++;
-        info.dist = -entry.dist >>> 0;
+        info.dist = -entry.dist;
       } else {
         info.dist = entry.dist;
       }
@@ -80,9 +80,8 @@ export class RenderState {
       Keys.set_buffer(info, geometry_cache.buffer_bid);
     }
 
-    list.indices.sort(dist_compare);
-    // list.indices.sort(state_compare); // TODO: use adaptive MSB Hybrid-Sort 64b
-
+    Keys.sort_distance(list);
+    Keys.sort_state(list, transparent);
   }
 
   preload(pass, mesh) {
@@ -92,6 +91,3 @@ export class RenderState {
     this.cache.get_geometry(mesh.geometry);
   }
 }
-
-const state_compare = (a,b) => a.key - b.key;
-const dist_compare = (a,b) => a.dist - b.dist;

@@ -7,10 +7,10 @@ import forward_shader from "../shaders/forward_shader.mjs";
 
 const dpr = window.devicePixelRatio;
 let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
-let engine, canvas_texture, render_pass, render_target, material, scene, camera;
-let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
+let engine, canvas_texture, render_pass, render_target, scene, camera;
+let mesh1, mesh2, mesh3, obj_pos = new Vec3(), target = new Vec3();
 
-const distance_ratio = ((1 << 24) - 1) / 5000;
+const distance_ratio = ((1 << 30) - 1) / 1_000_000;
 const renderlist = new RenderList();
 
 (async () => {
@@ -58,7 +58,7 @@ const renderlist = new RenderList();
   ]);
 
   const shader_base = new Shader({ code: forward_shader });
-  material = new Material({
+  const material_trans = new Material({
     shader: shader_base,
     dynamic: transform_layout,
     vertex: [
@@ -68,6 +68,17 @@ const renderlist = new RenderList();
       },
     ],
     graphics: { blend: true }
+  });
+
+  const material = new Material({
+    shader: shader_base,
+    dynamic: transform_layout,
+    vertex: [
+      { arrayStride: 16, attributes: [
+        { shaderLocation: 0, offset: 0, format: 'float32x3' },
+        { shaderLocation: 1, offset: 12, format: 'uint32' } ], 
+      },
+    ],
   });
 
   const loader = new OBJLoader();
@@ -98,17 +109,17 @@ const renderlist = new RenderList();
   });
 
   scene = [];
-  mesh1 = new Mesh(geometry, material);
-  obj_pos.set(-30, 0, 0);
-  mesh1.dynamic.world.translate(obj_pos);
+  mesh1 = new Mesh(geometry, material_trans);
   scene.push(mesh1);
   
-  mesh2 = new Mesh(geometry, material);
-  obj_pos.x = 30;
-  mesh2.dynamic.world.translate(obj_pos);
+  mesh2 = new Mesh(geometry, material_trans);
   scene.push(mesh2);
 
+  mesh3 = new Mesh(geometry, material);
+  scene.push(mesh3);
+
   engine.preload(render_pass, mesh1);
+  engine.preload(render_pass, mesh3);
   
   animate();
 })();
@@ -148,7 +159,7 @@ const animate = () => {
   auto_resize();
 
   const phase = performance.now() / 500;
-  camera.position.set(120 * Math.sin(phase / 4), 30, 120 * Math.cos(phase / 4), 250);
+  camera.position.set(180 * Math.sin(phase / 4), 30, 180 * Math.cos(phase / 4), 250);
   camera.view.translate(camera.position).look_at(target).view_inverse();
   camera.update();
   
@@ -156,15 +167,19 @@ const animate = () => {
     renderlist.reset();
 
     const amplitude = 10 * Math.sin(phase);
-    obj_pos.set(-30, amplitude, 0);
+    obj_pos.set(-60, amplitude, 0);
     mesh1.dynamic.world.translate(obj_pos);
     const dist1 = obj_pos.squared_distance(camera.position) * distance_ratio;
     renderlist.add(mesh1, dist1);
     
-    obj_pos.set(30, -amplitude, 0);
+    obj_pos.set(60, -amplitude, 0);
     mesh2.dynamic.world.translate(obj_pos);
     const dist2 = obj_pos.squared_distance(camera.position) * distance_ratio;
     renderlist.add(mesh2, dist2);
+
+    obj_pos.set(0, 0, 0);
+    const dist3 = obj_pos.squared_distance(camera.position) * distance_ratio;
+    renderlist.add(mesh3, dist3);
   }
 
   engine.render(render_pass, renderlist);
