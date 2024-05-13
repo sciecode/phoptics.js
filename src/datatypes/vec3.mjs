@@ -82,6 +82,10 @@ export class Vec3 extends Float32Array {
     return this.div_f32(scale);
   }
 
+  dot(v) {
+		return this[0] * v[0] + this[1] * v[1] + this[2] * v[2];
+  }
+
   cross(v) {
     const m = this, n = v;
 		const x = m[0], y = m[1], z =m[2];
@@ -91,6 +95,11 @@ export class Vec3 extends Float32Array {
 		m[2] = x * n[1] - y * n[0];
 
 		return this;
+  }
+
+  squared_distance(v) {
+    const dx = this[0] - v[0], dy = this[1] - v[1], dz = this[2] - v[2];
+		return dx * dx + dy * dy + dz * dz;
   }
 
   transform(mat) {

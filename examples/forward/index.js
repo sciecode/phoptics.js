@@ -10,6 +10,9 @@ let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight 
 let engine, canvas_texture, render_pass, render_target, material, scene, camera;
 let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
 
+const distance_ratio = ((1 << 24) - 1) / 5000;
+const renderlist = new RenderList();
+
 (async () => {
   engine = new Engine(await Engine.acquire_device());
 
@@ -94,16 +97,16 @@ let mesh1, mesh2, obj_pos = new Vec3(), target = new Vec3();
     attributes: [ new Buffer({ data: vertex_data_f32, stride: 16 }) ],
   });
 
-  scene = new RenderList();
+  scene = [];
   mesh1 = new Mesh(geometry, material);
   obj_pos.set(-30, 0, 0);
   mesh1.dynamic.world.translate(obj_pos);
-  scene.add(mesh1);
+  scene.push(mesh1);
   
   mesh2 = new Mesh(geometry, material);
   obj_pos.x = 30;
   mesh2.dynamic.world.translate(obj_pos);
-  scene.add(mesh2);
+  scene.push(mesh2);
 
   engine.preload(render_pass, mesh1);
   
@@ -148,15 +151,21 @@ const animate = () => {
   camera.position.set(120 * Math.sin(phase / 4), 30, 120 * Math.cos(phase / 4), 250);
   camera.view.translate(camera.position).look_at(target).view_inverse();
   camera.update();
-
+  
   {
+    renderlist.reset();
+
     const amplitude = 10 * Math.sin(phase);
     obj_pos.set(-30, amplitude, 0);
     mesh1.dynamic.world.translate(obj_pos);
-
+    const dist1 = obj_pos.squared_distance(camera.position) * distance_ratio;
+    renderlist.add(mesh1, dist1);
+    
     obj_pos.set(30, -amplitude, 0);
     mesh2.dynamic.world.translate(obj_pos);
+    const dist2 = obj_pos.squared_distance(camera.position) * distance_ratio;
+    renderlist.add(mesh2, dist2);
   }
 
-  engine.render(render_pass, scene);
+  engine.render(render_pass, renderlist);
 }

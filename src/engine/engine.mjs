@@ -36,10 +36,10 @@ export class Engine {
     };
     
     for (let i = 0, il = list.size; i < il; i++) {
-      const entry = list.indices[i];
-      this.draw_stream.set_pipeline(Keys.get_pipeline(entry));
+      const info = list.indices[i];
+      this.draw_stream.set_pipeline(Keys.get_pipeline(info));
       
-      const mesh = list.meshes[entry.index], material = mesh.material;
+      const mesh = list.entries[info.index].mesh, material = mesh.material;
       const material_bid = material.bindings ? this.cache.get_binding(material.bindings).bid : 0;
       this.draw_stream.set_material(material_bid);
 

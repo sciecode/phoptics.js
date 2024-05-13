@@ -1,26 +1,26 @@
-const BUFFER_OFFSET = 0n, BUFFER_MASK = (1n << 10n) - 1n;
-const INDEX_OFFSET = 10n, INDEX_MASK = (1n << 4n) - 1n;
-const PIPELINE_OFFSET = 14n, PIPELINE_MASK = (1n << 10n) - 1n;
-const BLEND_OFFSET = 32n;
+const BUFFER_OFFSET = 0, BUFFER_MASK = (1 << 10) - 1;
+const INDEX_OFFSET = 10, INDEX_MASK = (1 << 4) - 1;
+const PIPELINE_OFFSET = 14, PIPELINE_MASK = (1 << 10) - 1;
+// const BLEND_OFFSET = 29;
 
 export default class Keys {
   static set_pipeline(entry, bid) {
-    entry.key |= BigInt(bid) << PIPELINE_OFFSET;
+    entry.key |= (bid & PIPELINE_MASK) << PIPELINE_OFFSET;
   }
 
   static get_pipeline(entry) {
-    return Number((entry.key >> PIPELINE_OFFSET) & PIPELINE_MASK);
+    return (entry.key >> PIPELINE_OFFSET) & PIPELINE_MASK;
   }
 
   static set_index(entry, bid) {
-    entry.key |= (BigInt(bid) & INDEX_MASK) << INDEX_OFFSET;
+    entry.key |= (bid & INDEX_MASK) << INDEX_OFFSET;
   }
 
   static set_buffer(entry, bid) {
-    entry.key |= (BigInt(bid) & BUFFER_MASK) << BUFFER_OFFSET;
+    entry.key |= (bid & BUFFER_MASK) << BUFFER_OFFSET;
   }
 
-  static set_blend(entry, blend) {
-    entry.key |= blend << BLEND_OFFSET;
-  }
+  // static set_blend(entry, blend) {
+  //   entry.key |= blend << BLEND_OFFSET;
+  // }
 }

@@ -1,13 +1,19 @@
+import { UNINITIALIZED } from "../constants.mjs";
 
 export class RenderList {
   constructor() {
     this.size = 0;
-    this.meshes = [];
+    this.entries = [];
     this.indices = [];
   }
 
-  add(mesh) {
+  reset() { 
+    this.size = 0;
+    this.entries.length = 0;
+  }
+
+  add(mesh, dist = UNINITIALIZED) {
     this.size++;
-    this.meshes.push(mesh);
+    this.entries.push({ mesh: mesh, dist: dist & UNINITIALIZED });
   }
 }
