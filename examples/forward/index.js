@@ -4,6 +4,7 @@ import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
 
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import forward_shader from "../shaders/forward_shader.mjs";
+import { Frustum } from '../../src/datatypes/frustum.mjs';
 
 const dpr = window.devicePixelRatio;
 let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
@@ -103,7 +104,7 @@ const renderlist = new RenderList();
 
   const geometry = new Geometry({
     draw: { count: index_count },
-    index: new Buffer({ data: data, offset: index_data.byteOffset, bytes: index_data.byteLength }),
+    index: new Buffer({ data: index_data }),
     attributes: [ new Buffer({ data: data, bytes: vertex_count * 16, stride: 16 }) ],
   });
 
@@ -119,7 +120,7 @@ const renderlist = new RenderList();
 
   engine.preload(render_pass, mesh1);
   engine.preload(render_pass, mesh3);
-  
+
   animate();
 })();
 

@@ -39,7 +39,6 @@ export class IndexdPool {
     if (cache.version != version) {
       cache.version = version;
       if (ArrayBuffer.isView(index_obj.data)) {
-        console.log(cache.offset, index_obj.data)
         this.backend.write_buffer(cache.bid, cache.offset, index_obj.data);
       } else {
         this.backend.write_buffer(cache.bid, cache.offset, index_obj.data, index_obj.offset, index_obj.total_bytes);
