@@ -46,7 +46,6 @@ export class Mat4x4 extends Float32Array {
     m[13] = x * n[1] + y * n[5] + z * n[9]  + w * n[13];
     m[14] = x * n[2] + y * n[6] + z * n[10] + w * n[14];
     m[15] = x * n[3] + y * n[7] + z * n[11] + w * n[15];
-
     return this;
   }
 
@@ -77,7 +76,6 @@ export class Mat4x4 extends Float32Array {
     m[13]  = x * n[1] + y * n[5] + z * n[9];
     m[14]  = x * n[2] + y * n[6] + z * n[10];
     m[15] += x * n[3] + y * n[7] + z * n[11];
-
     return this;
   }
 

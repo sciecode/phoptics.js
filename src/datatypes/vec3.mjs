@@ -77,9 +77,12 @@ export class Vec3 extends Float32Array {
     return this;
   }
 
+  length() {
+    return Math.sqrt(this[0] * this[0] + this[1] * this[1] + this[2] * this[2]);
+  }
+
   normalize() {
-    const m = this, scale = Math.sqrt(m[0] * m[0] + m[1] * m[1] + m[2] * m[2]);
-    return this.div_f32(scale);
+    return this.mul_f32(1 / this.length());
   }
 
   dot(v) {

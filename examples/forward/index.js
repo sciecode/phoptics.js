@@ -1,10 +1,9 @@
 import { Engine, Mesh, RenderList, Buffer, Shader, Geometry, Material, Texture, CanvasTexture,
   RenderPass, RenderTarget, StructuredBuffer, DynamicLayout } from 'phoptics';
-import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
+import { Vec3, Vec4, Mat3x4, Mat4x4, Frustum } from 'phoptics/math';
 
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import forward_shader from "../shaders/forward_shader.mjs";
-import { Frustum } from '../../src/datatypes/frustum.mjs';
 
 const dpr = window.devicePixelRatio;
 let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
