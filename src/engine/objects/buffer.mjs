@@ -9,7 +9,8 @@ export class Buffer {
   constructor(options) {
     this.data = options.data;
     this.stride = options.stride || 4;
-    this.total_bytes = this.data.byteLength;
+    this.total_bytes = options.bytes || this.data.byteLength;
+    this.offset = options.offset || 0;
   }
 
   get_id() { return this.#id; }

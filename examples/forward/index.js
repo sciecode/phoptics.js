@@ -103,8 +103,8 @@ const renderlist = new RenderList();
 
   const geometry = new Geometry({
     draw: { count: index_count },
-    index: new Buffer({ data: index_data }),
-    attributes: [ new Buffer({ data: vertex_data_f32, stride: 16 }) ],
+    index: new Buffer({ data: data, offset: index_data.byteOffset, bytes: index_data.byteLength }),
+    attributes: [ new Buffer({ data: data, bytes: vertex_count * 16, stride: 16 }) ],
   });
 
   scene = [];

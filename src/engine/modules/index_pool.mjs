@@ -38,7 +38,12 @@ export class IndexdPool {
     const cache = this.indices.get(id), version = index_obj.get_version();
     if (cache.version != version) {
       cache.version = version;
-      this.backend.write_buffer(cache.bid, cache.offset, index_obj.data);
+      if (ArrayBuffer.isView(index_obj.data)) {
+        console.log(cache.offset, index_obj.data)
+        this.backend.write_buffer(cache.bid, cache.offset, index_obj.data);
+      } else {
+        this.backend.write_buffer(cache.bid, cache.offset, index_obj.data, index_obj.offset, index_obj.total_bytes);
+      }
     }
 
     return cache;
@@ -53,8 +58,7 @@ export class IndexdPool {
         heap = i;
         bid = this.buffers[heap];
         slot = info.slot;
-        const aligned_offset = Math.ceil(info.offset / stride) * stride;
-        offset = aligned_offset;
+        offset = Math.ceil(info.offset / stride) * stride;
         break;
       }
     }

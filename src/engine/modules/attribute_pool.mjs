@@ -47,7 +47,11 @@ export class AttributePool {
     const cache = this.attributes.get(id), version = attrib_obj.get_version();
     if (cache.version != version) {
       cache.version = version;
-      this.backend.write_buffer(cache.bid, cache.offset, attrib_obj.data);
+      if (ArrayBuffer.isView(attrib_obj.data)) {
+        this.backend.write_buffer(cache.bid, cache.offset, attrib_obj.data);
+      } else {
+        this.backend.write_buffer(cache.bid, cache.offset, attrib_obj.data, attrib_obj.offset, attrib_obj.total_bytes);
+      }
     }
 
     return cache;
