@@ -4,10 +4,11 @@ import { Vec3, Vec4, Mat3x4, Mat4x4, Frustum } from 'phoptics/math';
 
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import forward_shader from "../shaders/forward_shader.mjs";
+import line_shader from "../shaders/line_shader.mjs";
 
 const dpr = window.devicePixelRatio;
 let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
-let engine, canvas_texture, render_pass, render_target, scene, camera;
+let engine, canvas_texture, render_pass, render_target, scene, camera, frustum_mesh;
 let mesh1, mesh2, mesh3, obj_pos = new Vec3(), target = new Vec3();
 let frustum = new Frustum(), pv = new Mat4x4(), center = new Vec3(), view = new Mat3x4();
 
@@ -51,7 +52,7 @@ const renderlist = new RenderList();
   render_pass.set_render_target(render_target);
 
   target.set(0, 30, 0);
-  camera.position.set(0, 100, 130, 250);
+  camera.position.set(0, 150, 30, 250);
   camera.view.translate(camera.position).look_at(target).view_inverse();
   camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 600);
 
@@ -132,6 +133,29 @@ const renderlist = new RenderList();
     renderlist.add(mesh3, dist3);
   }
 
+  const line_data = new Float32Array(9);
+  const far = 900, x = Math.tan(.5 * Math.PI / 2) * far;
+  line_data[0] = x;
+  line_data[2] = -far;
+  line_data[6] = -x;
+  line_data[8] = -far;
+
+  const line_base = new Shader({ code: line_shader });
+  const line_material = new Material({
+    shader: line_base,
+    dynamic: transform_layout,
+    graphics: { primitive: "line-strip" },
+    vertex: [
+      { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }] },
+    ],
+  });
+
+  const lines_geometry = new Geometry({
+    draw: { count: 9 },
+    attributes: [ new Buffer({ data: line_data, stride: 12 }) ],
+  });
+  frustum_mesh = new Mesh(lines_geometry, line_material);
+  renderlist.add(frustum_mesh);
 
   animate();
 })();
@@ -169,8 +193,14 @@ const encode_normal = (x, y, z) => {
 const frustum_culling = () => {
   const phase = performance.now() / 400;
   target.set(130 * Math.sin(phase), 30, - 130 * Math.cos(phase) + 130);
-  view.translate(camera.position).look_at(target).view_inverse();
-  frustum.set_projection(pv.copy(camera.projection).affine(view));
+
+  center.set(0, 30, 130);
+  view.translate(center).look_at(target);
+  frustum_mesh.dynamic.world.copy(view);
+  
+  view.view_inverse();
+  pv.perspective(Math.PI / 2, 1, 1, 900).affine(view);
+  frustum.set_projection(pv);
 
   for (let mesh of scene) {
     center.set(0, 37, 0).affine(mesh.dynamic.world);

@@ -90,8 +90,6 @@ export class GPUBackend {
       if (index_handle != NULL_HANDLE) {
         const buffer = this.resources.get_buffer(index_handle);
         pass.setIndexBuffer(buffer, "uint32");
-      } else {
-        pass.setIndexBuffer(null);
       }
     }
 
