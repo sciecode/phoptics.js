@@ -45,4 +45,8 @@ export class Plane extends Float32Array {
 		this[3] *= scl;
 		return this;
   }
+
+  distance(v) {
+    return this.normal.dot(v) + this[3];
+  }
 }

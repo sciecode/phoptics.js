@@ -19,8 +19,13 @@ struct Globals {
   nits : f32,
 }
 
+struct Uniforms {
+  world_matrix: mat3x4f,
+  color: vec4f,
+}
+
 @group(0) @binding(0) var<storage, read> globals: Globals;
-@group(3) @binding(0) var<storage, read> obj: mat3x4f;
+@group(3) @binding(0) var<storage, read> uniforms: Uniforms;
 
 fn dec_oct32(data : u32) -> vec3f {
   let v = vec2f(vec2u(data & 65535, data >> 16)) / 32767.5 - 1.0;
@@ -33,7 +38,7 @@ fn dec_oct32(data : u32) -> vec3f {
 @vertex fn vs(attrib : Attributes) -> FragInput {
   var output : FragInput;
 
-  var w_pos = vec4f(attrib.position, 1) * obj;
+  var w_pos = vec4f(attrib.position, 1) * uniforms.world_matrix;
   var c_pos = vec4f(vec4f(w_pos, 1) * globals.view_matrix, 1) * globals.projection_matrix;
 
   output.position = c_pos;
@@ -94,7 +99,7 @@ fn point_light(frag : ptr<function, RenderInfo>, l_pos : vec3f, l_color : vec3f,
     500.                  // intensity
   );
 
-  let albedo = .5;
+  let albedo = uniforms.color.rgb;
   let L = albedo * frag.Ld_dif;
   let Lf = pow(L / globals.nits, vec3f(1./2.2));
   return vec4f(Lf, .5);

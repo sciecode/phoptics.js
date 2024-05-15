@@ -9,6 +9,7 @@ const dpr = window.devicePixelRatio;
 let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
 let engine, canvas_texture, render_pass, render_target, scene, camera;
 let mesh1, mesh2, mesh3, obj_pos = new Vec3(), target = new Vec3();
+let frustum = new Frustum(), pv = new Mat4x4(), center = new Vec3(), view = new Mat3x4();
 
 const distance_ratio = ((1 << 30) - 1) / 1_000_000;
 const renderlist = new RenderList();
@@ -47,28 +48,19 @@ const renderlist = new RenderList();
     depth: { view: depth_texture.create_view(), clear: 0 }
   });
 
-  target.set(0, 30, 0);
-  camera.position.set(0, 30, 120, 250);
-  camera.projection.perspective(Math.PI / 2.5, viewport.width / viewport.height, 1, 600);
-  camera.view.translate(camera.position).view_inverse();
   render_pass.set_render_target(render_target);
 
+  target.set(0, 30, 0);
+  camera.position.set(0, 100, 130, 250);
+  camera.view.translate(camera.position).look_at(target).view_inverse();
+  camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 600);
+
   const transform_layout = new DynamicLayout([
-    { name: "world", type: Mat3x4 }
+    { name: "world", type: Mat3x4 },
+    { name: "color", type: Vec4 }
   ]);
 
   const shader_base = new Shader({ code: forward_shader });
-  const material_trans = new Material({
-    shader: shader_base,
-    dynamic: transform_layout,
-    graphics: { blend: true },
-    vertex: [
-      { arrayStride: 16, attributes: [
-        { shaderLocation: 0, offset: 0, format: 'float32x3' },
-        { shaderLocation: 1, offset: 12, format: 'uint32' } ], 
-      },
-    ]
-  });
 
   const material = new Material({
     shader: shader_base,
@@ -108,17 +100,38 @@ const renderlist = new RenderList();
   });
 
   scene = [];
-  mesh1 = new Mesh(geometry, material_trans);
+  mesh1 = new Mesh(geometry, material);
   scene.push(mesh1);
   
-  mesh2 = new Mesh(geometry, material_trans);
+  mesh2 = new Mesh(geometry, material);
   scene.push(mesh2);
 
   mesh3 = new Mesh(geometry, material);
   scene.push(mesh3);
 
   engine.preload(render_pass, mesh1);
-  engine.preload(render_pass, mesh3);
+
+  {
+    renderlist.reset();
+
+    obj_pos.set(-60, 0, 0);
+    mesh1.dynamic.world.translate(obj_pos);
+    mesh1.dynamic.color.set(.5, 1, .5);
+    const dist1 = obj_pos.squared_distance(camera.position) * distance_ratio;
+    renderlist.add(mesh1, dist1);
+    
+    obj_pos.set(60, 0, 0);
+    mesh2.dynamic.world.translate(obj_pos);
+    mesh2.dynamic.color.set(.5, 1, .5);
+    const dist2 = obj_pos.squared_distance(camera.position) * distance_ratio;
+    renderlist.add(mesh2, dist2);
+
+    obj_pos.set(0, 0, 0);
+    mesh3.dynamic.color.set(1, .5, .5);
+    const dist3 = obj_pos.squared_distance(camera.position) * distance_ratio;
+    renderlist.add(mesh3, dist3);
+  }
+
 
   animate();
 })();
@@ -132,7 +145,8 @@ const auto_resize = () => {
     viewport.width = newW; viewport.height = newH;
     render_target.set_size(viewport);
     
-    camera.projection.perspective(Math.PI / 2.5, viewport.width / viewport.height, 1, 600);
+    camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 600);
+    camera.update();
   }
 }
 
@@ -150,36 +164,30 @@ const encode_normal = (x, y, z) => {
 
   const dx = Math.round(32767.5 + vx * 32767.5), dy = Math.round(32767.5 + vy * 32767.5);
   return dx | (dy << 16);
- }
+}
+
+const frustum_culling = () => {
+  const phase = performance.now() / 400;
+  target.set(130 * Math.sin(phase), 30, - 130 * Math.cos(phase) + 130);
+  view.translate(camera.position).look_at(target).view_inverse();
+  frustum.set_projection(pv.copy(camera.projection).affine(view));
+
+  for (let mesh of scene) {
+    center.set(0, 37, 0).affine(mesh.dynamic.world);
+    if (frustum.intersects_sphere(center, 50)) {
+      mesh.dynamic.color.set(.5, 1, .5);
+    } else {
+      mesh.dynamic.color.set(1, .5, .5);
+    }
+  }
+}
 
 const animate = () => {
   requestAnimationFrame(animate);
 
   auto_resize();
 
-  const phase = performance.now() / 500;
-  camera.position.set(180 * Math.sin(phase / 4), 30, 180 * Math.cos(phase / 4), 250);
-  camera.view.translate(camera.position).look_at(target).view_inverse();
-  camera.update();
-  
-  {
-    renderlist.reset();
-
-    const amplitude = 10 * Math.sin(phase);
-    obj_pos.set(-60, amplitude, 0);
-    mesh1.dynamic.world.translate(obj_pos);
-    const dist1 = obj_pos.squared_distance(camera.position) * distance_ratio;
-    renderlist.add(mesh1, dist1);
-    
-    obj_pos.set(60, -amplitude, 0);
-    mesh2.dynamic.world.translate(obj_pos);
-    const dist2 = obj_pos.squared_distance(camera.position) * distance_ratio;
-    renderlist.add(mesh2, dist2);
-
-    obj_pos.set(0, 0, 0);
-    const dist3 = obj_pos.squared_distance(camera.position) * distance_ratio;
-    renderlist.add(mesh3, dist3);
-  }
+  frustum_culling();
 
   engine.render(render_pass, renderlist);
 }

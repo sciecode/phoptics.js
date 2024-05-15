@@ -25,4 +25,12 @@ export class Frustum {
     this.planes[4].set_f32(m[12] - m[8], m[13] - m[9], m[14] - m[10], m[15] - m[11]).normalize()  // N
     this.planes[5].set_f32(m[8], m[9], m[10], m[11]).normalize()                                  // F
   }
+
+  intersects_sphere(center, radius) {
+    for (let i = 0; i < 6; i++) {
+      if (this.planes[i].distance(center) < -radius) 
+        return false;
+    }
+    return true;
+  }
 }
