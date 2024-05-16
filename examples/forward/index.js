@@ -204,7 +204,7 @@ const frustum_culling = () => {
 
   for (let mesh of scene) {
     center.set(0, 37, 0).affine(mesh.dynamic.world);
-    if (frustum.intersects_sphere(center, 50)) {
+    if (frustum.sphere_test(center, 50)) {
       mesh.dynamic.color.set(.5, 1, .5);
     } else {
       mesh.dynamic.color.set(1, .5, .5);

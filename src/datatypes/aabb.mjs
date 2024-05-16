@@ -26,6 +26,11 @@ export class AABB extends Float32Array {
     return this;
   }
 
+  get_bounds(min, max) {
+    min.copy(this.center).sub(this.extent);
+    max.copy(this.center).add(this.extent);
+  }
+
   copy(b) {
     return this.set(b.center, b.extent);  
   }
