@@ -1,6 +1,6 @@
 import { Engine, Mesh, RenderList, Buffer, Shader, Geometry, Material, Texture, CanvasTexture,
   RenderPass, RenderTarget, StructuredBuffer, DynamicLayout } from 'phoptics';
-import { Vec3, Vec4, Mat3x4, Mat4x4, Frustum } from 'phoptics/math';
+import { Vec3, Vec4, Mat3x4, Mat4x4, Frustum, AABB } from 'phoptics/math';
 
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import forward_shader from "../shaders/forward_shader.mjs";
@@ -11,6 +11,7 @@ let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight 
 let engine, canvas_texture, render_pass, render_target, scene, camera, frustum_mesh;
 let mesh1, mesh2, mesh3, obj_pos = new Vec3(), target = new Vec3();
 let frustum = new Frustum(), pv = new Mat4x4(), center = new Vec3(), view = new Mat3x4();
+let aabb = new AABB(), tmp_aabb = new AABB();
 
 const distance_ratio = ((1 << 30) - 1) / 1_000_000;
 const renderlist = new RenderList();
@@ -86,13 +87,29 @@ const renderlist = new RenderList();
   const index_data = new Uint32Array(data, vertex_count * 16, index_count);
   index_data.set(geo.indices);
 
+  const min = new Vec3(), max = new Vec3();
+  min.set(Infinity, Infinity, Infinity);
+  max.set(-Infinity, -Infinity, -Infinity);
+
   for (let i = 0; i < vertex_count; i++) {
     const i3 = i * 3, i4 = i * 4;
-    vertex_data_f32[i4] = geo.positions[i3];
-    vertex_data_f32[i4 + 1] = geo.positions[i3 + 1];
-    vertex_data_f32[i4 + 2] = geo.positions[i3 + 2];
+
+    const x = vertex_data_f32[i4] = geo.positions[i3];
+    if (min.x > x) min.x = x;
+    else if (max.x < x) max.x = x;
+
+    const y = vertex_data_f32[i4 + 1] = geo.positions[i3 + 1];
+    if (min.y > y) min.y = y;
+    else if (max.y < y) max.y = y;
+
+    const z = vertex_data_f32[i4 + 2] = geo.positions[i3 + 2];
+    if (min.z > z) min.z = z;
+    else if (max.z < z) max.z = z;
+
     vertex_data_u32[i4 + 3] = encode_normal(geo.normals[i3], geo.normals[i3 + 1], geo.normals[i3 + 2]);
   }
+
+  aabb.set_bounds(min, max);
 
   const geometry = new Geometry({
     draw: { count: index_count },
@@ -191,7 +208,7 @@ const encode_normal = (x, y, z) => {
 }
 
 const frustum_culling = () => {
-  const phase = performance.now() / 400;
+  const phase = performance.now() / 600;
   target.set(130 * Math.sin(phase), 30, - 130 * Math.cos(phase) + 130);
 
   center.set(0, 30, 130);
@@ -203,12 +220,9 @@ const frustum_culling = () => {
   frustum.set_projection(pv);
 
   for (let mesh of scene) {
-    center.set(0, 37, 0).affine(mesh.dynamic.world);
-    if (frustum.sphere_test(center, 50)) {
-      mesh.dynamic.color.set(.5, 1, .5);
-    } else {
-      mesh.dynamic.color.set(1, .5, .5);
-    }
+    tmp_aabb.copy(aabb).affine(mesh.dynamic.world);
+    if (frustum.aabb_test(tmp_aabb)) mesh.dynamic.color.set(.5, 1, .5);
+    else mesh.dynamic.color.set(1, .5, .5);
   }
 }
 
