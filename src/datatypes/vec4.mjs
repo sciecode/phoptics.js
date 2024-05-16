@@ -45,14 +45,50 @@ export class Vec4 extends Float32Array {
   }
 
   add(v) {
-    this[0] += v[0]; this[1] += y[1];
+    this[0] += v[0]; this[1] += v[1];
     this[2] += v[2]; this[3] += v[3];
     return this;
   }
 
   add_f32(v) {
-    this[0] += v; this[1] += y;
+    this[0] += v; this[1] += v;
     this[2] += v; this[3] += v;
+    return this;
+  }
+  
+  sub(v) {
+    this[0] -= v[0]; this[1] -= v[1];
+    this[2] -= v[2]; this[3] -= v[3];
+    return this;
+  }
+
+  sub_f32(v) {
+    this[0] -= v; this[1] -= v;
+    this[2] -= v; this[3] -= v;
+    return this;
+  }
+
+  mul(v) {
+    this[0] *= v[0]; this[1] *= v[1];
+    this[2] *= v[2]; this[3] *= v[3];
+    return this;
+  }
+
+  mul_f32(v) {
+    this[0] *= v; this[1] *= v;
+    this[2] *= v; this[3] *= v;
+    return this;
+  }
+
+  div(v) {
+    this[0] /= v[0]; this[1] /= v[1];
+    this[2] /= v[2]; this[3] /= v[3];
+    return this;
+  }
+
+  div_f32(v) {
+    this[0] /= v; this[1] /= v;
+    this[2] /= v; this[3] /= v;
     return this;
   }
 

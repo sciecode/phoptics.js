@@ -84,13 +84,10 @@ export class Mat4x4 extends Float32Array {
     const range = 1 / (far - near);
     const focal_length = Math.tan((Math.PI - fov) * .5);
 
-    m.fill(0);
-
-    m[0] = focal_length / aspect;
-    m[5] = focal_length;
-    m[10] = near * range;
-    m[11] = near * far * range;
-    m[14] = -1;
+    m[0] = focal_length / aspect; m[1] = 0;             m[2] = 0;             m[3] = 0;
+    m[4] = 0;                     m[5] = focal_length;  m[6] = 0;             m[7] = 0;
+    m[8] = 0;                     m[9] = 0;             m[10] = near * range; m[11] = near * far * range;
+    m[12] = 0;                    m[13] = 0;            m[14] = -1;           m[15] = 0;
     return this;
   }
 }
