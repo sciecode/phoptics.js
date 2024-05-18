@@ -8,39 +8,33 @@
  * 
 **/
 
+import { TYPE } from "../common/type.mjs";
 import { Memory, memcpy } from '../common/memory.mjs';
 
 const EMPTY32 = 0xffff_ffff;
 
 export const opt_fetch = (geometry) => {
+  const indices = geometry.index.data;
+  const index_count = indices.length;
+  const attrib = geometry.attributes[0];
+  const vertex_count = attrib.total_bytes / attrib.stride;
+  const buffer_count = geometry.attributes.length;
 
-  const indices = geometry.indices;
-  const index_count = geometry.indices.length;
-  const vertex_count = geometry.vertex_count;
-  const buffer_count = geometry.buffers.length;
-
-  const buffers = geometry.buffers.map(buf => {
-    return { output: null, input: null, stride: null }
-  });
-
-  geometry.attributes.forEach(attrib => {
-    const entry = buffers[attrib.buffer_id];
-    if (!entry.stride) entry.stride = attrib.stride;
+  const buffers = geometry.attributes.map(vertex => {
+    return { output: null, input: vertex.data, stride: vertex.stride }
   });
   
   let mem = [];
   for (let i = 0; i < buffer_count; ++i)
     mem.push({ type: TYPE.u8, count: vertex_count * buffers[i].stride });
+  mem.push({ type: TYPE.u32, count: vertex_count});
   Memory.allocate_layout(mem);
 
-  for (let i = 0; i < buffer_count; ++i) {
-    const entry = buffers[i];
-    entry.input = geometry.buffers[i];
-    geometry.buffers[i] = entry.output = mem[i];
-  }
+  for (let i = 0; i < buffer_count; ++i)
+    geometry.attributes[i].data = buffers[i].output = mem[i];
   
   let next_vertex = 0;
-  const table = new Uint32Array(vertex_count).fill(EMPTY32);
+  const table = mem[buffer_count].fill(EMPTY32);
   for (let i = 0; i < index_count; ++i) {
     const index = indices[i];
     if (table[index] == EMPTY32) table[index] = next_vertex++;
@@ -52,5 +46,4 @@ export const opt_fetch = (geometry) => {
     for (let i = 0, il = table.length; i < il; ++i)
       memcpy(entry.output, table[i] * stride, entry.input, i * stride, stride);
   }
-
 } 

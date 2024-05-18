@@ -1,17 +1,15 @@
 import { Engine, Mesh, RenderList, Buffer, Shader, Geometry, Material, Texture, CanvasTexture,
   RenderPass, RenderTarget, StructuredBuffer, DynamicLayout } from 'phoptics';
-import { Vec3, Vec4, Mat3x4, Mat4x4, Frustum, AABB } from 'phoptics/math';
+import { Vec3, Vec4, Mat3x4, Mat4x4, AABB } from 'phoptics/math';
+import { optimize_geometry } from 'phoptics/utils/modules/geometry/optimizer.mjs';
 
 import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import forward_shader from "../shaders/forward_shader.mjs";
-import line_shader from "../shaders/line_shader.mjs";
 
 const dpr = window.devicePixelRatio;
 let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
-let engine, canvas_texture, render_pass, render_target, scene, camera, frustum_mesh;
-let mesh1, mesh2, mesh3, obj_pos = new Vec3(), target = new Vec3();
-let frustum = new Frustum(), pv = new Mat4x4(), center = new Vec3(), view = new Mat3x4();
-let aabb = new AABB(), tmp_aabb = new AABB();
+let engine, canvas_texture, render_pass, render_target, scene, camera;
+let mesh1, mesh2, mesh3, obj_pos = new Vec3(), target = new Vec3(), aabb = new AABB();
 
 const distance_ratio = ((1 << 30) - 1) / 1_000_000;
 const renderlist = new RenderList();
@@ -53,7 +51,7 @@ const renderlist = new RenderList();
   render_pass.set_render_target(render_target);
 
   target.set(0, 30, 0);
-  camera.position.set(0, 150, 30, 250);
+  camera.position.set(0, 40, 180, 250);
   camera.view.translate(camera.position).look_at(target).view_inverse();
   camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 600);
 
@@ -114,8 +112,12 @@ const renderlist = new RenderList();
   const geometry = new Geometry({
     draw: { count: index_count },
     index: new Buffer({ data: index_data }),
-    attributes: [ new Buffer({ data: data, bytes: vertex_count * 16, stride: 16 }) ],
+    attributes: [ new Buffer({ data: data, total_bytes: vertex_count * 16, stride: 16 }) ],
   });
+
+  console.time("optimize");
+  optimize_geometry(geometry);
+  console.timeEnd("optimize");
 
   scene = [];
   mesh1 = new Mesh(geometry, material);
@@ -150,30 +152,6 @@ const renderlist = new RenderList();
     renderlist.add(mesh3, dist3);
   }
 
-  const line_data = new Float32Array(9);
-  const far = 900, x = Math.tan(.5 * Math.PI / 2) * far;
-  line_data[0] = x;
-  line_data[2] = -far;
-  line_data[6] = -x;
-  line_data[8] = -far;
-
-  const line_base = new Shader({ code: line_shader });
-  const line_material = new Material({
-    shader: line_base,
-    dynamic: transform_layout,
-    graphics: { primitive: "line-strip" },
-    vertex: [
-      { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }] },
-    ],
-  });
-
-  const lines_geometry = new Geometry({
-    draw: { count: 9 },
-    attributes: [ new Buffer({ data: line_data, stride: 12 }) ],
-  });
-  frustum_mesh = new Mesh(lines_geometry, line_material);
-  renderlist.add(frustum_mesh);
-
   animate();
 })();
 
@@ -187,7 +165,6 @@ const auto_resize = () => {
     render_target.set_size(viewport);
     
     camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 600);
-    camera.update();
   }
 }
 
@@ -207,31 +184,14 @@ const encode_normal = (x, y, z) => {
   return dx | (dy << 16);
 }
 
-const frustum_culling = () => {
-  const phase = performance.now() / 600;
-  target.set(130 * Math.sin(phase), 30, - 130 * Math.cos(phase) + 130);
-
-  center.set(0, 30, 130);
-  view.translate(center).look_at(target);
-  frustum_mesh.dynamic.world.copy(view);
-  
-  view.view_inverse();
-  pv.perspective(Math.PI / 2, 1, 1, 900).affine(view);
-  frustum.set_projection(pv);
-
-  for (let mesh of scene) {
-    tmp_aabb.copy(aabb).affine(mesh.dynamic.world);
-    if (frustum.aabb_test(tmp_aabb)) mesh.dynamic.color.set(.5, 1, .5);
-    else mesh.dynamic.color.set(1, .5, .5);
-  }
-}
-
 const animate = () => {
   requestAnimationFrame(animate);
 
   auto_resize();
 
-  frustum_culling();
+  camera.position.set(140 * Math.sin(performance.now() / 1000), 40, 180, 250);
+  camera.view.translate(camera.position).look_at(target).view_inverse();
+  camera.update();
 
   engine.render(render_pass, renderlist);
 }

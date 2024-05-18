@@ -8,6 +8,8 @@
  * 
 **/
 
+import { Buffer } from 'phoptics';
+import { TYPE } from "../common/type.mjs";
 import { Memory } from '../common/memory.mjs';
 
 const CACHE_SIZE = 16;
@@ -19,19 +21,12 @@ const WEIGHTS = {
 
 const score = (pos, links) => WEIGHTS.cache[1 - pos] + WEIGHTS.live[links < 8 ? links : 8];
 
-const group_view = (view, group) => {
-  const byte_offset = view.byteOffset + group.offset * view.BYTES_PER_ELEMENT;
-  return new view.constructor(view.buffer, byte_offset, group.count);
-}
-
-const opt_cache_group = (geometry, output_buffer, group) => {
-
-  const indices = group_view(geometry.indices, group);
-  const output = group_view(output_buffer, group);
-
+const opt_cache_group = (geometry, output) => {
+  const indices = geometry.index.data;
   const index_count = indices.length;
   const triangle_count = index_count / 3;
-  const vertex_count = geometry.vertex_count;
+  const attrib = geometry.attributes[0];
+  const vertex_count = attrib.total_bytes / attrib.stride;
 
   const mem = {
     adj_count: { type: TYPE.u32, count: vertex_count },
@@ -157,13 +152,15 @@ const opt_cache_group = (geometry, output_buffer, group) => {
     }
 
   }
-
 }
 
 export const opt_cache = (geometry) => {
-  const indices = geometry.indices
+  const indices = geometry.index.data;
   const output = new indices.constructor(indices.length);
-  for (let group of geometry.groups)
-    opt_cache_group(geometry,output,group);
-  geometry.set_indices(output);
+  opt_cache_group(geometry, output);
+  geometry.index = new Buffer({
+    data: output,
+    total_bytes: output.byteLength,
+    stride: output.BYTES_PER_ELEMENT
+  });
 } 

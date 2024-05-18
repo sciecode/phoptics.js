@@ -9,6 +9,8 @@
  * 
 **/
 
+import { Buffer } from 'phoptics';
+import { TYPE } from "../common/type.mjs";
 import { Hash32 } from "../common/hash.mjs";
 import { Memory, memcpy } from '../common/memory.mjs';
 
@@ -17,15 +19,20 @@ const EMPTY32 = 0xffff_ffff;
 const calculate_bucket_count = (count) => 1 << Math.ceil(Math.log2(count * 1.25));
 
 class Remapper {
-  
   constructor(geometry) {
     let get_index, index_count, next_vertex = 0;
-    const vertex_count = geometry.vertex_count;
+    const attrib = geometry.attributes[0];
+    const index = geometry.index;
+    const vertex_count = attrib.total_bytes / attrib.stride;
     const bucket_count = calculate_bucket_count(vertex_count);
 
-    if (geometry.indices) {
-      index_count = geometry.indices.length;
-      get_index = i => geometry.indices[i];
+    if (index) {
+      if (!ArrayBuffer.isView(index.data)) {
+        const constructor = index.stride == 4 ? Uint32Array : Uint16Array;
+        index.data = new constructor(index.data, index.offset, index.total_bytes / index.stride);
+      }
+      index_count = index.data.length;
+      get_index = i => index.data[i];
     } else {
       index_count = vertex_count;
       get_index = i => i
@@ -40,14 +47,16 @@ class Remapper {
     this.table = mem.table.fill(EMPTY32);
     this.buckets = mem.buckets.fill(EMPTY32);
     
-    this.buffers = geometry.buffers.map(buf => {
-      return { buffer: buf, stride: null }
+    this.buffers = geometry.attributes.map(vertex => {
+      let data;
+      if (ArrayBuffer.isView(vertex.data)) {
+        data = (vertex.data instanceof Uint8Array) ? 
+        vertex.data : new Uint8Array(vertex.data.buffer, vertex.data.byteOffset, vertex.data.byteLength);
+      } else {
+        data = new Uint8Array(vertex.data, vertex.offset, vertex.total_bytes);
+      }
+      return { buffer: data, stride: vertex.stride }
     })
-
-    geometry.attributes.forEach(attrib => {
-      const entry = this.buffers[attrib.buffer_id];
-      if (!entry.stride) entry.stride = attrib.stride;
-    });
 
     this.mask = bucket_count - 1;
 
@@ -98,36 +107,42 @@ class Remapper {
   }
 
   remap_indices(geometry) {
-    const get_index = geometry.indices ? i => geometry.indices[i] : i => i;
-    const indices = (this.vertex_count < 65536) ?
-      new Uint16Array(this.index_count) : new Uint32Array(this.index_count);
+    const has_index = !!geometry.index;
+    const get_index = has_index ? i => geometry.index.data[i] : i => i;
+    const indices = new Uint32Array(this.index_count); // TODO: update when uint16 index is enabled
 
     for (let i = 0, il = this.index_count; i < il; ++i)
       indices[i] = this.table[get_index(i)];
 
-    geometry.set_indices(indices);
+    geometry.index = new Buffer({
+      data: indices,
+      total_bytes: indices.byteLength,
+      stride: indices.BYTES_PER_ELEMENT
+    });
+    geometry.draw.offset = 0;
+    geometry.draw.count = indices.length;
   }
 
   remap_vertices(geometry) {
-    
-    const mem = []
+    const mem = [];
     for (let k = 0; k < this.buffers.length; ++k)
       mem.push({ type: TYPE.u8, count: this.vertex_count * this.buffers[k].stride });
 
     Memory.allocate_layout(mem);
     for (let k = 0; k < this.buffers.length; ++k) {
-      const buffer = geometry.buffers[k];
       const new_buffer = mem[k];
-      const stride = this.buffers[k].stride;
+      const { buffer, stride } = this.buffers[k];
 
       for (let i = 0, il = this.table.length; i < il; ++i) {
         if (this.table[i] == EMPTY32) continue;
         memcpy(new_buffer, this.table[i] * stride, buffer, i * stride, stride);
       }
-      geometry.buffers[k] = new_buffer;
+      const attrib = geometry.attributes[k];
+      attrib.data = new_buffer;
+      attrib.total_bytes = new_buffer.byteLength;
+      attrib.offset = 0;
     }
   }
-
 }
 
 export const opt_remap = (geometry) => {

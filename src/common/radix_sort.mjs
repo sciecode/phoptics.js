@@ -33,13 +33,11 @@ export default (arr, opt = {} ) => {
     const b = data[(depth + 1) & 1];
 
     for (let j = start + 1; j < start + len; j++) {
-      const p = a[j], t = get(p);
+      const p = a[j], t = get(p) >>> 0;
       let i = j;
-      while (i > 0) {
-        if (get(a[i - 1]) > t)
-          a[i] = a[--i];
-        else
-          break;
+      while (i > start) {
+        if ((get(a[i - 1]) >>> 0) > t) a[i] = a[--i];
+        else break;
       }
       a[i] = p;
     }
