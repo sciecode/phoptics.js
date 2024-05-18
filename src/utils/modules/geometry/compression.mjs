@@ -76,17 +76,8 @@ const populate = (output, geometry, indices, vertices) => {
 export const compress = (geometry) => {
   const indices = compress_indices(geometry);
   const vertices = compress_vertices(geometry);
-
-  let original_size = geometry.index.total_bytes, 
-    compressed_size = indices.size;
-
-  for (let i in vertices) {
-    original_size += geometry.attributes[i].total_bytes;
-    compressed_size += vertices[i].size;
-  }
  
   const size = calculate_buffer_size(geometry, indices, vertices);
-  
   const output = new Uint8Array(size);
   populate(output, geometry, indices, vertices);
 

@@ -49,10 +49,10 @@ const renderlist = new RenderList();
 
   render_pass.set_render_target(render_target);
 
-  target.set(0, 30, 0);
-  camera.position.set(0, 40, 180, 250);
+  target.set(0, 1, 0);
+  camera.position.set(0, 4, 18, 250);
   camera.view.translate(camera.position).look_at(target).view_inverse();
-  camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 600);
+  camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 300);
 
   const transform_layout = new DynamicLayout([
     { name: "world", type: Mat3x4 },
@@ -65,9 +65,9 @@ const renderlist = new RenderList();
     shader: shader_base,
     dynamic: transform_layout,
     vertex: [
-      { arrayStride: 16, attributes: [
-        { shaderLocation: 0, offset: 0, format: 'float32x3' },
-        { shaderLocation: 1, offset: 12, format: 'uint32' } ], 
+      { arrayStride: 12, attributes: [
+        { shaderLocation: 0, offset: 0, format: 'float16x4' },
+        { shaderLocation: 1, offset: 8, format: 'uint32' } ], 
       },
     ],
   });
@@ -93,13 +93,13 @@ const renderlist = new RenderList();
   {
     renderlist.reset();
 
-    obj_pos.set(-60, 0, 0);
+    obj_pos.set(-1.5, 0, 0);
     mesh1.dynamic.world.translate(obj_pos);
     mesh1.dynamic.color.set(.5, 1, .5);
     const dist1 = obj_pos.squared_distance(camera.position) * distance_ratio;
     renderlist.add(mesh1, dist1);
     
-    obj_pos.set(60, 0, 0);
+    obj_pos.set(1.5, 0, 0);
     mesh2.dynamic.world.translate(obj_pos);
     mesh2.dynamic.color.set(.5, 1, .5);
     const dist2 = obj_pos.squared_distance(camera.position) * distance_ratio;
@@ -123,7 +123,7 @@ const auto_resize = () => {
     viewport.width = newW; viewport.height = newH;
     render_target.set_size(viewport);
     
-    camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 600);
+    camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 300);
   }
 }
 
@@ -143,12 +143,47 @@ const auto_resize = () => {
 //   return dx | (dy << 16);
 // }
 
+// var encode_f16 = (function() {
+
+//   var floatView = new Float32Array(1);
+//   var int32View = new Int32Array(floatView.buffer);
+
+//   return function toHalf( fval ) {
+//     floatView[0] = fval;
+//     var fbits = int32View[0];
+//     var sign  = (fbits >> 16) & 0x8000;          // sign only
+//     var val   = ( fbits & 0x7fffffff ) + 0x1000; // rounded value
+
+//     if( val >= 0x47800000 ) {             // might be or become NaN/Inf
+//       if( ( fbits & 0x7fffffff ) >= 0x47800000 ) {
+//                                           // is or must become NaN/Inf
+//         if( val < 0x7f800000 ) {          // was value but too large
+//           return sign | 0x7c00;           // make it +/-Inf
+//         }
+//         return sign | 0x7c00 |            // remains +/-Inf or NaN
+//             ( fbits & 0x007fffff ) >> 13; // keep NaN (and Inf) bits
+//       }
+//       return sign | 0x7bff;               // unrounded not quite Inf
+//     }
+//     if( val >= 0x38800000 ) {             // remains normalized value
+//       return sign | val - 0x38000000 >> 13; // exp - 127 + 15
+//     }
+//     if( val < 0x33000000 )  {             // too small for subnormal
+//       return sign;                        // becomes +/-0
+//     }
+//     val = ( fbits & 0x7fffffff ) >> 23;   // tmp exp for subnormal calc
+//     return sign | ( ( fbits & 0x7fffff | 0x800000 ) // add subnormal bit
+//          + ( 0x800000 >>> val - 102 )     // round depending on cut off
+//          >> 126 - val );                  // div by 2^(1-(exp-127+15)) and >> 13 | exp=0
+//   };
+// }());
+
 const animate = () => {
   requestAnimationFrame(animate);
 
   auto_resize();
 
-  camera.position.set(140 * Math.sin(performance.now() / 1000), 40, 180, 250);
+  camera.position.set(3 * Math.sin(performance.now() / 1000), 1, 4, 250);
   camera.view.translate(camera.position).look_at(target).view_inverse();
   camera.update();
 
