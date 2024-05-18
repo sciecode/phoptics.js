@@ -15,7 +15,7 @@ export class IndexdPool {
     this.buffers = [];
     this.indices = new PoolStorage();
 
-    this.free_callback = this.free.bind(this);
+    this.index_callback = this.free.bind(this);
   }
 
   get(index_obj) {

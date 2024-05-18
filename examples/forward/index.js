@@ -1,15 +1,14 @@
 import { Engine, Mesh, RenderList, Buffer, Shader, Geometry, Material, Texture, CanvasTexture,
   RenderPass, RenderTarget, StructuredBuffer, DynamicLayout } from 'phoptics';
-import { Vec3, Vec4, Mat3x4, Mat4x4, AABB } from 'phoptics/math';
-import { optimize_geometry } from 'phoptics/utils/modules/geometry/optimizer.mjs';
+import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
+import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
 
-import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import forward_shader from "../shaders/forward_shader.mjs";
 
 const dpr = window.devicePixelRatio;
 let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
 let engine, canvas_texture, render_pass, render_target, scene, camera;
-let mesh1, mesh2, mesh3, obj_pos = new Vec3(), target = new Vec3(), aabb = new AABB();
+let mesh1, mesh2, mesh3, obj_pos = new Vec3(), target = new Vec3();
 
 const distance_ratio = ((1 << 30) - 1) / 1_000_000;
 const renderlist = new RenderList();
@@ -73,60 +72,20 @@ const renderlist = new RenderList();
     ],
   });
 
-  const loader = new OBJLoader();
-  const geo = await loader.load('../models/walt.obj');
-
-  const vertex_count = geo.positions.length / 3, index_count = geo.indices.length;
-  const geo_byte_size = (vertex_count * 4 + index_count) * 4;
-
-  const data = new ArrayBuffer(geo_byte_size);
-  const vertex_data_f32 = new Float32Array(data, 0, vertex_count * 4);
-  const vertex_data_u32 = new Uint32Array(data, 0, vertex_count * 4);
-  const index_data = new Uint32Array(data, vertex_count * 16, index_count);
-  index_data.set(geo.indices);
-
-  const min = new Vec3(), max = new Vec3();
-  min.set(Infinity, Infinity, Infinity);
-  max.set(-Infinity, -Infinity, -Infinity);
-
-  for (let i = 0; i < vertex_count; i++) {
-    const i3 = i * 3, i4 = i * 4;
-
-    const x = vertex_data_f32[i4] = geo.positions[i3];
-    if (min.x > x) min.x = x;
-    else if (max.x < x) max.x = x;
-
-    const y = vertex_data_f32[i4 + 1] = geo.positions[i3 + 1];
-    if (min.y > y) min.y = y;
-    else if (max.y < y) max.y = y;
-
-    const z = vertex_data_f32[i4 + 2] = geo.positions[i3 + 2];
-    if (min.z > z) min.z = z;
-    else if (max.z < z) max.z = z;
-
-    vertex_data_u32[i4 + 3] = encode_normal(geo.normals[i3], geo.normals[i3 + 1], geo.normals[i3 + 2]);
-  }
-
-  aabb.set_bounds(min, max);
-
-  const geometry = new Geometry({
-    draw: { count: index_count },
-    index: new Buffer({ data: index_data }),
-    attributes: [ new Buffer({ data: data, total_bytes: vertex_count * 16, stride: 16 }) ],
-  });
-
-  console.time("optimize");
-  optimize_geometry(geometry);
-  console.timeEnd("optimize");
+  const query = await fetch('../models/walt.phg');
+  const model = new Uint8Array( await query.arrayBuffer() );
+  console.time("uncompress");
+  const geo = uncompress(model);
+  console.timeEnd("uncompress");
 
   scene = [];
-  mesh1 = new Mesh(geometry, material);
+  mesh1 = new Mesh(geo, material);
   scene.push(mesh1);
   
-  mesh2 = new Mesh(geometry, material);
+  mesh2 = new Mesh(geo, material);
   scene.push(mesh2);
 
-  mesh3 = new Mesh(geometry, material);
+  mesh3 = new Mesh(geo, material);
   scene.push(mesh3);
 
   engine.preload(render_pass, mesh1);
@@ -168,21 +127,21 @@ const auto_resize = () => {
   }
 }
 
-const encode_normal = (x, y, z) => {
-  const abs = Math.abs(x) + Math.abs(y) + Math.abs(z);
-  let nx = x / abs, ny = y / abs, vx, vy;
+// const encode_normal = (x, y, z) => {
+//   const abs = Math.abs(x) + Math.abs(y) + Math.abs(z);
+//   let nx = x / abs, ny = y / abs, vx, vy;
 
-  if (z >= 0) {
-    vx = nx;
-    vy = ny;
-  } else {
-    vx = (1. - Math.abs(ny)) * Math.sign(nx);
-    vy = (1. - Math.abs(nx)) * Math.sign(ny);
-  }
+//   if (z >= 0) {
+//     vx = nx;
+//     vy = ny;
+//   } else {
+//     vx = (1. - Math.abs(ny)) * Math.sign(nx);
+//     vy = (1. - Math.abs(nx)) * Math.sign(ny);
+//   }
 
-  const dx = Math.round(32767.5 + vx * 32767.5), dy = Math.round(32767.5 + vy * 32767.5);
-  return dx | (dy << 16);
-}
+//   const dx = Math.round(32767.5 + vx * 32767.5), dy = Math.round(32767.5 + vy * 32767.5);
+//   return dx | (dy << 16);
+// }
 
 const animate = () => {
   requestAnimationFrame(animate);

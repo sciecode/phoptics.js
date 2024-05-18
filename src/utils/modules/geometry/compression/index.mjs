@@ -21,7 +21,7 @@ const calculate_buffer_size = (index_count, vertex_count) => {
     vertex_bits++;
 
   // worst-case encoding is 2 header bytes + 3 varint-7 encoded index deltas
-  let vertex_groups = (vertex_bits + 1 + 6) / 7;
+  let vertex_groups = ((vertex_bits + 1 + 6) / 7 ) | 0;
 
   return (index_count / 3) * (2 + 3 * vertex_groups) + 16;
 }
@@ -41,12 +41,9 @@ const get_edge = (info, a, b, c) => {
 
     const e0 = info.edge_fifo[i2], e1 = info.edge_fifo[i2 + 1];
 
-    if (e0 == a && e1 == b)
-      return (i << 2);
-    if (e0 == b && e1 == c)
-      return (i << 2) | 1;
-    if (e0 == c && e1 == a)
-      return (i << 2) | 2;
+    if (e0 == a && e1 == b) return (i << 2) | 0;
+    if (e0 == b && e1 == c) return (i << 2) | 1;
+    if (e0 == c && e1 == a) return (i << 2) | 2;
   }
 
   return -1;
@@ -76,13 +73,13 @@ const push_vertex = (info, v, cond = 1) => {
 }
 
 const encode_varbyte = (info, index, last) => {
-  const d = index - last;
-  let v = (d << 1) ^ ((d | 0) >> 31);
+  const d = u32(index - last);
+  let v = u32((d << 1) ^ (d >> 31));
 
   // encode 32-bit value in up to 5 7-bit groups
   do {
     info.output[info.data_offset++] = (v & 127) | (v > 127 ? 128 : 0);
-    v >>= 7;
+    v >>>= 7;
   } while (v);
 }
 
@@ -104,7 +101,7 @@ const decode_varbyte = (info, last) => {
   }
 
   v = u32(v);
-  const d = (v >> 1) ^ -i32(v & 1);
+  const d = (v >>> 1) ^ -i32(v & 1);
 
   return last + d;
 }
@@ -152,10 +149,12 @@ export const encode_indices = (output, indices, index_count) => {
 
       if (fec == 15) {
         // encode last-1 and last+1 to optimize strip-like sequences
-        if (c + 1 == last)
-          fec = 13, last = c;
-        if (c == last + 1)
-          fec = 14, last = c;
+        if (c + 1 == last) {
+          fec = 13; last = c;
+        }
+        if (c == last + 1) {
+          fec = 14; last = c;
+        }
       }
 
       output[info.code_offset++] = u8((fe << 4) | fec);
@@ -242,14 +241,17 @@ export const encode_indices = (output, indices, index_count) => {
 }
 
 export const compress_indices = (geometry) => {
-  const index_count = geometry.indices.length;
+  const index_count = geometry.index.data.length;
+
+  const attrib = geometry.attributes[0];
+  const vertex_count = attrib.total_bytes / attrib.stride;
 
   const output = {
     size: null,
-    buffer: new Uint8Array(calculate_buffer_size(index_count, geometry.vertex_count)),
+    buffer: new Uint8Array(calculate_buffer_size(index_count, vertex_count)),
   }
 
-  output.size = encode_indices(output.buffer, geometry.indices, index_count);
+  output.size = encode_indices(output.buffer, geometry.index.data, index_count);
 
   return output;
 }
@@ -281,12 +283,13 @@ const decode_indices = (output, input, index_count) => {
     if (code_tri < 0xf0) {
 
       const fe = code_tri >> 4;
-      const fec = code_tri & 15;
-
+      
       const edge_index = ((info.edge_offset - 1 - fe) & 15) * 2;
-
+      
       const a = info.edge_fifo[edge_index];
       const b = info.edge_fifo[edge_index + 1];
+
+      const fec = code_tri & 15;
 
       // note: this is the most common path in the entire decoder
       // inside this if we try to stay branchless (by using cmov/etc.) since these aren't predictable
@@ -378,14 +381,9 @@ const decode_indices = (output, input, index_count) => {
         let c = (fec == 0) ? next++ : info.vertex_fifo[(info.vertex_offset - fec) & 15];
 
         // note that we need to update the last index since free indices are delta-encoded
-        if (fea == 15)
-          last = a = decode_varbyte(info, last);
-
-        if (feb == 15)
-          last = b = decode_varbyte(info, last);
-
-        if (fec == 15)
-          last = c = decode_varbyte(info, last);
+        if (fea == 15) last = a = decode_varbyte(info, last);
+        if (feb == 15) last = b = decode_varbyte(info, last);
+        if (fec == 15) last = c = decode_varbyte(info, last);
 
         // output triangle
         write_triangle(info, i, a, b, c);
@@ -395,7 +393,7 @@ const decode_indices = (output, input, index_count) => {
         push_vertex(info, b, (feb == 0) | (feb == 15));
         push_vertex(info, c, (fec == 0) | (fec == 15));
 
-        push_edge(info, b, c);
+        push_edge(info, b, a);
         push_edge(info, c, b);
         push_edge(info, a, c);
       }

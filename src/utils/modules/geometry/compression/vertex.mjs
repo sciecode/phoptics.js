@@ -193,19 +193,17 @@ const encode_vertex = (output, input, vertex_count, vertex_size) => {
 }
 
 export const compress_vertices = (geometry) => {
-  const buffers = geometry.buffers.map(buf => {
-    return { buffer: buf, stride: null }
-  })
-
-  geometry.attributes.forEach(attrib => {
-    const entry = buffers[attrib.buffer_id];
-    if (!entry.stride) entry.stride = attrib.stride;
+  const buffers = geometry.attributes.map(buf => {
+    return { buffer: buf.data, stride: buf.stride }
   });
+
+  const attrib = geometry.attributes[0];
+  const vertex_count = attrib.total_bytes / attrib.stride;
 
   const mem = buffers.map(entry => {
     return { 
       type: TYPE.u8, 
-      count: calculate_buffer_size(geometry.vertex_count, entry.stride)
+      count: calculate_buffer_size(vertex_count, entry.stride)
     }
   });
 
@@ -214,7 +212,7 @@ export const compress_vertices = (geometry) => {
   for (let i in blocks) {
     const e = buffers[i];
     outputs[i] = {
-      ...encode_vertex(blocks[i], e.buffer, geometry.vertex_count, e.stride),
+      ...encode_vertex(blocks[i], e.buffer, vertex_count, e.stride),
       stride: e.stride
     };
   }
