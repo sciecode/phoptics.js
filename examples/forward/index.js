@@ -1,6 +1,7 @@
 import { Engine, Mesh, RenderList, Buffer, Shader, Geometry, Material, Texture, CanvasTexture,
   RenderPass, RenderTarget, StructuredBuffer, DynamicLayout } from 'phoptics';
 import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
+
 import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
 
 import forward_shader from "../shaders/forward_shader.mjs";
@@ -65,9 +66,9 @@ const renderlist = new RenderList();
     shader: shader_base,
     dynamic: transform_layout,
     vertex: [
-      { arrayStride: 12, attributes: [
-        { shaderLocation: 0, offset: 0, format: 'float16x4' },
-        { shaderLocation: 1, offset: 8, format: 'uint32' } ], 
+      {
+        arrayStride: 8, 
+        attributes: [{ shaderLocation: 0, offset: 0, format: 'uint32x2' }]
       },
     ],
   });
@@ -127,7 +128,7 @@ const auto_resize = () => {
   }
 }
 
-// const encode_normal = (x, y, z) => {
+// const encode_oct32 = (x, y, z) => {
 //   const abs = Math.abs(x) + Math.abs(y) + Math.abs(z);
 //   let nx = x / abs, ny = y / abs, vx, vy;
 
@@ -143,8 +144,22 @@ const auto_resize = () => {
 //   return dx | (dy << 16);
 // }
 
-// var encode_f16 = (function() {
+// const encode_oct16 = (x, y, z) => {
+//   const abs = Math.abs(x) + Math.abs(y) + Math.abs(z);
+//   let nx = x / abs, ny = y / abs, vx, vy;
 
+//   if (z >= 0) {
+//     vx = nx;
+//     vy = ny;
+//   } else {
+//     vx = (1. - Math.abs(ny)) * Math.sign(nx);
+//     vy = (1. - Math.abs(nx)) * Math.sign(ny);
+//   }
+//   const dx = Math.round(127.5 + vx * 127.5), dy = Math.round(127.5 + vy * 127.5);
+//   return dx | (dy << 8);
+// }
+
+// var encode_f16 = (function() {
 //   var floatView = new Float32Array(1);
 //   var int32View = new Int32Array(floatView.buffer);
 
