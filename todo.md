@@ -12,5 +12,5 @@
 
 ### Utils
   - [ ] Add Lighting manager module
-  - [ ] Add Geometry optimization / transform module
+  - [x] Add Geometry optimization / transform module
 
