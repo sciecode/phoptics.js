@@ -164,7 +164,7 @@ export const uncompress = (buffer) => {
 
   const geometry = new Geometry({
     draw: { count: indices.length },
-    index: new Buffer({ data: indices }),
+    index: new Buffer({ data: indices, stride: indices.BYTES_PER_ELEMENT }),
     attributes: info.vertices.map(vert => {
       return new Buffer({ data: vert.output, stride: vert.vertex_size }); 
     }),
