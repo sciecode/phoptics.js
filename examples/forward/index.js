@@ -97,11 +97,9 @@ const renderlist = new RenderList();
     attributes: [ new Buffer({ data: data, total_bytes: data.byteLength, stride: 8 }) ],
   });
 
-  // console.time("optimize");
-  // optimize_geometry(geo);
-  // console.timeEnd("optimize");
-
-  console.log(geo);
+  console.time("optimize");
+  optimize_geometry(geo);
+  console.timeEnd("optimize");
 
   // const query = await fetch('../models/walt.phg');
   // const model = new Uint8Array( await query.arrayBuffer() );

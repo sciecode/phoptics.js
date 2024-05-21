@@ -109,7 +109,8 @@ class Remapper {
   remap_indices(geometry) {
     const has_index = !!geometry.index;
     const get_index = has_index ? i => geometry.index.data[i] : i => i;
-    const indices = new Uint32Array(this.index_count); // TODO: update when uint16 index is enabled
+    const indices = (this.vertex_count < 65536) ?
+      new Uint16Array(this.index_count) : new Uint32Array(this.index_count);
 
     for (let i = 0, il = this.index_count; i < il; ++i)
       indices[i] = this.table[get_index(i)];
