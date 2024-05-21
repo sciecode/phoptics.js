@@ -84,12 +84,18 @@ export class GPUBackend {
       }
     }
 
+    // index offset
+    if (metadata & DrawStreamFlags.index_offset) {
+      draw_packet.draw.index_offset = stream[draw_packet.offset++];
+    }
+
     // index buffer
     if (metadata & DrawStreamFlags.index) {
       const index_handle = stream[draw_packet.offset++];
       if (index_handle != NULL_HANDLE) {
         const buffer = this.resources.get_buffer(index_handle);
-        pass.setIndexBuffer(buffer, "uint32");
+        const type = draw_packet.draw.index_offset & 0x8000_0000 ? "uint32" : "uint16";
+        pass.setIndexBuffer(buffer, type);
       }
     }
 
@@ -103,16 +109,11 @@ export class GPUBackend {
       draw_packet.draw.vertex_offset = stream[draw_packet.offset++];
     }
 
-    // index offset
-    if (metadata & DrawStreamFlags.index_offset) {
-      draw_packet.draw.index_offset = stream[draw_packet.offset++];
-    }
-
     const info = draw_packet.draw;
     if (info.index_offset === NULL_HANDLE) {
       pass.draw(info.draw_count, 1, info.vertex_offset);
     } else {
-      pass.drawIndexed(info.draw_count, 1, info.index_offset, info.vertex_offset);
+      pass.drawIndexed(info.draw_count, 1, info.index_offset & 0x7fff_ffff, info.vertex_offset);
     }
   }
 }

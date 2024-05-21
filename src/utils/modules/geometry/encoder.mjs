@@ -30,7 +30,7 @@ export const encode_oct16 = (v) => {
 }
 
 var f32 = new Float32Array(1);
-var i32 = new Int32Array(floatView.buffer);
+var i32 = new Int32Array(f32.buffer);
 
 // temporary while f16 support isn't available in JS
 export const encode_f16 = (fval) => {

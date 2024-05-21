@@ -107,7 +107,8 @@ export class RenderCache {
     if (geometry_obj.index) {
       const index_cache = this.get_index(geometry_obj.index);
       cache.index_bid = index_cache.bid;
-      cache.index_offset = index_cache.index_offset;
+      const sid = geometry_obj.index.stride >> 2;
+      cache.index_offset = index_cache.index_offset | (sid << 31);
     }
 
     let attrib = 0;

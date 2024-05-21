@@ -3,7 +3,6 @@ import { UNINITIALIZED } from "../constants.mjs";
 import { OffsetAllocator } from "../../common/offset_allocator.mjs";
 import { PoolStorage } from "../../common/pool_storage.mjs";
 
-const BITS = 2;
 const MAX_ALLOC = 0x7FFFF;
 const BLOCK_SIZE = 128 * 1024 * 1024;
 
@@ -22,7 +21,7 @@ export class IndexdPool {
     let id = index_obj.get_id();
 
     if (id == UNINITIALIZED) {
-      const { heap, slot, offset, bid } = this.create(index_obj.total_bytes);
+      const { heap, slot, offset, bid } = this.create(index_obj.total_bytes, index_obj.stride);
       
       id = this.indices.allocate({
         version: -1,
@@ -30,7 +29,7 @@ export class IndexdPool {
         slot: slot,
         bid: bid,
         offset: offset,
-        index_offset: offset >> BITS,
+        index_offset: offset / index_obj.stride,
       });
       index_obj.initialize(id, bid, this.index_callback);
     }

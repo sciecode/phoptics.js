@@ -11,10 +11,10 @@ export const DrawStreamBits = {
   attribute1:       7,
   attribute2:       8,
   attribute4:       9,
-  index:            10,
-  draw_count:       11,
-  vertex_offset:    12,
-  index_offset:     13,
+  index_offset:     10,
+  index:            11,
+  draw_count:       12,
+  vertex_offset:    13,
   MAX:              14,
 }
 

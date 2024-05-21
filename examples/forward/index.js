@@ -2,6 +2,9 @@ import { Engine, Mesh, RenderList, Buffer, Shader, Geometry, Material, Texture, 
   RenderPass, RenderTarget, StructuredBuffer, DynamicLayout } from 'phoptics';
 import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
 
+import { OBJLoader } from 'phoptics/utils/loaders/obj_loader.mjs';
+import { encode_f16, encode_oct16 } from 'phoptics/utils/modules/geometry/encoder.mjs';
+import { optimize_geometry } from 'phoptics/utils/modules/geometry/optimizer.mjs';
 import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
 
 import forward_shader from "../shaders/forward_shader.mjs";
@@ -73,11 +76,38 @@ const renderlist = new RenderList();
     ],
   });
 
-  const query = await fetch('../models/walt.phg');
-  const model = new Uint8Array( await query.arrayBuffer() );
-  console.time("uncompress");
-  const geo = uncompress(model);
-  console.timeEnd("uncompress");
+  const model = await (new OBJLoader()).load('../models/walt.obj');
+  const vertex_count = model.positions.length / 3, index_count = model.indices.length;
+  const data = new ArrayBuffer(vertex_count * 8), dv = new DataView(data);  
+  const index_data = new Uint16Array(index_count);
+  index_data.set(model.indices);
+  
+  const norm = new Vec3(), scl = 1 / 37;
+  for (let i = 0; i < vertex_count; i++) {
+    const i3 = i * 3, i8 = i * 8;
+    dv.setUint16(i8, encode_f16(model.positions[i3] * scl), true);
+    dv.setUint16(i8 + 2, encode_f16(model.positions[i3 + 1] * scl), true);
+    dv.setUint16(i8 + 4, encode_f16(model.positions[i3 + 2] * scl), true);
+    dv.setUint16(i8 + 6, encode_oct16(norm.from(model.normals, i3)), true);
+  }
+
+  const geo = new Geometry({
+    draw: { count: index_count },
+    index: new Buffer({ data: index_data, stride: 2 }),
+    attributes: [ new Buffer({ data: data, total_bytes: data.byteLength, stride: 8 }) ],
+  });
+
+  // console.time("optimize");
+  // optimize_geometry(geo);
+  // console.timeEnd("optimize");
+
+  console.log(geo);
+
+  // const query = await fetch('../models/walt.phg');
+  // const model = new Uint8Array( await query.arrayBuffer() );
+  // console.time("uncompress");
+  // const geo = uncompress(model);
+  // console.timeEnd("uncompress");
 
   scene = [];
   mesh1 = new Mesh(geo, material);
