@@ -21,9 +21,10 @@ const renderlist = new RenderList();
   document.body.append(canvas_texture.canvas);
 
   camera = new StructuredBuffer([
-    { name: "projection", type: Mat4x4 }, 
-    { name: "view", type: Mat3x4 }, 
-    { name: "position", type: Vec4 }, 
+    { name: "projection", type: Mat4x4 },
+    { name: "view", type: Mat3x4 },
+    { name: "position", type: Vec4 },
+    { name: "luma", type: Vec4 },
   ]);
 
   render_pass = new RenderPass({
@@ -50,7 +51,8 @@ const renderlist = new RenderList();
   render_pass.set_render_target(render_target);
 
   target.set(0, 1, 0);
-  camera.position.set(0, 4, 18, 250);
+  camera.position.set(0, 4, 18);
+  camera.luma.set(250, 1);
   camera.view.translate(camera.position).look_at(target).view_inverse();
   camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 300);
 
@@ -132,8 +134,9 @@ const animate = () => {
 
   auto_resize();
 
-  camera.position.set(3 * Math.sin(performance.now() / 1000), 1, 4, 250);
+  camera.position.set(3 * Math.sin(performance.now() / 1000), 1, 4);
   camera.view.translate(camera.position).look_at(target).view_inverse();
+  camera.luma.y = Math.sin(performance.now() / 500) + 1.;
   camera.update();
 
   engine.render(render_pass, renderlist);

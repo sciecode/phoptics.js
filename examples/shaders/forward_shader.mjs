@@ -16,7 +16,9 @@ struct Globals {
   projection_matrix : mat4x4f,
   view_matrix : mat3x4f,
   camera_pos : vec3f,
+  null0 : f32, // unused
   nits : f32,
+  exposure : f32,
 }
 
 struct Uniforms {
@@ -78,6 +80,14 @@ fn point_light(frag : ptr<function, RenderInfo>, l_pos : vec3f, l_color : vec3f,
   (*frag).Ld_dif += Ep * Fd_Lambert() * cosNL;
 }
 
+fn phoptics_tonemap(L : vec3f, ev: f32, nits : f32) -> vec3f {
+  let ev10 = 3 - (ev - 1.) * .301029995;
+  let range = pow(vec2f(10), vec2f(-3, 0) + ev10);
+  let Ln = (L - range.x) / ((range.y - range.x) * nits / 1e3);
+  // TODO: consider adding clamp desaturation
+  return Ln;
+}
+
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
   var frag : RenderInfo;
   frag.pos = in.w_pos;
@@ -105,6 +115,10 @@ fn point_light(frag : ptr<function, RenderInfo>, l_pos : vec3f, l_color : vec3f,
 
   let albedo = uniforms.color.rgb;
   let L = albedo * frag.Ld_dif;
-  let Lf = pow(L / globals.nits, vec3f(1./2.2));
-  return vec4f(Lf, .5);
+
+  let Ln = phoptics_tonemap(L, globals.exposure, globals.nits);
+
+  let output = pow(Ln, vec3f(1./2.2));
+
+  return vec4f(output, .5);
 }`;
