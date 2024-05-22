@@ -1,8 +1,8 @@
 import { Engine, Mesh, RenderList, Buffer, Shader, Sampler, Geometry, Material, Texture, CanvasTexture,
   RenderPass, RenderTarget, StructuredBuffer, DynamicLayout } from 'phoptics';
 import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
+import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
 
-import { OBJLoader } from "../../src/utils/loaders/obj_loader.mjs";
 import gbuffer_shader from "../shaders/deferred_gbuffer.mjs";
 import lighting_shader from "../shaders/deferred_lighting.mjs";
 
@@ -25,7 +25,7 @@ let target = new Vec3(), obj_pos = new Vec3();
     { name: "position", type: Vec4 }, 
   ]);
 
-  target.set(0, 30, 0);
+  target.set(0, .8, 0);
   camera.projection.perspective(Math.PI / 2.5, viewport.width / viewport.height, 1, 600);
 
   gbuffer_pass = new RenderPass({
@@ -80,37 +80,18 @@ let target = new Vec3(), obj_pos = new Vec3();
     shader: new Shader({ code: gbuffer_shader }),
     dynamic: transform_layout,
     vertex: [
-      { arrayStride: 12, attributes: [
-        { shaderLocation: 0, offset: 0, format: 'float32x3' },
-      ], },
-      { arrayStride: 12, attributes: [
-        { shaderLocation: 1, offset: 0, format: 'float32x3' },
-      ], },
+      { 
+        arrayStride: 8, 
+        attributes: [{ shaderLocation: 0, offset: 0, format: 'uint32x2' }]
+      },
     ],
   });
 
-  const loader = new OBJLoader();
-  const geo = await loader.load('../models/walt.obj');
-
-  const vertex_count = geo.positions.length, index_count = geo.indices.length;
-  const geo_byte_size = (vertex_count * 2 + index_count) * 4;
-
-  const data = new ArrayBuffer(geo_byte_size);
-  const pos_data = new Float32Array(data, 0, vertex_count);
-  const norm_data = new Float32Array(data, vertex_count * 4, vertex_count);
-  const index_data = new Uint32Array(data, vertex_count * 8, index_count);
-  pos_data.set(geo.positions);
-  norm_data.set(geo.normals);
-  index_data.set(geo.indices);
-
-  const geometry = new Geometry({
-    draw: { count: index_count },
-    index: new Buffer({ data: index_data }),
-    attributes: [
-      new Buffer({ data: pos_data }),
-      new Buffer({ data: norm_data })
-    ],
-  });
+  const query = await fetch('../models/walt.phg');
+  const compressed = new Uint8Array( await query.arrayBuffer() );
+  console.time("uncompress");
+  const geometry = uncompress(compressed);
+  console.timeEnd("uncompress");
 
   mesh = new Mesh(geometry, gbuffer_material);
   gbuffer_scene = new RenderList();
@@ -150,12 +131,12 @@ const animate = () => {
   auto_resize();
 
   const phase = performance.now() / 1000;
-  camera.position.set(100 * Math.sin(phase), 30, 100 * Math.cos(phase), 250);
+  camera.position.set(3 * Math.sin(phase), .8, 3 * Math.cos(phase), 250);
   camera.view.translate(camera.position).look_at(target).view_inverse();
   camera.update();
 
   {
-    const amplitude = 10 * Math.sin(phase);
+    const amplitude = .4 * Math.sin(phase) - .2;
     obj_pos.set(0, amplitude, 0);
     mesh.dynamic.world.translate(obj_pos);
   }
