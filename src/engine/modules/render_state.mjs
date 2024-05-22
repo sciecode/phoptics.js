@@ -13,21 +13,6 @@ export class RenderState {
     };
   }
 
-  reset(list) {
-    const size = list.size, max = list.indices.length;
-
-    if (size >= max) {
-      for (let i = max, il = size; i < il; i++)
-        list.indices.push({ key: 0, index: i, dist: 0 })
-    } else {
-      let upper = 0, diff = max - size;
-      for (let i = 0, il = size; i < il && upper != diff; i++) {
-        const current = list.indices[i];
-        while (current.index >= size) current.index = list.indices[max - upper++];
-      }
-    }
-  }
-
   set_pass(pass) {
     this.state.formats = pass.formats;
     this.state.multisampled = pass.multisampled;
@@ -53,35 +38,27 @@ export class RenderState {
   }
 
   set_renderlist(list) { 
-    let transparent = 0;
-    
-    this.reset(list);
-    for (let i = 0, il = list.size; i < il; i++) {
-      const info = list.indices[i], index = info.index;
-      const entry = list.entries[index], mesh = entry.mesh;
+    for (let i = 0, il = list.length; i < il; i++) {
+      const entry = list[i], mesh = entry.mesh;
+      entry.key = 0;
       
       // needs to be before pipeline update
       const material = mesh.material;
       const dynamic_layout = this.set_dynamic(material);
-
-      if (material.get_transparent()) {
-        transparent++;
-        info.dist = -entry.dist;
-      } else {
-        info.dist = entry.dist;
-      }
       
-      info.key = 0;
       const pipeline_cache = this.cache.get_pipeline(material, this.state, dynamic_layout);
-      Keys.set_pipeline(info, pipeline_cache.bid);
-
-      const geometry_cache = this.cache.get_geometry(mesh.geometry);
-      Keys.set_index(info, geometry_cache.index_bid);
-      Keys.set_buffer(info, geometry_cache.buffer_bid);
+      Keys.set_pipeline(entry, pipeline_cache.bid);
     }
 
-    Keys.sort_distance(list);
-    Keys.sort_state(list, transparent);
+    for (let i = 0, il = list.length; i < il; i++) {
+      const entry = list[i], mesh = entry.mesh;
+
+      const geometry_cache = this.cache.get_geometry(mesh.geometry);
+      Keys.set_index(entry, geometry_cache.index_bid);
+      Keys.set_buffer(entry, geometry_cache.buffer_bid);
+    }
+
+    Keys.sort(list);
   }
 
   preload(pass, mesh) {

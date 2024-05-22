@@ -35,11 +35,11 @@ export class Engine {
       index_offset: NULL_HANDLE,
     };
     
-    for (let i = 0, il = list.size; i < il; i++) {
-      const info = list.indices[i];
-      this.draw_stream.set_pipeline(Keys.get_pipeline(info));
+    for (let i = 0, il = list.length; i < il; i++) {
+      const entry = list[i];
+      this.draw_stream.set_pipeline(Keys.get_pipeline(entry));
       
-      const mesh = list.entries[info.index].mesh, material = mesh.material;
+      const mesh = entry.mesh, material = mesh.material;
       const material_bid = material.bindings ? this.cache.get_binding(material.bindings).bid : 0;
       this.draw_stream.set_material(material_bid);
 
