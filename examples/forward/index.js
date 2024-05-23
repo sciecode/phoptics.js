@@ -92,29 +92,6 @@ const renderlist = new RenderList();
 
   engine.preload(render_pass, mesh1);
 
-  {
-    renderlist.reset();
-
-    obj_pos.set(-1.5, 0, 0);
-    q.set().rot_y(Math.PI / 4);
-    mesh1.dynamic.world.rigid(obj_pos, q);
-    mesh1.dynamic.color.set(.5, 1, .5);
-    const dist1 = obj_pos.squared_distance(camera.position) * distance_ratio;
-    renderlist.add(mesh1, dist1);
-    
-    obj_pos.set(1.5, 0, 0);
-    q.set().rot_y(-Math.PI / 4);
-    mesh2.dynamic.world.rigid(obj_pos, q);
-    mesh2.dynamic.color.set(.5, 1, .5);
-    const dist2 = obj_pos.squared_distance(camera.position) * distance_ratio;
-    renderlist.add(mesh2, dist2);
-
-    obj_pos.set(0, 0, 0);
-    mesh3.dynamic.color.set(1, .5, .5);
-    const dist3 = obj_pos.squared_distance(camera.position) * distance_ratio;
-    renderlist.add(mesh3, dist3);
-  }
-
   animate();
 })();
 
@@ -136,10 +113,35 @@ const animate = () => {
 
   auto_resize();
 
-  camera.position.set(3 * Math.sin(performance.now() / 1000), 1, 4);
+  const nr = performance.now() / 2000;
+
+  camera.position.set(3 * Math.sin(nr * 2), 1, 4);
   camera.view.translate(camera.position).look_at(target).view_inverse();
-  camera.luma.y = Math.sin(performance.now() / 500) + 1.;
+  camera.luma.y = Math.sin(nr * 4) + 1.;
   camera.update();
+
+  {
+    renderlist.reset();
+
+    obj_pos.set(-1.5, 0, 0);
+    q.set().rot_y(Math.PI / 4 * nr);
+    mesh1.dynamic.world.rigid(obj_pos, q);
+    mesh1.dynamic.color.set(.5, 1, .5);
+    const dist1 = obj_pos.squared_distance(camera.position) * distance_ratio;
+    renderlist.add(mesh1, dist1);
+    
+    obj_pos.set(1.5, 0, 0);
+    q.set().rot_y(-Math.PI / 4 * nr);
+    mesh2.dynamic.world.rigid(obj_pos, q);
+    mesh2.dynamic.color.set(.5, 1, .5);
+    const dist2 = obj_pos.squared_distance(camera.position) * distance_ratio;
+    renderlist.add(mesh2, dist2);
+
+    obj_pos.set(0, 0, 0);
+    mesh3.dynamic.color.set(1, .5, .5);
+    const dist3 = obj_pos.squared_distance(camera.position) * distance_ratio;
+    renderlist.add(mesh3, dist3);
+  }
 
   engine.render(render_pass, renderlist);
 }

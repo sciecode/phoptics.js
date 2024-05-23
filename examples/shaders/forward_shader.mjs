@@ -47,9 +47,11 @@ fn dec_oct16(data : u32) -> vec3f {
   var w_pos = vec4f(pos, 1) * uniforms.world_matrix;
   var c_pos = vec4f(vec4f(w_pos, 1) * globals.view_matrix, 1) * globals.projection_matrix;
 
+  var normal_matrix = mat3x3f(uniforms.world_matrix[0].xyz, uniforms.world_matrix[1].xyz, uniforms.world_matrix[2].xyz);
+
   output.position = c_pos;
   output.w_pos = w_pos;
-  output.w_normal = dec_oct16(norm16);
+  output.w_normal = dec_oct16(norm16) * normal_matrix;
 
   return output;
 }
