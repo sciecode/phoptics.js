@@ -80,11 +80,13 @@ fn point_light(frag : ptr<function, RenderInfo>, l_pos : vec3f, l_color : vec3f,
   (*frag).Ld_dif += Ep * Fd_Lambert() * cosNL;
 }
 
-fn phoptics_tonemap(L : vec3f, ev: f32, nits : f32) -> vec3f {
-  let ev10 = 3 - (ev - 1.) * .301029995;
-  let range = pow(vec2f(10), vec2f(-3, 0) + ev10);
-  let Ln = (L - range.x) / ((range.y - range.x) * nits / 1e3);
-  // TODO: consider adding clamp desaturation
+fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
+  let ev10 = (ev2 - 1.) * .301029995;
+  let black = pow(10, -ev10);
+  let base = (L - black) / (nits * black);
+  
+  let sat = max(vec3f(0), base - 1);
+  let Ln = base + (sat.x + sat.y + sat.z) * .33333333;
   return Ln;
 }
 
@@ -117,7 +119,6 @@ fn phoptics_tonemap(L : vec3f, ev: f32, nits : f32) -> vec3f {
   let L = albedo * frag.Ld_dif;
 
   let Ln = phoptics_tonemap(L, globals.exposure, globals.nits);
-
   let output = pow(Ln, vec3f(1./2.2));
 
   return vec4f(output, .5);
