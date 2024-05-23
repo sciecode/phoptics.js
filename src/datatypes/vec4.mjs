@@ -102,6 +102,14 @@ export class Vec4 extends Float32Array {
     return this;
   }
 
+  length() {
+    return Math.sqrt(this[0] * this[0] + this[1] * this[1] + this[2] * this[2] + this[3] * this[3]);
+  }
+
+  unit() {
+    return this.mul_f32(1 / this.length());
+  }
+
   project(mat) {
     const v = this, m = mat,
           x = v[0], y = v[1], z = v[2], w = v[3];

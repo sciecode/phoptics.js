@@ -1,6 +1,6 @@
 import { Engine, Mesh, RenderList, Shader, Material, Texture, CanvasTexture,
   RenderPass, RenderTarget, StructuredBuffer, DynamicLayout } from 'phoptics';
-import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
+import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
 import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
 
 import forward_shader from "../shaders/forward_shader.mjs";
@@ -8,7 +8,7 @@ import forward_shader from "../shaders/forward_shader.mjs";
 const dpr = window.devicePixelRatio;
 let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
 let engine, canvas_texture, render_pass, render_target, scene, camera;
-let mesh1, mesh2, mesh3, obj_pos = new Vec3(), target = new Vec3();
+let mesh1, mesh2, mesh3, obj_pos = new Vec3(), target = new Vec3(), q = new Quat();
 
 const distance_ratio = ((1 << 30) - 1) / 1_000_000;
 const renderlist = new RenderList();
@@ -96,13 +96,15 @@ const renderlist = new RenderList();
     renderlist.reset();
 
     obj_pos.set(-1.5, 0, 0);
-    mesh1.dynamic.world.translate(obj_pos);
+    q.set().rot_y(Math.PI / 4);
+    mesh1.dynamic.world.rigid(obj_pos, q);
     mesh1.dynamic.color.set(.5, 1, .5);
     const dist1 = obj_pos.squared_distance(camera.position) * distance_ratio;
     renderlist.add(mesh1, dist1);
     
     obj_pos.set(1.5, 0, 0);
-    mesh2.dynamic.world.translate(obj_pos);
+    q.set().rot_y(-Math.PI / 4);
+    mesh2.dynamic.world.rigid(obj_pos, q);
     mesh2.dynamic.color.set(.5, 1, .5);
     const dist2 = obj_pos.squared_distance(camera.position) * distance_ratio;
     renderlist.add(mesh2, dist2);

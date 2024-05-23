@@ -77,11 +77,16 @@ export class Vec3 extends Float32Array {
     return this;
   }
 
+  neg() {
+    this[0] = -this[0]; this[1] = -this[1]; this[2] = -this[2];
+    return this;
+  }
+
   length() {
     return Math.sqrt(this[0] * this[0] + this[1] * this[1] + this[2] * this[2]);
   }
 
-  normalize() {
+  unit() {
     return this.mul_f32(1 / this.length());
   }
 

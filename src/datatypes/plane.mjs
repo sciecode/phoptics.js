@@ -39,7 +39,7 @@ export class Plane extends Float32Array {
     return this;
   }
 
-  normalize() {
+  unit() {
 		const scl = 1 / this.normal.length();
 		this.normal.mul_f32(scl);
 		this[3] *= scl;

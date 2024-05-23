@@ -56,23 +56,42 @@ export class Mat3x4 extends Float32Array {
   }
 
   translate(pos) {
-    const m = this, v = pos;
-
-    m[3] = v[0]; m[7] = v[1]; m[11] = v[2];
+    this[3] = pos[0]; this[7] = pos[1]; this[11] = pos[2];
     return this;
   }
 
-  compose_rigid(pos) { // pos / rot
-    return this.translate(pos);
+  rotate(quat) {
+    const x = quat[0], y = quat[1], z = quat[2], w = quat[3];
+		const x2 = x + x,	y2 = y + y, z2 = z + z;
+		const xx = x * x2, xy = x * y2, xz = x * z2;
+		const yy = y * y2, yz = y * z2, zz = z * z2;
+		const wx = w * x2, wy = w * y2, wz = w * z2;
+
+		this[ 0 ] = ( 1 - ( yy + zz ) );
+		this[ 1 ] = ( xy - wz );
+		this[ 2 ] = ( xz + wy );
+
+		this[ 4 ] = ( xy + wz );
+		this[ 5 ] = ( 1 - ( xx + zz ) );
+		this[ 6 ] = ( yz - wx );
+
+		this[ 8 ] = ( xz - wy );
+		this[ 9 ] = ( yz + wx );
+		this[ 10 ] = ( 1 - ( xx + yy ) );
+    return this;
   }
 
-  compose_affine(pos) { // pos / rot / scl
-    return this.translate(pos);
+  rigid(pos, quat) {
+    return this.translate(pos).rotate(quat);
+  }
+
+  affine(pos) { // pos / rot / scl
+    return this.translate(pos).rotate(quat);
   }
 
   look_at(v) {
     const m = this;
-    const _z = t0.set(m[3], m[7], m[11]).sub(v).normalize();
+    const _z = t0.set(m[3], m[7], m[11]).sub(v).unit();
     const _x = t1.set(0, 1, 0).cross(_z);
     const _y = t2.copy(_z).cross(_x);
 
