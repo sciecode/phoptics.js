@@ -98,25 +98,27 @@ fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
   frag.V = normalize(globals.camera_pos - frag.pos);
   frag.N = normalize(in.w_normal);
   frag.cosNV = max(dot(frag.V, frag.N), 0.);
-  
+
+  frag.Ld_dif += 4; // ambient
+
   point_light(&frag,
-    vec3f(0, 5, 2.5),     // position
+    vec3f(0, 100, 100),   // position
     vec3f(1),             // color
-    .8                    // intensity
+    900.                  // intensity
   );
 
   point_light(&frag,
-    vec3f(3, 0, 2.2),     // position
+    vec3f(160, 0, 120),     // position
     vec3f(0, .1, 1),      // color
-    .15                   // intensity
+    800.                  // intensity
   );
 
   point_light(&frag,
-    vec3f(-2.5, .8, 2),   // position
-    vec3f(1, .3, .2),     // color 
-    .22                   // intensity
+    vec3f(-100, 30, -20), // position
+    vec3f(1, .3, .2),     // color
+    800.                  // intensity
   );
-
+  
   let albedo = uniforms.color.rgb;
   let L = albedo * frag.Ld_dif;
 
