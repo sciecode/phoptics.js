@@ -1,13 +1,13 @@
 import { Engine, Mesh, RenderList, Shader, Sampler, Geometry, Material, Texture, CanvasTexture,
   RenderPass, RenderTarget, StructuredBuffer } from 'phoptics';
-import { Vec4 } from 'phoptics/math';
+import { Vec4, Mat4x4 } from 'phoptics/math';
 import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
 
 import cubemap_shader from "../shaders/cubemap_shader.mjs";
 
 const dpr = window.devicePixelRatio;
 let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
-let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
+let engine, canvas_texture, render_pass, render_target, scene, camera, orbit, proj = new Mat4x4();
 
 const urls = [
   "../textures/rh_cubemap/px.jpg",
@@ -31,8 +31,8 @@ const load_bitmap = (url) => fetch(url).then(resp => resp.blob()).then(blob => c
   document.body.append(canvas_texture.canvas);
 
   camera = new StructuredBuffer([
+    { name: "inverse", type: Mat4x4 },
     { name: "position", type: Vec4 },
-    { name: "resolution", type: Vec4 }
   ]);
 
   render_pass = new RenderPass({
@@ -52,14 +52,14 @@ const load_bitmap = (url) => fetch(url).then(resp => resp.blob()).then(blob => c
   render_pass.set_render_target(render_target);
 
   orbit = new Orbit(canvas_texture.canvas);
-  camera.position.set(0, 0, 5);
-  camera.resolution.set(viewport.width, viewport.height);
+  camera.position.set(0, 0, 50);
+  orbit.update();
+  proj.perspective(Math.PI / 2, viewport.width / viewport.height, 1, 600);
+  camera.inverse.copy(proj).affine(orbit.view).inverse();
 
   const cubemap = new Texture({ size: { width: 1024, height: 1024, depth: 6 }, format: "rgba8unorm" });
 
-  for (let i = 0; i < bitmaps.length; i++) {
-    cubemap.upload_image({ source: bitmaps[i], target_origin: [0, 0, i] });
-  }
+  for (let i = 0; i < bitmaps.length; i++) cubemap.upload_image({ source: bitmaps[i], target_origin: [0, 0, i] });
 
   const material = new Material({
     shader: new Shader({ code: cubemap_shader }),
@@ -70,7 +70,7 @@ const load_bitmap = (url) => fetch(url).then(resp => resp.blob()).then(blob => c
   });
 
   const background = new Mesh(
-    new Geometry({ draw: { count: 3 } }),
+    new Geometry({ draw: { count: 12 } }),
     material
   );
   scene = new RenderList();
@@ -89,7 +89,7 @@ const auto_resize = () => {
     viewport.width = newW; viewport.height = newH;
     render_target.set_size(viewport);
 
-    camera.resolution.set(viewport.width, viewport.height);
+    proj.perspective(Math.PI / 2, viewport.width / viewport.height, 1, 600);
   }
 }
 
@@ -97,6 +97,7 @@ const animate = () => {
   requestAnimationFrame(animate);
 
   camera.position.copy(orbit.position);
+  camera.inverse.copy(proj).affine(orbit.view).inverse();
   camera.update();
 
   auto_resize();

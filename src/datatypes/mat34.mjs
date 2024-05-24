@@ -22,10 +22,9 @@ export class Mat3x4 extends Float32Array {
   }
 
   transpose() {
-    const m = this;
-    let tmp = m[1]; m[1] = m[4]; m[4] = tmp;
-        tmp = m[2]; m[2] = m[8]; m[8] = tmp;
-        tmp = m[6]; m[6] = m[9]; m[9] = tmp; 
+    let tmp = this[1]; this[1] = this[4]; this[4] = tmp;
+        tmp = this[2]; this[2] = this[8]; this[8] = tmp;
+        tmp = this[6]; this[6] = this[9]; this[9] = tmp; 
 
     return this;
   }
