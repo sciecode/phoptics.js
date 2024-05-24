@@ -17,15 +17,8 @@ export class Texture {
 
     this.upload = {
       update_source: false,
-      sources: new Array(this.mip_levels),
+      sources: [],
     };
-
-    for (let i = 0; i < this.mip_levels; i++) {
-      this.upload.sources[i] = {
-        type: TextureSourceType.Null, options: null,
-      };
-    }
-    // TODO: array texture
   }
 
   set_size(size) {
@@ -36,19 +29,21 @@ export class Texture {
 
   upload_image(options) {
     this.upload.update_source = true;
-    const level = options.mip_level || 0;
-    const source = this.upload.sources[level];
-    source.type = TextureSourceType.Image;
-    source.options = options;
+    options.mip_level ||= 0;
+    this.upload.sources.push({ 
+      type: TextureSourceType.Image, 
+      options: options,
+    });
     return this;
   }
 
   upload_data(options) {
     this.upload.update_source = true;
-    const level = options.mip_level || 0;
-    const source = this.upload.sources[level];
-    source.type = TextureSourceType.Data;
-    source.options = options;
+    options.mip_level ||= 0;
+    this.upload.sources.push({ 
+      type: TextureSourceType.Data, 
+      options: options,
+    });
     return this;
   }
 

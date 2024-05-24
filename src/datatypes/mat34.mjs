@@ -92,7 +92,7 @@ export class Mat3x4 extends Float32Array {
   look_at(v) {
     const m = this;
     const _z = t0.set(m[3], m[7], m[11]).sub(v).unit();
-    const _x = t1.set(0, 1, 0).cross(_z);
+    const _x = t1.set(0, 1, 0).cross(_z).unit();
     const _y = t2.copy(_z).cross(_x);
 
     m[0] = _x[0], m[1] = _y[0], m[2]  = _z[0];

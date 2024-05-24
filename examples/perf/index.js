@@ -8,9 +8,8 @@ import forward_shader from "../shaders/forward_shader.mjs";
 const dpr = window.devicePixelRatio;
 let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
 let engine, canvas_texture, render_pass, render_target, scene, camera;
-let mesh1, mesh2, mesh3, obj_pos = new Vec3(), target = new Vec3(), q = new Quat();
+let target = new Vec3(), q = new Quat();
 
-const distance_ratio = ((1 << 30) - 1) / 1_000_000;
 const renderlist = new RenderList();
 
 (async () => {

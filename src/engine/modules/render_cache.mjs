@@ -223,7 +223,10 @@ export class RenderCache {
               resource.buffer = { type: "read-only-storage" };
               break;
             case ResourceType.TextureView:
-              resource.texture = { sampleType: this.sampler_table.get_sample_type(binding.texture.format) };
+              resource.texture = { 
+                sampleType: this.sampler_table.get_sample_type(binding.texture.format),
+                viewDimension: binding.info?.dimension || "2d",
+              };
               break;
             case ResourceType.Sampler:
               const filtering = binding.filtering;
@@ -323,6 +326,7 @@ export class RenderCache {
           this.copy_data_texture(texture_obj, gpu_tex, source);
         }
       }
+      texture_obj.upload.sources.length = 0;
       texture_obj.upload.update_source = false;
     }
 
@@ -359,7 +363,7 @@ export class RenderCache {
       height: options.size?.height || Math.max(1, texture_obj.size.height >> level),
     };
     this.backend.device.queue.copyExternalImageToTexture(
-      { source: options.source, flipY: options.flipY, origin: options.source_origin },
+      { source: options.source, flipY: options.flip_y, origin: options.source_origin },
       { texture: gpu_tex, origin: options.target_origin, colorSpace: options.encoding,
         premultipliedAlpha: options.alpha, mipLevel: level },
         size

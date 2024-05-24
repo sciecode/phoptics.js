@@ -2,7 +2,11 @@ export class Texture {
   constructor(device, options = {}) {
     this.texture = device.createTexture({
       format: options.format,
-      size: options.size,
+      size: {
+        width: options.size.width, 
+        height: options.size.height,
+        depthOrArrayLayers: options.size.depth,
+      },
       usage: options.usage,
       sampleCount: options.samples,
       dimensions: options.dimensions,

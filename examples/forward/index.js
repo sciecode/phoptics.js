@@ -2,13 +2,14 @@ import { Engine, Mesh, RenderList, Shader, Material, Texture, CanvasTexture,
   RenderPass, RenderTarget, StructuredBuffer, DynamicLayout } from 'phoptics';
 import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
 import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
+import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
 
 import forward_shader from "../shaders/forward_shader.mjs";
 
 const dpr = window.devicePixelRatio;
 let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
-let engine, canvas_texture, render_pass, render_target, scene, camera;
-let mesh1, mesh2, mesh3, obj_pos = new Vec3(), target = new Vec3(), q = new Quat();
+let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
+let mesh1, mesh2, mesh3, obj_pos = new Vec3(), q = new Quat();
 
 const distance_ratio = ((1 << 30) - 1) / 1_000_000;
 const renderlist = new RenderList();
@@ -50,10 +51,11 @@ const renderlist = new RenderList();
 
   render_pass.set_render_target(render_target);
 
-  target.set(0, 1, 0);
-  camera.position.set(0, 4, 18);
+  orbit = new Orbit(canvas_texture.canvas);
+  orbit.target.set(0, 1, 0);
+  orbit.position.set(0, 4, 8);
+  orbit.update();
   camera.luma.set(250, 1);
-  camera.view.translate(camera.position).look_at(target).view_inverse();
   camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 300);
 
   const transform_layout = new DynamicLayout([
@@ -115,8 +117,8 @@ const animate = () => {
 
   const nr = performance.now() / 2000;
 
-  camera.position.set(3 * Math.sin(nr * 2), 1, 4);
-  camera.view.translate(camera.position).look_at(target).view_inverse();
+  camera.position.copy(orbit.position);
+  camera.view.copy(orbit.view);
   camera.luma.y = Math.sin(nr * 4) + 1.;
   camera.update();
 
