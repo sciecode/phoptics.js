@@ -54,7 +54,7 @@ const load_bitmap = (url) => fetch(url).then(resp => resp.blob()).then(blob => c
   orbit = new Orbit(canvas_texture.canvas);
   camera.position.set(0, 0, 50);
   orbit.update();
-  proj.perspective(Math.PI / 2, viewport.width / viewport.height, 1, 600);
+  proj.perspective(Math.PI / 2.5, viewport.width / viewport.height, 1, 600);
   camera.inverse.copy(proj).affine(orbit.view).inverse();
 
   const cubemap = new Texture({ size: { width: 1024, height: 1024, depth: 6 }, format: "rgba8unorm-srgb" });
