@@ -33,6 +33,7 @@ struct Globals {
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
   let uvw = normalize(in.w_pos - globals.camera_pos) * vec3f(1, 1, -1);
-  return textureSample(cubemap, samp, uvw);
+  let rgb = textureSample(cubemap, samp, uvw).rgb;
+  return vec4f(pow(rgb, vec3f(1/2.2)), 1);
 }
 `;

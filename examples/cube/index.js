@@ -57,7 +57,7 @@ const load_bitmap = (url) => fetch(url).then(resp => resp.blob()).then(blob => c
   proj.perspective(Math.PI / 2, viewport.width / viewport.height, 1, 600);
   camera.inverse.copy(proj).affine(orbit.view).inverse();
 
-  const cubemap = new Texture({ size: { width: 1024, height: 1024, depth: 6 }, format: "rgba8unorm" });
+  const cubemap = new Texture({ size: { width: 1024, height: 1024, depth: 6 }, format: "rgba8unorm-srgb" });
 
   for (let i = 0; i < bitmaps.length; i++)
     engine.upload_texture(cubemap, bitmaps[i], { target_origin: [0, 0, i] });
