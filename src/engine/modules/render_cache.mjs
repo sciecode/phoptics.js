@@ -316,20 +316,6 @@ export class RenderCache {
       this.backend.resources.update_texture(cache.bid, texture_obj.size);
     }
 
-    if (texture_obj.upload.update_source) {
-      const gpu_tex = this.backend.resources.get_texture(cache.bid).texture;
-      for (let i = 0, il = texture_obj.upload.sources.length; i < il; i++) {
-        const source = texture_obj.upload.sources[i];
-        if (source.type == TextureSourceType.Image) {
-          this.copy_image_texture(texture_obj, gpu_tex, source);
-        } else if (source.type == TextureSourceType.Data) {
-          this.copy_data_texture(texture_obj, gpu_tex, source);
-        }
-      }
-      texture_obj.upload.sources.length = 0;
-      texture_obj.upload.update_source = false;
-    }
-
     return cache;
   }
 
@@ -354,39 +340,5 @@ export class RenderCache {
 
   get_attribute(attrib_obj) {
     return this.buffer_manager.get_attribute(attrib_obj);
-  }
-
-  copy_image_texture(texture_obj, gpu_tex, source) {
-    const options = source.options, level = options.mip_level;
-    const size = {
-      width: options.size?.width || Math.max(1, texture_obj.size.width >> level),
-      height: options.size?.height || Math.max(1, texture_obj.size.height >> level),
-    };
-    this.backend.device.queue.copyExternalImageToTexture(
-      { source: options.source, flipY: options.flip_y, origin: options.source_origin },
-      { texture: gpu_tex, origin: options.target_origin, colorSpace: options.encoding,
-        premultipliedAlpha: options.alpha, mipLevel: level },
-        size
-      );
-
-    source.type = TextureSourceType.Null;
-    source.options = null;
-  }
-
-  copy_data_texture(texture_obj, gpu_tex, source) {
-    const options = source.options, level = options.mip_level;
-    const size = {
-      width: options.size?.width || Math.max(1, texture_obj.size.width >> level),
-      height: options.size?.height || Math.max(1, texture_obj.size.height >> level),
-    };
-    this.backend.device.queue.writeTexture(
-      { texture: gpu_tex, origin: options.target_origin, mipLevel: level },
-      options.data,
-      { offset: options.offset, bytesPerRow: options.bytes ? options.bytes * size.width : undefined },
-      size
-    );
-
-    source.type = TextureSourceType.Null;
-    source.options = null;
   }
 }

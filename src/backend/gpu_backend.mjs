@@ -12,6 +12,36 @@ export class GPUBackend {
     this.device.queue.writeBuffer(buffer, buffer_offset, data, data_offset, data_size);
   }
 
+  upload_texture_data(bid, options) {
+    const gpu_tex = this.resources.get_texture(bid).texture;
+    const level = options.mip_level;
+    const size = {
+      width: options.size?.width || Math.max(1, gpu_tex.width >> level),
+      height: options.size?.height || Math.max(1, gpu_tex.height >> level),
+    };
+    this.device.queue.writeTexture(
+      { texture: gpu_tex, origin: options.target_origin, mipLevel: level },
+      options.data,
+      { offset: options.offset, bytesPerRow: options.bytes ? options.bytes * size.width : undefined },
+      size
+    );
+  }
+
+  upload_texture_image(bid, options) {
+    const gpu_tex = this.resources.get_texture(bid).texture;
+    const level = options.mip_level;
+    const size = {
+      width: options.size?.width || Math.max(1, gpu_tex.width >> level),
+      height: options.size?.height || Math.max(1, gpu_tex.height >> level),
+    };
+    this.device.queue.copyExternalImageToTexture(
+      { source: options.image, flipY: options.flip_y, origin: options.source_origin },
+      { texture: gpu_tex, origin: options.target_origin, colorSpace: options.encoding,
+        premultipliedAlpha: options.alpha, mipLevel: level },
+      size
+    );
+  }
+
   render(pass_descriptor, draw_stream) {
     const encoder = this.device.createCommandEncoder();
     const pass = encoder.beginRenderPass(pass_descriptor);

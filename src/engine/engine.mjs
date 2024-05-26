@@ -80,6 +80,18 @@ export class Engine {
     this.state.preload(pass, mesh);
   }
 
+  upload_texture_data(texture_obj, data, options = {}) {
+    const bid = this.cache.get_texture(texture_obj).bid;
+    options.data = data;
+    this.backend.upload_texture_data(bid, options);
+  }
+
+  upload_texture_image(texture_obj, image, options = {}) {
+    const bid = this.cache.get_texture(texture_obj).bid;
+    options.image = image;
+    this.backend.upload_texture_image(bid, options);
+  }
+
   static async acquire_device(options = {}) {
     options.powerPreference ||= "high-performance";
     const adapter = await navigator.gpu.requestAdapter(options);

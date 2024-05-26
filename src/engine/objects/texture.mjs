@@ -14,36 +14,11 @@ export class Texture {
     this.format = options.format;
     this.usage = options.usage || (GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING);
     this.multisampled = options.multisampled || false;
-
-    this.upload = {
-      update_source: false,
-      sources: [],
-    };
   }
 
   set_size(size) {
     this.size = { ...size };
     this.#update();
-    return this;
-  }
-
-  upload_image(options) {
-    this.upload.update_source = true;
-    options.mip_level ||= 0;
-    this.upload.sources.push({ 
-      type: TextureSourceType.Image, 
-      options: options,
-    });
-    return this;
-  }
-
-  upload_data(options) {
-    this.upload.update_source = true;
-    options.mip_level ||= 0;
-    this.upload.sources.push({ 
-      type: TextureSourceType.Data, 
-      options: options,
-    });
     return this;
   }
 

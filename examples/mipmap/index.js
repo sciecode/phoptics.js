@@ -91,7 +91,7 @@ const populate_mipmap_texture = (tex) => {
       data[j + 2] = info[e4 + 2];
       data[j + 3] = info[e4 + 3];
     }
-    tex.upload_data({ data: data, bytes: 16, mip_level: i });
+    engine.upload_texture_data(tex, data, { bytes: 16, mip_level: i });
   }
 }
 
