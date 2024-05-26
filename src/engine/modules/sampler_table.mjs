@@ -54,9 +54,9 @@ export class SamplerTable {
       case 'r8sint':
       case 'rg8sint':
       case 'rgba8sint':
-      case 'r16stnt':
+      case 'r16sint':
       case 'rg16sint':
-      case 'rgba15sint':
+      case 'rgba16sint':
       case 'r32sint':
       case 'rg32sint':
       case 'rgba32sint':

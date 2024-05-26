@@ -60,7 +60,7 @@ const load_bitmap = (url) => fetch(url).then(resp => resp.blob()).then(blob => c
   const cubemap = new Texture({ size: { width: 1024, height: 1024, depth: 6 }, format: "rgba8unorm" });
 
   for (let i = 0; i < bitmaps.length; i++)
-    engine.upload_texture_image(cubemap, bitmaps[i], { target_origin: [0, 0, i] });
+    engine.upload_texture(cubemap, bitmaps[i], { target_origin: [0, 0, i] });
 
   const material = new Material({
     shader: new Shader({ code: cubemap_shader }),

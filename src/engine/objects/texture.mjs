@@ -1,4 +1,4 @@
-import { ResourceType, TextureSourceType, UNINITIALIZED } from "../constants.mjs";
+import { ResourceType, UNINITIALIZED } from "../constants.mjs";
 import { TextureView } from "./texture_view.mjs";
 
 export class Texture {

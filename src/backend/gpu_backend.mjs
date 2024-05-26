@@ -13,7 +13,8 @@ export class GPUBackend {
   }
 
   upload_texture_data(bid, options) {
-    const gpu_tex = this.resources.get_texture(bid).texture;
+    const resource = this.resources.get_texture(bid);
+    const gpu_tex = resource.texture, stride = resource.stride;
     const level = options.mip_level;
     const size = {
       width: options.size?.width || Math.max(1, gpu_tex.width >> level),
@@ -22,7 +23,7 @@ export class GPUBackend {
     this.device.queue.writeTexture(
       { texture: gpu_tex, origin: options.target_origin, mipLevel: level },
       options.data,
-      { offset: options.offset, bytesPerRow: options.bytes ? options.bytes * size.width : undefined },
+      { offset: options.offset, bytesPerRow: stride * size.width, rowsPerImage: size.height },
       size
     );
   }

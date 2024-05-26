@@ -1,5 +1,5 @@
 import { GPUResource, NULL_HANDLE } from "../../backend/constants.mjs";
-import { ResourceType, TextureSourceType, UNINITIALIZED } from "../constants.mjs";
+import { ResourceType, UNINITIALIZED } from "../constants.mjs";
 import { BufferManager } from "./buffer_manager.mjs";
 import { SamplerTable } from "./sampler_table.mjs";
 import { MaterialManager } from "./material_manager.mjs";

@@ -80,16 +80,15 @@ export class Engine {
     this.state.preload(pass, mesh);
   }
 
-  upload_texture_data(texture_obj, data, options = {}) {
+  upload_texture(texture_obj, source, options = {}) {
     const bid = this.cache.get_texture(texture_obj).bid;
-    options.data = data;
-    this.backend.upload_texture_data(bid, options);
-  }
-
-  upload_texture_image(texture_obj, image, options = {}) {
-    const bid = this.cache.get_texture(texture_obj).bid;
-    options.image = image;
-    this.backend.upload_texture_image(bid, options);
+    if (ArrayBuffer.isView(source) || source instanceof ArrayBuffer) {
+      options.data = source;
+      this.backend.upload_texture_data(bid, options);
+    } else {
+      options.image = source;
+      this.backend.upload_texture_image(bid, options);
+    }
   }
 
   static async acquire_device(options = {}) {
