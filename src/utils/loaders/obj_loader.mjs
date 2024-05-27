@@ -2,7 +2,7 @@
 const parse_faces = (info) => {
   do {
     const entries = info.lines[info.i].substring(2).split(' ');
-    for (let index of entries) info.indices.push(parseInt(index.split('/')[0]) - 1);
+    for (let index of entries) info.indices.push(index.split('/').map(e => parseInt(e) - 1));
     info.i++;
   } while (info.lines[info.i][0] == 'f');
 }
@@ -10,7 +10,7 @@ const parse_faces = (info) => {
 const parse_positions = (info) => {
   do {
     const entries = info.lines[info.i].substring(2).split(' ');
-    for (let index of entries) info.positions.push(parseFloat(index));
+    info.positions.push(entries.map(e => parseFloat(e)));
     info.i++;
   } while (info.lines[info.i][0] == 'v' && info.lines[info.i][1] == ' ');
 }
@@ -18,9 +18,17 @@ const parse_positions = (info) => {
 const parse_normals = (info) => {
   do {
     const entries = info.lines[info.i].substring(3).split(' ');
-    for (let index of entries) info.normals.push(parseFloat(index));
+    info.normals.push(entries.map(e => parseFloat(e)));
     info.i++;
   } while (info.lines[info.i][0] == 'v' && info.lines[info.i][1] == 'n');
+}
+
+const parse_uvs = (info) => {
+  do {
+    const entries = info.lines[info.i].substring(3).split(' ');
+    info.uvs.push(entries.map(e => parseFloat(e)));
+    info.i++;
+  } while (info.lines[info.i][0] == 'v' && info.lines[info.i][1] == 't');
 }
 
 export class OBJLoader {
@@ -36,7 +44,8 @@ export class OBJLoader {
         lines: (await response.text()).split('\n'),
         indices: [],
         positions: [],
-        normals: []
+        normals: [],
+        uvs: [],
       };
 
       for (; info.i < info.lines.length;) {
@@ -45,16 +54,30 @@ export class OBJLoader {
           case 'v':
             if (info.lines[info.i][1] == ' ') parse_positions(info);
             else if (info.lines[info.i][1] == 'n') parse_normals(info);
+            else if (info.lines[info.i][1] == 't') parse_uvs(info);
             break;
           default: info.i++;
         }
       }
 
-      return {
-        indices: info.indices,
-        positions: info.positions,
-        normals: info.normals,
+      const stride = 3 + 3 + 2;
+      const vert_count = info.indices.length;
+      const data = new Float32Array(vert_count * stride);
+
+      for (let i = 0; i < vert_count; i++) {
+        let [ipos, iuv, inorm] = info.indices[i];
+        const i8 = i * 8;
+        data[i8] = info.positions[ipos][0];
+        data[i8 + 1] = info.positions[ipos][1];
+        data[i8 + 2] = info.positions[ipos][2];
+        data[i8 + 3] = info.normals[inorm][0];
+        data[i8 + 4] = info.normals[inorm][1];
+        data[i8 + 5] = info.normals[inorm][2];
+        data[i8 + 6] = info.uvs[iuv][0];
+        data[i8 + 7] = info.uvs[iuv][1];
       }
+
+      return { data, count: vert_count };
 
     });
   }

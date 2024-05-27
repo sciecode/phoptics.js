@@ -66,7 +66,7 @@ export class InterleavedPool {
 
     if (heap == undefined) {
       heap = this.allocators.length;
-      this.allocators.push(new OffsetAllocator(MAX_ALLOC));
+      this.allocators.push(new OffsetAllocator(BLOCK_SIZE));
 
       bid = this.backend.resources.create_buffer({
         size: BLOCK_SIZE,

@@ -3,7 +3,7 @@ import { OffsetAllocator } from "../../common/offset_allocator.mjs";
 import { PoolStorage } from "../../common/pool_storage.mjs";
 
 const BITS = 2;
-const MAX_ALLOC = 0x7FFFF;
+const MAX_ALLOC = 33554432;
 const BLOCK_SIZE = 128 * 1024 * 1024;
 const STORAGE_MASK = (1 << BITS) - 1;
 
