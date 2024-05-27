@@ -151,7 +151,7 @@ export const uncompress = (buffer) => {
 
   buffers.push({
     type: info.indices.type,
-    count: info.indices.count,
+    count: info.indices.count + (info.indices.count & 1),
   });
 
   const mem = Memory.allocate_layout(buffers);

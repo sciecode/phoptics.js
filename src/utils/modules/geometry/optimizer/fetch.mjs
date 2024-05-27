@@ -15,7 +15,7 @@ const EMPTY32 = 0xffff_ffff;
 
 export const opt_fetch = (geometry) => {
   const indices = geometry.index.data;
-  const index_count = indices.length;
+  const index_count = (indices.length / 3 | 0) * 3;
   const attrib = geometry.attributes[0];
   const vertex_count = attrib.total_bytes / attrib.stride;
   const buffer_count = geometry.attributes.length;

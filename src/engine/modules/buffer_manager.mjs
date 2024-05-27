@@ -1,14 +1,14 @@
 import { UniformPool } from "./uniform_pool.mjs";
 import { AttributePool } from "./attribute_pool.mjs";
 import { InterleavedPool } from "./interleaved_pool.mjs";
-import { IndexdPool } from "./index_pool.mjs";
+import { IndexPool } from "./index_pool.mjs";
 
 export class BufferManager {
   constructor(backend) {
     this.uniforms = new UniformPool(backend);
     this.attributes = new AttributePool(backend);
     this.interleaved = new InterleavedPool(backend);
-    this.indices = new IndexdPool(backend);
+    this.indices = new IndexPool(backend);
   }
 
   get_uniform(uniform_obj) {

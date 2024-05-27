@@ -3,9 +3,7 @@ enable f16;
 const PI = 3.14159265359;
 
 struct Attributes {
-  @location(0) position: vec3f,
-  @location(1) normal: vec3f,
-  @location(2) uv: vec2f,
+  @location(0) packed: vec3u,
 }
 
 struct FragInput {
@@ -43,15 +41,19 @@ fn dec_oct16(data : u32) -> vec3f {
 @vertex fn vs(attrib : Attributes) -> FragInput {
   var output : FragInput;
 
-  var w_pos = vec4f(attrib.position, 1) * uniforms.world_matrix;
+  var pos = vec3f(bitcast<vec4h>(attrib.packed.xy).xyz);
+  var norm16 = attrib.packed.y >> 16;
+  var uv = vec2f(bitcast<vec2h>(attrib.packed.z));
+
+  var w_pos = vec4f(pos, 1) * uniforms.world_matrix;
   var c_pos = vec4f(vec4f(w_pos, 1) * globals.view_matrix, 1) * globals.projection_matrix;
 
   var normal_matrix = mat3x3f(uniforms.world_matrix[0].xyz, uniforms.world_matrix[1].xyz, uniforms.world_matrix[2].xyz);
 
   output.position = c_pos;
   output.w_pos = w_pos;
-  output.w_normal = attrib.normal * normal_matrix;
-  output.uv = attrib.uv;
+  output.w_normal = dec_oct16(norm16) * normal_matrix;
+  output.uv = uv;
 
   return output;
 }
@@ -126,6 +128,7 @@ fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
   let L = albedo * frag.Ld_dif;
 
   let Ln = phoptics_tonemap(L, globals.exposure, globals.nits);
+  // let Ln = frag.N * .5 + .5;
   let output = pow(Ln, vec3f(1./2.2));
 
   return vec4f(output, .5);

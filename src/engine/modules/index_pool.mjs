@@ -6,7 +6,7 @@ import { PoolStorage } from "../../common/pool_storage.mjs";
 const MAX_ALLOC = 0x7FFFF;
 const BLOCK_SIZE = 128 * 1024 * 1024;
 
-export class IndexdPool {
+export class IndexPool {
   constructor(backend) {
     this.backend = backend;
 

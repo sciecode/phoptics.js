@@ -156,7 +156,7 @@ const opt_cache_group = (geometry, output) => {
 
 export const opt_cache = (geometry) => {
   const indices = geometry.index.data;
-  const output = new indices.constructor(indices.length);
+  const output = new indices.constructor(indices.length + (indices.length & 1));
   opt_cache_group(geometry, output);
   geometry.index = new Buffer({
     data: output,

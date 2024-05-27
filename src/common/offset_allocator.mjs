@@ -87,7 +87,7 @@ export class OffsetAllocator {
   }
 
   malloc(size) {
-    if (!this.free_offset) return undefined;
+    if (!this.free_offset) return { slot: undefined };
     
     const min_bin = sm_up(size);
     const min_fl = min_bin >>> MANTISSA_BITS;
@@ -100,7 +100,7 @@ export class OffsetAllocator {
     
     if (sl == UNUSED) {
       fl = sm_ffs(this.bins_top, min_fl + 1);
-      if (fl == UNUSED) return undefined; 
+      if (fl == UNUSED) return { slot: undefined }; 
       sl = ctz(this.bins[fl]);
     }
             

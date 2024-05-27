@@ -1,11 +1,10 @@
-import { Engine, Mesh, Buffer, RenderList, Shader, Sampler, Material, Geometry, Texture, CanvasTexture,
+import { Engine, Mesh, RenderList, Shader, Sampler, Material, Texture, CanvasTexture,
   RenderPass, RenderTarget, StructuredBuffer, DynamicLayout } from 'phoptics';
 import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
 import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
 import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
 
 import albedo_shader from "../shaders/albedo_shader.mjs";
-import { OBJLoader } from '../../src/utils/loaders/obj_loader.mjs';
 
 const dpr = window.devicePixelRatio;
 let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
@@ -79,27 +78,19 @@ const load_bitmap = (url) => fetch(url).then(resp => resp.blob()).then(blob => c
     ],
     vertex: [
       {
-        arrayStride: 32,
+        arrayStride: 12,
         attributes: [
-          { shaderLocation: 0, offset: 0, format: 'float32x3' },
-          { shaderLocation: 1, offset: 12, format: 'float32x3' },
-          { shaderLocation: 2, offset: 24, format: 'float32x2' }
+          { shaderLocation: 0, offset: 0, format: 'uint32x3' },
         ]
       },
     ],
   });
 
-  const model = await (new OBJLoader()).load('../models/cerberus.obj');
-  const geo = new Geometry({
-    draw: { count: model.count },
-    attributes: [ new Buffer({ data: model.data, stride: 32 }) ]
-  });
-
-  // const query = await fetch('../models/walt.phg');
-  // const compressed = new Uint8Array(await query.arrayBuffer());
-  // console.time("uncompress");
-  // const geo = uncompress(compressed);
-  // console.timeEnd("uncompress");
+  const query = await fetch('../models/cerberus.phg');
+  const compressed = new Uint8Array(await query.arrayBuffer());
+  console.time("uncompress");
+  const geo = uncompress(compressed);
+  console.timeEnd("uncompress");
 
   scene = new RenderList();
   const mesh = new Mesh(geo, material);

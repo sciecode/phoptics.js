@@ -1,13 +1,15 @@
+const msign = (v) => v >= 0 ? 1 : -1;
+
 export const encode_oct32 = (v) => {
-  const abs = Math.abs(v.x) + Math.abs(v.y) + Math.abs(v.z);
-  let nx = v.x / abs, ny = v.y / abs, vx, vy;
+  v.mul_f32(1 / (Math.abs(v.x) + Math.abs(v.y) + Math.abs(v.z)));
+  let vx, vy;
 
   if (v.z >= 0) {
-    vx = nx;
-    vy = ny;
+    vx = v.x;
+    vy = v.y;
   } else {
-    vx = (1. - Math.abs(ny)) * Math.sign(nx);
-    vy = (1. - Math.abs(nx)) * Math.sign(ny);
+    vx = (1. - Math.abs(v.y)) * msign(v.x);
+    vy = (1. - Math.abs(v.x)) * msign(v.y);
   }
 
   const dx = Math.round(32767.5 + vx * 32767.5), dy = Math.round(32767.5 + vy * 32767.5);
@@ -15,15 +17,15 @@ export const encode_oct32 = (v) => {
 }
 
 export const encode_oct16 = (v) => {
-  const abs = Math.abs(v.x) + Math.abs(v.y) + Math.abs(v.z);
-  let nx = v.x / abs, ny = v.y / abs, vx, vy;
+  v.mul_f32(1 / (Math.abs(v.x) + Math.abs(v.y) + Math.abs(v.z)));
+  let vx, vy;
 
   if (v.z >= 0) {
-    vx = nx;
-    vy = ny;
+    vx = v.x;
+    vy = v.y;
   } else {
-    vx = (1. - Math.abs(ny)) * Math.sign(nx);
-    vy = (1. - Math.abs(nx)) * Math.sign(ny);
+    vx = (1. - Math.abs(v.y)) * msign(v.x);
+    vy = (1. - Math.abs(v.x)) * msign(v.y);
   }
   const dx = Math.round(127.5 + vx * 127.5), dy = Math.round(127.5 + vy * 127.5);
   return dx | (dy << 8);

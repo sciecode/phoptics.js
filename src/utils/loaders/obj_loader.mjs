@@ -77,7 +77,7 @@ export class OBJLoader {
         data[i8 + 7] = info.uvs[iuv][1];
       }
 
-      return { data, count: vert_count };
+      return { data, count: vert_count, stride: 32 };
 
     });
   }
