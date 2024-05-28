@@ -1,6 +1,7 @@
 export default `
 enable f16;
 const PI = 3.14159265359;
+const R_PI = 0.3183098861837907;
 
 struct Attributes {
   @location(0) packed: vec3u,
@@ -60,28 +61,60 @@ fn dec_oct16(data : u32) -> vec3f {
 
 struct RenderInfo {
   Ld_dif    : vec3f,
+  Ld_spe    : vec3f,
   pos       : vec3f,
   V         : vec3f,
   N         : vec3f,
-  cosNV     : f32
+  f0        : vec3f,
+  cosNV     : f32,
+  a         : f32,
+  a2        : f32,
 }
 
 fn Fd_Lambert() -> f32 {
-  return 1.0 / PI;
+  return R_PI;
+}
+
+fn F_Schlick(f0 : vec3f, cosVH : f32) -> vec3f {
+	let r = exp2((- 5.55473 * cosVH - 6.98316) * cosVH);
+	return f0 * (1.0 - r) + r;
+}
+
+fn V_Smith(a : f32, cosNL : f32, cosNV : f32) -> f32 {
+  let GGXV = cosNL * (cosNV * (1.0 - a) + a);
+  let GGXL = cosNV * (cosNL * (1.0 - a) + a);
+  return 0.5 / (GGXV + GGXL);
+}
+
+fn D_GGX(a2 : f32, cosNH : f32) -> f32 {
+  let q = (cosNH * cosNH) * (a2 - 1.) + 1.;
+	return R_PI * a2 / (q * q);
+}
+
+fn Fr_GGX(frag : ptr<function, RenderInfo>, L : vec3f, cosNL : f32) -> vec3f {
+  let H = normalize((*frag).V + L);
+
+	let cosNH = saturate(dot((*frag).N, H));
+	let cosVH = saturate(dot((*frag).V, H));
+
+  let F = F_Schlick((*frag).f0, cosVH);
+  let V = V_Smith((*frag).a, cosNL, (*frag).cosNV);
+  let D = D_GGX((*frag).a2, cosNH);
+
+  return V * D * F;
 }
 
 fn point_light(frag : ptr<function, RenderInfo>, l_pos : vec3f, l_color : vec3f, Il : f32) {
   let l = l_pos - (*frag).pos;
-  let d2 = pow(length(l) / 100., 2.);
+  let d2 = pow(length(l) / 100., 2.); // TODO: use metric coeficient
   let Ep = Il * l_color / d2;
   
   let L = normalize(l);
-  // let H = normalize((*frag).V + L);
-
-  let cosNL = max(dot((*frag).N, L), 0.);
-  // let cosLH = max(dot(L, H), 0.);
+  let cosNL = saturate(dot((*frag).N, L));
+  let E = Ep * cosNL;
   
-  (*frag).Ld_dif += Ep * Fd_Lambert() * cosNL;
+  (*frag).Ld_dif += E * Fd_Lambert();
+  (*frag).Ld_spe += E * Fr_GGX(frag, L, cosNL);
 }
 
 fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
@@ -98,13 +131,21 @@ fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
 @group(2) @binding(1) var t_albedo: texture_2d<f32>;
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
+  const metalness = 0.;
+  const perceptual_roughness = 0.45;
+
   var frag : RenderInfo;
   frag.pos = in.w_pos;
   frag.V = normalize(globals.camera_pos - frag.pos);
   frag.N = normalize(in.w_normal);
-  frag.cosNV = max(dot(frag.V, frag.N), 0.);
+  frag.cosNV = saturate(dot(frag.V, frag.N));
 
-  frag.Ld_dif += 40; // ambient
+  var albedo = textureSample(t_albedo, samp, in.uv).rgb;
+  frag.a = perceptual_roughness * perceptual_roughness;
+  frag.a2 = frag.a * frag.a;
+  frag.f0 = mix(vec3( 0.04 ), albedo, metalness);
+
+  frag.Ld_dif += 40; // TODO: move ambient to indirect
 
   point_light(&frag,
     vec3f(0, 100, 100),   // position
@@ -113,9 +154,9 @@ fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
   );
 
   point_light(&frag,
-    vec3f(160, 0, 120),     // position
+    vec3f(160, 0, 120),   // position
     vec3f(0, .1, 1),      // color
-    800.                  // intensity
+    900.                  // intensity
   );
 
   point_light(&frag,
@@ -124,11 +165,8 @@ fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
     800.                  // intensity
   );
 
-  let albedo = textureSample(t_albedo, samp, in.uv).rgb;
-  let L = albedo * frag.Ld_dif;
-
+  let L = albedo * (1. - metalness) * frag.Ld_dif + frag.Ld_spe;
   let Ln = phoptics_tonemap(L, globals.exposure, globals.nits);
   let output = pow(Ln, vec3f(1./2.2));
-
   return vec4f(output, .5);
 }`;

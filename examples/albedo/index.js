@@ -1,8 +1,8 @@
 import { Engine, Mesh, RenderList, Shader, Sampler, Material, Texture, CanvasTexture,
   RenderPass, RenderTarget, StructuredBuffer, DynamicLayout } from 'phoptics';
 import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
-import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
 import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
+import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
 
 import albedo_shader from "../shaders/albedo_shader.mjs";
 
