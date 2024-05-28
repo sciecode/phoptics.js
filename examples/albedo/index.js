@@ -1,11 +1,8 @@
-import { Engine, Mesh, RenderList, Buffer, Shader, Sampler, Material, Geometry, Texture, CanvasTexture,
+import { Engine, Mesh, RenderList, Shader, Sampler, Material, Texture, CanvasTexture,
   RenderPass, RenderTarget, StructuredBuffer, DynamicLayout } from 'phoptics';
 import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
-import { encode_oct16, encode_f16 } from 'phoptics/utils/modules/geometry/encoder.mjs';
-import { compress, uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
-import { optimize_geometry } from 'phoptics/utils/modules/geometry/optimizer.mjs';
+import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
 import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
-import { OBJLoader } from 'phoptics/utils/loaders/obj_loader.mjs';
 
 import albedo_shader from "../shaders/albedo_shader.mjs";
 
@@ -55,9 +52,10 @@ const load_bitmap = (url) => fetch(url).then(resp => resp.blob()).then(blob => c
   orbit = new Orbit(canvas_texture.canvas);
   orbit.target.set(0, 0, 0);
   orbit.position.set(0, 0, 2);
+  orbit.zoom_limit.x = 1;
   orbit.update();
   camera.luma.set(250, 1);
-  camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 1000);
+  camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, .1, 99);
 
   const transform_layout = new DynamicLayout([
     { name: "world", type: Mat3x4 },
@@ -75,11 +73,9 @@ const load_bitmap = (url) => fetch(url).then(resp => resp.blob()).then(blob => c
     shader: new Shader({ code: albedo_shader }),
     dynamic: transform_layout,
     bindings: [
-      { binding: 0, name: "sampler", 
-        resource: new Sampler({
-          filtering: { mag: "linear", min: "linear" },
-        })
-      },
+      { binding: 0, name: "sampler", resource: new Sampler({
+        filtering: { mag: "linear", min: "linear" },
+      }) },
       { binding: 1, name: "albedo", resource: albedo.create_view() },
     ],
     vertex: [
@@ -118,7 +114,7 @@ const auto_resize = () => {
     viewport.width = newW; viewport.height = newH;
     render_target.set_size(viewport);
     
-    camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 300);
+    camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, .1, 99);
   }
 }
 
