@@ -104,7 +104,7 @@ fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
   frag.N = normalize(in.w_normal);
   frag.cosNV = max(dot(frag.V, frag.N), 0.);
 
-  frag.Ld_dif += 4; // ambient
+  frag.Ld_dif += 40; // ambient
 
   point_light(&frag,
     vec3f(0, 100, 100),   // position
@@ -128,7 +128,6 @@ fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
   let L = albedo * frag.Ld_dif;
 
   let Ln = phoptics_tonemap(L, globals.exposure, globals.nits);
-  // let Ln = frag.N * .5 + .5;
   let output = pow(Ln, vec3f(1./2.2));
 
   return vec4f(output, .5);

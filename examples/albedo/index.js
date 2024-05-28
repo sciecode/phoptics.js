@@ -1,8 +1,11 @@
-import { Engine, Mesh, RenderList, Shader, Sampler, Material, Texture, CanvasTexture,
+import { Engine, Mesh, RenderList, Buffer, Shader, Sampler, Material, Geometry, Texture, CanvasTexture,
   RenderPass, RenderTarget, StructuredBuffer, DynamicLayout } from 'phoptics';
 import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
-import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
+import { encode_oct16, encode_f16 } from 'phoptics/utils/modules/geometry/encoder.mjs';
+import { compress, uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
+import { optimize_geometry } from 'phoptics/utils/modules/geometry/optimizer.mjs';
 import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
+import { OBJLoader } from 'phoptics/utils/loaders/obj_loader.mjs';
 
 import albedo_shader from "../shaders/albedo_shader.mjs";
 
@@ -62,8 +65,9 @@ const load_bitmap = (url) => fetch(url).then(resp => resp.blob()).then(blob => c
 
   const albedo = new Texture({
     size: { width: 2048, height: 2048 },
-    format: "rgba8unorm",
+    format: "rgba8unorm-srgb",
   });
+
   const bitmap = await load_bitmap("../textures/cerberus/albedo.jpg");
   engine.upload_texture(albedo, bitmap, { flip_y: true });
 
@@ -71,8 +75,10 @@ const load_bitmap = (url) => fetch(url).then(resp => resp.blob()).then(blob => c
     shader: new Shader({ code: albedo_shader }),
     dynamic: transform_layout,
     bindings: [
-      { binding: 0, name: "sampler", resource: 
-        new Sampler({filtering: { mag: "linear", min: "linear" } })
+      { binding: 0, name: "sampler", 
+        resource: new Sampler({
+          filtering: { mag: "linear", min: "linear" },
+        })
       },
       { binding: 1, name: "albedo", resource: albedo.create_view() },
     ],
@@ -86,8 +92,8 @@ const load_bitmap = (url) => fetch(url).then(resp => resp.blob()).then(blob => c
     ],
   });
 
-  const query = await fetch('../models/cerberus.phg');
-  const compressed = new Uint8Array(await query.arrayBuffer());
+  const model = await fetch('../models/cerberus.phg');
+  const compressed = new Uint8Array(await model.arrayBuffer());
   console.time("uncompress");
   const geo = uncompress(compressed);
   console.timeEnd("uncompress");

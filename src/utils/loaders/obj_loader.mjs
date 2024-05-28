@@ -73,8 +73,8 @@ export class OBJLoader {
         data[i8 + 3] = info.normals[inorm][0];
         data[i8 + 4] = info.normals[inorm][1];
         data[i8 + 5] = info.normals[inorm][2];
-        data[i8 + 6] = info.uvs[iuv][0];
-        data[i8 + 7] = info.uvs[iuv][1];
+        data[i8 + 6] = info.uvs[iuv][0] % 1;
+        data[i8 + 7] = info.uvs[iuv][1] % 1;
       }
 
       return { data, count: vert_count, stride: 32 };
