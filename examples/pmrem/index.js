@@ -73,7 +73,7 @@ const generate_mipmap_cubemap = (engine, original) => {
     });
     render_pass.bindings.update();
     for (let i = 0; i < 6; i++) {
-      globals.info.set(i, m-1); // face / mip
+      globals.info.set(i, m-1); // face / lod
       globals.update();
       render_target.color[0].view = cubemap.create_view({
         dimension: "2d",
@@ -126,7 +126,7 @@ const generate_mipmap_cubemap = (engine, original) => {
   });
 
   render_pass.set_render_target(render_target);
-  globals.info.set(5, 0); // face / mip
+  globals.info.set(5, 0);
   globals.update();
 
   scene = new RenderList();
