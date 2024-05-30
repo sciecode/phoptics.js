@@ -2,11 +2,13 @@ import { Engine, Mesh, RenderList, Shader, Sampler, Material, Geometry, Texture,
   RenderPass, RenderTarget, StructuredBuffer, DynamicLayout } from 'phoptics';
 import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
 import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
+import { SkyboxGeometry } from 'phoptics/utils/objects/skybox.mjs';
 import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
 
 import mipmap_shader from "../shaders/mipmap_shader.mjs";
 import filtering_shader from "../shaders/filtering_shader.mjs";
 import ggx_lut_shader from "../shaders/ggx_lut_shader.mjs";
+import skybox_shader from "../shaders/skybox_shader.mjs";
 import albedo_shader from "../shaders/albedo_shader.mjs";
 
 const dpr = window.devicePixelRatio;
@@ -92,6 +94,9 @@ const generate_mipmap_cubemap = (engine, original) => {
     }
   }
 
+  quad.geometry.destroy();
+  quad.material.destroy();
+
   return cubemap;
 }
 
@@ -146,6 +151,9 @@ const generate_pmlm = (engine, cubemap) => {
     }
   }
 
+  quad.geometry.destroy();
+  quad.material.destroy();
+
   return pmlm;
 }
 
@@ -181,6 +189,9 @@ const generate_ggx_lut = (engine) => {
   globals.update();
   engine.render(render_pass, scene);
 
+  quad.geometry.destroy();
+  quad.material.destroy();
+
   return lut;
 }
 
@@ -197,12 +208,9 @@ const generate_ggx_lut = (engine) => {
   for (let i = 0; i < bitmaps.length; i++) engine.upload_texture(original, bitmaps[i], { target_origin: [0, 0, i] });
 
   const cubemap = generate_mipmap_cubemap(engine, original);
-  original.destroy();
-
   const pmlm = generate_pmlm(engine, cubemap);
-  cubemap.destroy();
-
   const ggx_lut = generate_ggx_lut(engine);
+  cubemap.destroy();
   globals.destroy();
 
   camera = new StructuredBuffer([
@@ -281,9 +289,7 @@ const generate_ggx_lut = (engine) => {
 
   const model = await fetch('../models/cerberus.phg');
   const compressed = new Uint8Array(await model.arrayBuffer());
-  console.time("uncompress");
   const geo = uncompress(compressed);
-  console.timeEnd("uncompress");
 
   scene = new RenderList();
   const mesh = new Mesh(geo, material);
@@ -292,6 +298,22 @@ const generate_ggx_lut = (engine) => {
   quat.rot_y(Math.PI / 2);
   mesh.dynamic.world.rigid(pos, quat);
   scene.add(mesh);
+
+  const skybox = new Mesh(
+    new SkyboxGeometry(),
+    new Material({
+      shader: new Shader({ code: skybox_shader }),
+      graphics: { depth: { write: false } },
+      vertex: [
+        { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }] }
+      ],
+      bindings: [
+        { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mipmap: "linear" } }) },
+        { binding: 1, name: "cubemap", resource: original.create_view({ dimension: "cube" }) },
+      ]
+    })
+  );
+  scene.add(skybox);
 
   animate();
 })();

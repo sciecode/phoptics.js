@@ -3,8 +3,12 @@ import { UNINITIALIZED } from "../constants.mjs";
 import { OffsetAllocator } from "../../common/offset_allocator.mjs";
 import { PoolStorage } from "../../common/pool_storage.mjs";
 
+const BITS = 2;
 const MAX_ALLOC = 0x7FFFF;
 const BLOCK_SIZE = 128 * 1024 * 1024;
+const STORAGE_MASK = (1 << BITS) - 1;
+
+const aligned = (x) => (x + STORAGE_MASK) & ~STORAGE_MASK;
 
 export class IndexPool {
   constructor(backend) {
@@ -21,7 +25,7 @@ export class IndexPool {
     let id = index_obj.get_id();
 
     if (id == UNINITIALIZED) {
-      const { heap, slot, offset, bid } = this.create(index_obj.total_bytes, index_obj.stride);
+      const { heap, slot, offset, bid } = this.create(index_obj.total_bytes);
       
       id = this.indices.allocate({
         version: -1,
@@ -47,16 +51,16 @@ export class IndexPool {
     return cache;
   }
 
-  create(bytes, stride = 4) {
+  create(bytes) {
     let heap, slot, offset, bid;
-    const aligned_bytes = bytes + stride;
+    const aligned_bytes = aligned(bytes);
     for (let i = 0, il = this.allocators.length; i < il; i++) {
       const info = this.allocators[i].malloc(aligned_bytes);
       if (info.slot !== undefined) {
         heap = i;
         bid = this.buffers[heap];
         slot = info.slot;
-        offset = Math.ceil(info.offset / stride) * stride;
+        offset = info.offset;
         break;
       }
     }

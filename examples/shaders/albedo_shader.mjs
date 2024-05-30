@@ -140,7 +140,7 @@ fn indirect(frag : ptr<function, RenderInfo>, r : f32) {
   let L = pow(textureSampleLevel(cubemap, gsamp, dir, r * 4.).rgb, vec3f(2.2));
   let dfg = textureSample(lut, gsamp, vec2f((*frag).cosNV, 1. - r)).xy;
 
-  (*frag).Li_spe = L * (dfg.x * (*frag).f0 + dfg.y) * globals.nits * .5; // nits boost because of SDR cubemap
+  (*frag).Li_spe = L * (dfg.x * (*frag).f0 + dfg.y) * globals.nits; // nits boost because of SDR cubemap
 }
 
 @group(2) @binding(0) var samp: sampler;
@@ -148,7 +148,7 @@ fn indirect(frag : ptr<function, RenderInfo>, r : f32) {
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
   const metalness = 0.;
-  const perceptual_roughness = .15;
+  const perceptual_roughness = .25;
   let a = max(perceptual_roughness * perceptual_roughness, 0.089);
 
   var frag : RenderInfo;
@@ -160,8 +160,6 @@ fn indirect(frag : ptr<function, RenderInfo>, r : f32) {
 
   var albedo = textureSample(t_albedo, samp, in.uv).rgb;
   frag.f0 = mix(vec3(0.04), albedo, metalness); // TODO: use reflectance for dielectric
-
-  frag.Li_dif += 40; // TODO: move ambient to indirect diffuse
 
   point_light(&frag,
     vec3f(0, 100, 100),   // position
@@ -181,6 +179,7 @@ fn indirect(frag : ptr<function, RenderInfo>, r : f32) {
     800.                  // intensity
   );
 
+  frag.Li_dif += 60;
   indirect(&frag, perceptual_roughness);
 
   let L = albedo * (1. - metalness) * (frag.Ld_dif + frag.Li_dif) + (frag.Ld_spe + frag.Li_spe);

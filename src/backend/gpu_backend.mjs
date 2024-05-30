@@ -54,6 +54,7 @@ export class GPUBackend {
       draw: {
         dynamic_group: null,
         dynamic_offset: [],
+        empty: [],
         draw_count: 0,
         vertex_offset: 0,
         index_offset: -1,
@@ -98,7 +99,7 @@ export class GPUBackend {
       if (metadata & (DrawStreamFlags.dynamic_offset))
         draw_packet.draw.dynamic_offset[0] = stream[draw_packet.offset++];
 
-      pass.setBindGroup(3, group, draw_packet.draw.dynamic_offset);
+      pass.setBindGroup(3, group, bind_group.dynamic_entries ? draw_packet.draw.dynamic_offset : draw_packet.draw.empty);
     }
 
     // vertex attributes

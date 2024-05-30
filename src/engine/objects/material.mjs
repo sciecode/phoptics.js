@@ -10,15 +10,18 @@ export class Material {
   constructor(options) {
     this.shader = options.shader; 
     this.#transparent = !!options.graphics?.blend;
+
+    let write = options.graphics?.depth?.write;
     this.graphics = {
       cull: options.graphics?.cull || "back",
       primitive: options.graphics?.primitive || "triangle-list",
       depth: {
         test: options.graphics?.depth?.test || "greater",
-        write: options.graphics?.depth?.write || true,
+        write: write !== undefined ? write : true,
       },
       blend: parse_blending(options.graphics?.blend),
     };
+
     this.dynamic = options.dynamic;
     this.vertex = options.vertex;
     this.bindings = options.bindings ? new Bindings(options.bindings) : undefined;

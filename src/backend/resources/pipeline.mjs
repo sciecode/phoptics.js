@@ -3,7 +3,6 @@ export class Pipeline {
       
     const graphics = options.graphics;
     const depth = graphics.depth || {}
-    
     const layouts = options.layouts || { bindings: [] };
     const groups = new Array(4);
     for (let i = 0; i < 3; i++)
@@ -43,7 +42,7 @@ export class Pipeline {
         }),
       },
       depthStencil: !!graphics.formats.depth ? {
-        depthWriteEnabled: depth.write != undefined ? depth.write : true,
+        depthWriteEnabled: depth.write !== undefined ? depth.write : true,
         depthCompare: depth.test || "greater",
         depthBias: depth.bias,
         format: graphics.formats.depth
@@ -53,7 +52,7 @@ export class Pipeline {
         topology: graphics.primitive,
         cullMode: graphics.cull
       }
-    } 
+    }
 
     this.pipeline = device.createRenderPipeline(descriptor);
   }
