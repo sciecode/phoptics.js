@@ -192,7 +192,6 @@ const generate_ggx_lut = (engine) => {
   document.body.append(canvas_texture.canvas);
 
   globals = new StructuredBuffer([{ name: "info", type: Vec4 }]);
-
   const bitmaps = await Promise.all(urls.map(e => load_bitmap(e)));
   const original = new Texture({ size: { width: 1024, height: 1024, depth: 6 }, format: "rgba8unorm" });
   for (let i = 0; i < bitmaps.length; i++) engine.upload_texture(original, bitmaps[i], { target_origin: [0, 0, i] });
@@ -204,12 +203,13 @@ const generate_ggx_lut = (engine) => {
   cubemap.destroy();
 
   const ggx_lut = generate_ggx_lut(engine);
+  globals.destroy();
 
   camera = new StructuredBuffer([
     { name: "projection", type: Mat4x4 },
     { name: "view", type: Mat3x4 },
     { name: "position", type: Vec4 },
-    { name: "luma", type: Vec4 },
+    { name: "info", type: Vec4 },
   ]);
 
   render_pass = new RenderPass({
@@ -245,7 +245,7 @@ const generate_ggx_lut = (engine) => {
   orbit.position.set(0, 0, 2);
   orbit.zoom_limit.x = 1;
   orbit.update();
-  camera.luma.set(250, 1);
+  camera.info.set(250, 1);
   camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, .1, 99);
 
   const transform_layout = new DynamicLayout([

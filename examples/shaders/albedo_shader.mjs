@@ -133,12 +133,14 @@ fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
 }
 
 fn indirect(frag : ptr<function, RenderInfo>, r : f32) {
+  // infinitely far skybox
   var dir = reflect(-(*frag).V, (*frag).N);
-  dir.z *= -1.; 
+  dir.z *= -1.;
+
   let L = pow(textureSampleLevel(cubemap, gsamp, dir, r * 4.).rgb, vec3f(2.2));
   let dfg = textureSample(lut, gsamp, vec2f((*frag).cosNV, 1. - r)).xy;
 
-  (*frag).Li_spe = L * (dfg.x * (*frag).f0 + dfg.y) * 250.;
+  (*frag).Li_spe = L * (dfg.x * (*frag).f0 + dfg.y) * globals.nits * .5; // nits boost because of SDR cubemap
 }
 
 @group(2) @binding(0) var samp: sampler;
