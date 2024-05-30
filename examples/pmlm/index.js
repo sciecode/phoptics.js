@@ -4,6 +4,7 @@ import { Vec4 } from 'phoptics/math';
 
 import mipmap_shader from "../shaders/mipmap_shader.mjs";
 import filtering_shader from "../shaders/filtering_shader.mjs";
+import ggx_lut_shader from "../shaders/ggx_lut_shader.mjs";
 
 const dpr = window.devicePixelRatio;
 let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
@@ -145,6 +146,41 @@ const generate_pmlm = (engine, cubemap) => {
   return pmlm;
 }
 
+const generate_ggx_lut = (engine) => {
+  const tex_size = 1024;
+  const lut = new Texture({
+    format: 'rg16float',
+    size: { width: tex_size, height: tex_size },
+  });
+
+  const render_pass = new RenderPass({
+    formats: { color: [lut.format] },
+    bindings: [
+      { binding: 0, name: "globals", resource: globals }
+    ]
+  });
+
+  const render_target = new RenderTarget({
+    color: [{ view: lut.create_view(), clear: [.0, .0, .0, 0] }],
+  });
+
+  render_pass.set_render_target(render_target);
+
+  scene = new RenderList();
+  const quad = new Mesh(
+    new Geometry({ draw: { count: 3 } }),
+    new Material({ shader: new Shader({ code: ggx_lut_shader }) })
+  );
+  scene.add(quad);
+
+  const sample_count = 512;
+  globals.info.set(sample_count);
+  globals.update();
+  engine.render(render_pass, scene);
+
+  return lut;
+}
+
 (async () => {
   engine = new Engine(await Engine.acquire_device());
 
@@ -164,10 +200,10 @@ const generate_pmlm = (engine, cubemap) => {
   const pmlm = generate_pmlm(engine, cubemap);
   cubemap.destroy();
 
+  const ggx_lut = generate_ggx_lut(engine);
+
   render_pass = new RenderPass({
-    formats: {
-      color: [canvas_texture.format],
-    },
+    formats: { color: [canvas_texture.format] },
     bindings: [
       { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mipmap: "linear" } }) },
       { binding: 1, name: "cube", resource: pmlm.create_view({ dimension: "cube" }) },
@@ -183,7 +219,7 @@ const generate_pmlm = (engine, cubemap) => {
   });
 
   render_pass.set_render_target(render_target);
-  globals.info.set(1, .6);
+  globals.info.set(4, 1.5);
   globals.update();
 
   scene = new RenderList();

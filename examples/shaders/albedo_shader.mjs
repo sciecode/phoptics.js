@@ -80,10 +80,10 @@ fn F_Schlick(f0 : vec3f, cosVH : f32) -> vec3f {
 	return f0 * (1.0 - r) + r;
 }
 
-fn V_Smith(a : f32, cosNL : f32, cosNV : f32) -> f32 {
-  let GGXV = cosNL * (cosNV * (1.0 - a) + a);
-  let GGXL = cosNV * (cosNL * (1.0 - a) + a);
-  return 0.5 / (GGXV + GGXL);
+fn V_Smith(a2 : f32, cosNL : f32, cosNV : f32) -> f32 {
+  let GGXL = cosNV * sqrt((1. - a2) * (cosNL * cosNL) + a2);
+  let GGXV = cosNL * sqrt((1. - a2) * (cosNV * cosNV) + a2);
+  return .5 / (GGXV + GGXL);
 }
 
 fn D_GGX(a2 : f32, cosNH : f32) -> f32 {
@@ -98,7 +98,7 @@ fn Fr_GGX(frag : ptr<function, RenderInfo>, L : vec3f, cosNL : f32) -> vec3f {
 	let cosVH = saturate(dot((*frag).V, H));
 
   let F = F_Schlick((*frag).f0, cosVH);
-  let V = V_Smith((*frag).a, cosNL, (*frag).cosNV);
+  let V = V_Smith((*frag).a2, cosNL, (*frag).cosNV);
   let D = D_GGX((*frag).a2, cosNH);
 
   return V * D * F;

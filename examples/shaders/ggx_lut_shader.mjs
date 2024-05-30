@@ -18,28 +18,10 @@ struct FragInput {
 }
 
 struct Info {
-  face : f32,
-  roughness : f32,
   sample_count : f32,
-  width: f32,
 };
 
-@group(0) @binding(0) var samp: sampler;
-@group(0) @binding(1) var cubemap: texture_cube<f32>;
-@group(0) @binding(2) var<storage, read> info : Info;
-
-fn uv_to_dir(face : i32, uv : vec2f) -> vec3f {
-  if (face == 0) {      return vec3f(     1.f,   uv.y,    -uv.x); }
-  else if (face == 1) { return vec3f(    -1.f,   uv.y,     uv.x); }
-  else if (face == 2) { return vec3f(    uv.x,    1.f,    -uv.y); }
-  else if (face == 3) { return vec3f(    uv.x,   -1.f,     uv.y); }
-  else if (face == 4) { return vec3f(    uv.x,   uv.y,      1.f); }
-  else {                return vec3f(   -uv.x,   uv.y,     -1.f); }
-}
-
-fn get_lod(pdf : f32) -> f32 {
-  return .5 * log2(6. * info.width * info.width / (info.sample_count * pdf));
-}
+@group(0) @binding(0) var<storage, read> info : Info;
 
 fn TBN(normal : vec3f) -> mat3x3f {
   var bitangent = vec3f(0, 1, 0);
@@ -72,28 +54,21 @@ fn hammersley(i : i32, N : i32) -> vec2f {
 }
 
 struct Sample {
-  pdf : f32,
   cosT : f32,
   sinT : f32,
   phi : f32
 };
-
-fn D_GGX(a2 : f32, cosNH : f32) -> f32 {
-  let q = (cosNH * cosNH) * (a2 - 1.) + 1.;
-	return R_PI * a2 / (q * q);
-}
 
 fn GGX(xi : vec2f, a2 : f32) -> Sample {
   var ggx : Sample;
   ggx.cosT = saturate(sqrt((1. - xi.y) / (1.0 + (a2 - 1.0) * xi.y)));
   ggx.sinT = sqrt(1. - ggx.cosT * ggx.cosT);
   ggx.phi = 2.0 * PI * xi.x;
-  ggx.pdf = D_GGX(a2, ggx.cosT) / 4.;
 
   return ggx;
 }
 
-fn importance_sample(idx : i32, N : vec3f, a2 : f32) -> vec4f {
+fn importance_sample(idx : i32, N : vec3f, a2 : f32) -> vec3f {
   let xi = hammersley(idx, i32(info.sample_count));
   let sample = GGX(xi, a2);
 
@@ -102,46 +77,48 @@ fn importance_sample(idx : i32, N : vec3f, a2 : f32) -> vec4f {
     sample.sinT * sin(sample.phi), 
     sample.cosT
   ));
-  let dir = TBN(N) * local;
 
-  return vec4f(dir, sample.pdf);
+  return TBN(N) * local;
 }
 
-fn apply_filter(N : vec3f) -> vec3f {
-  var weight = 0.;
-  var color = vec3f();
+fn V_Smith(a2 : f32, cosNL : f32, cosNV : f32) -> f32 {
+  let GGXL = cosNV * sqrt((1. - a2) * (cosNL * cosNL) + a2);
+  let GGXV = cosNL * sqrt((1. - a2) * (cosNV * cosNV) + a2);
+  return .5 / (GGXV + GGXL);
+}
 
-  let a = info.roughness * info.roughness;
+fn LUT(cosNV : f32, roughness : f32) -> vec2f {
+  let V = vec3f(sqrt(1.0 - cosNV * cosNV), 0.0, cosNV);
+  let N = vec3(0.0, 0.0, 1.0);
+
+  var A = 0.0;
+  var B = 0.0;
+
+  let a = roughness * roughness;
   let a2 = a * a;
   let count = i32(info.sample_count);
 
   for (var i = 0; i < count; i++) {
-    let sample = importance_sample(i, N, a2);
-    
-    let H = sample.xyz;
-    let L = normalize(reflect(-N, H));
-    let cosNL = dot(N, L);
-    let lod = select(get_lod(sample.w), 0., info.roughness == 0.);
+    let H = importance_sample(i, N, a2);
+    let L = normalize(reflect(-V, H));
 
-    if (cosNL > 0.) {
-      let s = pow(textureSampleLevel(cubemap, samp, L, lod).rgb, vec3f(2.2));
-      color += cosNL * s;
-      weight += cosNL;
-    }  
+    let cosNL = saturate(L.z);
+    let cosNH = saturate(H.z);
+    let cosVH = saturate(dot(V, H));
+
+    if (cosNV > 0.0) {
+      let pdf = V_Smith(a2, cosNL, cosNV) * cosVH * cosNL / cosNH;
+      let Fc = pow(1. - cosVH, 5.);
+      A += (1. - Fc) * pdf;
+      B += Fc * pdf;
+    }
   }
 
-  if (weight != 0.) { color /= weight; }
-  else { color /= info.sample_count; }
-
-  return color;
+  return vec2f(4.0 * A, 4.0 * B) / info.sample_count;
 }
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
-  let uv = in.uv * 2. - 1.;
-
-  let norm = normalize(uv_to_dir(i32(info.face), uv));
-  let color = apply_filter(norm);
-  
-  return vec4f(pow(color, vec3f(1./2.2)), 1);
+  let lut = LUT(in.uv.x, in.uv.y);
+  return vec4f(lut, 0, 1);
 }
 `;
