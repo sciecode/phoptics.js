@@ -28,6 +28,10 @@ struct Uniforms {
 }
 
 @group(0) @binding(0) var<storage, read> globals: Globals;
+@group(0) @binding(1) var gsamp: sampler;
+@group(0) @binding(2) var lut: texture_2d<f32>;
+@group(0) @binding(3) var cubemap: texture_cube<f32>;
+
 @group(3) @binding(0) var<storage, read> uniforms: Uniforms;
 
 fn dec_oct16(data : u32) -> vec3f {
@@ -62,12 +66,13 @@ fn dec_oct16(data : u32) -> vec3f {
 struct RenderInfo {
   Ld_dif    : vec3f,
   Ld_spe    : vec3f,
+  Li_dif    : vec3f,
+  Li_spe    : vec3f,
   pos       : vec3f,
   V         : vec3f,
   N         : vec3f,
   f0        : vec3f,
   cosNV     : f32,
-  a         : f32,
   a2        : f32,
 }
 
@@ -101,7 +106,7 @@ fn Fr_GGX(frag : ptr<function, RenderInfo>, L : vec3f, cosNL : f32) -> vec3f {
   let V = V_Smith((*frag).a2, cosNL, (*frag).cosNV);
   let D = D_GGX((*frag).a2, cosNH);
 
-  return V * D * F;
+  return F * (V * D);
 }
 
 fn point_light(frag : ptr<function, RenderInfo>, l_pos : vec3f, l_color : vec3f, Il : f32) {
@@ -127,25 +132,34 @@ fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
   return Ln;
 }
 
+fn indirect(frag : ptr<function, RenderInfo>, r : f32) {
+  var dir = reflect(-(*frag).V, (*frag).N);
+  dir.z *= -1.; 
+  let L = pow(textureSampleLevel(cubemap, gsamp, dir, r * 4.).rgb, vec3f(2.2));
+  let dfg = textureSample(lut, gsamp, vec2f((*frag).cosNV, 1. - r)).xy;
+
+  (*frag).Li_spe = L * (dfg.x * (*frag).f0 + dfg.y) * 250.;
+}
+
 @group(2) @binding(0) var samp: sampler;
 @group(2) @binding(1) var t_albedo: texture_2d<f32>;
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
   const metalness = 0.;
-  const perceptual_roughness = 0.45;
+  const perceptual_roughness = .15;
+  let a = max(perceptual_roughness * perceptual_roughness, 0.089);
 
   var frag : RenderInfo;
   frag.pos = in.w_pos;
   frag.V = normalize(globals.camera_pos - frag.pos);
   frag.N = normalize(in.w_normal);
   frag.cosNV = saturate(dot(frag.V, frag.N));
+  frag.a2 = a * a;
 
   var albedo = textureSample(t_albedo, samp, in.uv).rgb;
-  frag.a = perceptual_roughness * perceptual_roughness;
-  frag.a2 = frag.a * frag.a;
-  frag.f0 = mix(vec3( 0.04 ), albedo, metalness);
+  frag.f0 = mix(vec3(0.04), albedo, metalness); // TODO: use reflectance for dielectric
 
-  frag.Ld_dif += 40; // TODO: move ambient to indirect
+  frag.Li_dif += 40; // TODO: move ambient to indirect diffuse
 
   point_light(&frag,
     vec3f(0, 100, 100),   // position
@@ -165,7 +179,9 @@ fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
     800.                  // intensity
   );
 
-  let L = albedo * (1. - metalness) * frag.Ld_dif + frag.Ld_spe;
+  indirect(&frag, perceptual_roughness);
+
+  let L = albedo * (1. - metalness) * (frag.Ld_dif + frag.Li_dif) + (frag.Ld_spe + frag.Li_spe);
   let Ln = phoptics_tonemap(L, globals.exposure, globals.nits);
   let output = pow(Ln, vec3f(1./2.2));
   return vec4f(output, .5);

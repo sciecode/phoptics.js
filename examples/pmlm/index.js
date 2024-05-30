@@ -207,7 +207,8 @@ const generate_ggx_lut = (engine) => {
     bindings: [
       { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mipmap: "linear" } }) },
       { binding: 1, name: "cube", resource: pmlm.create_view({ dimension: "cube" }) },
-      { binding: 2, name: "globals", resource: globals }
+      { binding: 2, name: "globals", resource: globals },
+      { binding: 3, name: "lut", resource: ggx_lut.create_view() },
     ]
   });
   
