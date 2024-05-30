@@ -35,6 +35,6 @@ fn uv_to_dir(face : i32, uv : vec2f) -> vec3f {
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
   let uv = in.uv * 2. - 1.;
   let color = textureSampleLevel(cubemap, samp, uv_to_dir(i32(info.face), uv), info.lod).rgb;
-  return vec4f(pow(color, vec3f(1./2.2)), 1);
+  return vec4f(color, 1);
 }
 `;

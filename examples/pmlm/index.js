@@ -3,7 +3,7 @@ import { Engine, Mesh, RenderList, Shader, Sampler, Material, Texture, Geometry,
 import { Vec4 } from 'phoptics/math';
 
 import mipmap_shader from "../shaders/mipmap_shader.mjs";
-import filtering_shader from "../shader/filtering_shader.mjs";
+import filtering_shader from "../shaders/filtering_shader.mjs";
 
 const dpr = window.devicePixelRatio;
 let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
@@ -52,7 +52,7 @@ const generate_mipmap_cubemap = (engine, original) => {
 
   // base mip
   for (let i = 0; i < 6; i++) {
-    globals.info.set(i, 0); // face / lod
+    globals.info.set(i, 0, tex_size); // face / lod
     globals.update();
     render_target.color[0].view = cubemap.create_view({
       dimension: "2d",
@@ -91,9 +91,9 @@ const generate_mipmap_cubemap = (engine, original) => {
   return cubemap;
 }
 
-const generate_plem = (engine, cubemap) => {
+const generate_pmlm = (engine, cubemap) => {
   const tex_size = cubemap.size.width, mips = Texture.max_mip_levels(tex_size) - 4; // MAX - MIN
-  const plem = new Texture({
+  const pmlm = new Texture({
     format: cubemap.format,
     size: { width: tex_size, height: tex_size, depth: 6 },
     mip_levels: mips,
@@ -102,7 +102,7 @@ const generate_plem = (engine, cubemap) => {
   const render_pass = new RenderPass({
     formats: { color: [cubemap.format] },
     bindings: [
-      { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear" } }) },
+      { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mipmap: "linear" } }) },
       { binding: 1, name: "cube", resource: cubemap.create_view() },
       { binding: 2, name: "globals", resource: globals }
     ]
@@ -121,15 +121,16 @@ const generate_plem = (engine, cubemap) => {
   );
   scene.add(quad);
 
+  const sample_count = 1024;
   // mips
   for (let m = 0; m < mips; m++) {
     const roughness = m / (mips - 1);
     render_pass.bindings.cube = cubemap.create_view({ dimension: "cube" });
     render_pass.bindings.update();
     for (let i = 0; i < 6; i++) {
-      globals.info.set(i, roughness); // face / lod
+      globals.info.set(i, roughness, sample_count, tex_size); // face / lod
       globals.update();
-      render_target.color[0].view = plem.create_view({
+      render_target.color[0].view = pmlm.create_view({
         dimension: "2d",
         arrayLayerCount: 1,
         mipLevelCount: 1,
@@ -141,7 +142,7 @@ const generate_plem = (engine, cubemap) => {
     }
   }
 
-  return plem;
+  return pmlm;
 }
 
 (async () => {
@@ -154,21 +155,22 @@ const generate_plem = (engine, cubemap) => {
   globals = new StructuredBuffer([{ name: "info", type: Vec4 }]);
 
   const bitmaps = await Promise.all(urls.map(e => load_bitmap(e)));
-  const original = new Texture({ size: { width: 1024, height: 1024, depth: 6 }, format: "rgba8unorm-srgb" });
+  const original = new Texture({ size: { width: 1024, height: 1024, depth: 6 }, format: "rgba8unorm" });
   for (let i = 0; i < bitmaps.length; i++) engine.upload_texture(original, bitmaps[i], { target_origin: [0, 0, i] });
 
   const cubemap = generate_mipmap_cubemap(engine, original);
-  const plem = generate_plem(engine, cubemap);
-
   original.destroy();
+
+  const pmlm = generate_pmlm(engine, cubemap);
+  cubemap.destroy();
 
   render_pass = new RenderPass({
     formats: {
       color: [canvas_texture.format],
     },
     bindings: [
-      { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear" } }) },
-      { binding: 1, name: "cube", resource: cubemap.create_view({ dimension: "cube" }) },
+      { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mipmap: "linear" } }) },
+      { binding: 1, name: "cube", resource: pmlm.create_view({ dimension: "cube" }) },
       { binding: 2, name: "globals", resource: globals }
     ]
   });
@@ -181,7 +183,7 @@ const generate_plem = (engine, cubemap) => {
   });
 
   render_pass.set_render_target(render_target);
-  globals.info.set(5, 0);
+  globals.info.set(1, .6);
   globals.update();
 
   scene = new RenderList();
