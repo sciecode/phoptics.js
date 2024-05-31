@@ -17,7 +17,7 @@ export class Pipeline {
       code: options.shader.code,
     });
 
-    const blend = {
+    const blend = graphics.blend === false ? undefined : {
       color: parse_blend(graphics.blend.color),
       alpha: parse_blend(graphics.blend.alpha)
     };
@@ -53,7 +53,6 @@ export class Pipeline {
         cullMode: graphics.cull
       }
     }
-
     this.pipeline = device.createRenderPipeline(descriptor);
   }
 }

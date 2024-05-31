@@ -41,7 +41,8 @@ export class Material {
 }
 
 const parse_blending = (blend) => {
-  if (!blend) {
+  if (blend === false) return false;
+  else if (!blend) {
     return {
       color: { dst: "zero", src: "one", op: "add" },
       alpha: { dst: "zero", src: "one", op: "add" }

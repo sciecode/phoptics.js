@@ -33,6 +33,7 @@ export const encode_oct16 = (v) => {
 
 var f32 = new Float32Array(1);
 var i32 = new Int32Array(f32.buffer);
+var u32 = new Uint32Array(f32.buffer);
 
 // temporary while f16 support isn't available in JS
 export const encode_f16 = (fval) => {
@@ -55,3 +56,30 @@ export const encode_f16 = (fval) => {
   val = (fbits & 0x7fffffff) >> 23;
   return sign | ((fbits & 0x7fffff | 0x800000) + (0x800000 >>> val - 102) >> 126 - val);
 };
+
+export const encode_rgb9e5 = (v) => {
+  const extract_f9 = (n) => {
+    f32[0] = n;
+    const bits = u32[0];
+
+    let exp = (bits >> 23) & 0xff;
+    let mantissa = (bits & 0x7fffff) >> 14;
+
+    if (exp) mantissa = (mantissa >> 1) | 0b100000000, exp += 1;
+
+    return { exp, mantissa };
+  };
+
+  const { exp: r_exp, mantissa: r_man } = extract_f9(v[0]);
+  const { exp: g_exp, mantissa: g_man } = extract_f9(v[1]);
+  const { exp: b_exp, mantissa: b_man } = extract_f9(v[2]);
+
+  // Use the largest exponent, and shift the mantissa accordingly
+  const max_exp = Math.max(r_exp, g_exp, b_exp);
+  const r = r_man >> (max_exp - r_exp);
+  const g = g_man >> (max_exp - g_exp);
+  const b = b_man >> (max_exp - b_exp);
+
+  const exp = max_exp ? max_exp - 112 : 0;
+  return r | (g << 9) | (b << 18) | (exp << 27);
+}
