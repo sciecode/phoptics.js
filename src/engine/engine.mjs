@@ -91,6 +91,46 @@ export class Engine {
     }
   }
 
+  async read_texture(texture_obj, dst, options = {}) {
+    const level = options.mip_level;
+    const size = {
+      width: options.size?.width || Math.max(1, texture_obj.size.width >> level),
+      height: options.size?.height || Math.max(1, texture_obj.size.height >> level),
+    };
+
+    options.size = size;
+    const bid = this.cache.get_texture(texture_obj).bid;
+    const resource = this.backend.resources.get_texture(bid);
+    options.bytes_row = Math.ceil(resource.stride * size.width / 256) * 256;
+    
+    const buf_bid = this.backend.resources.create_buffer({
+      size: options.bytes_row * options.size.height,
+      usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
+    });
+
+    options.dst = buf_bid;
+
+    const buffer = this.backend.read_texture(resource.texture, options);
+    return buffer.mapAsync(GPUMapMode.READ).then( _ => {
+      const data = new dst.constructor(buffer.getMappedRange());
+
+      const elements = resource.stride / dst.BYTES_PER_ELEMENT;
+      const dst_row = size.width * elements;
+      const data_row = options.bytes_row / dst.BYTES_PER_ELEMENT;
+      for (let y = 0; y < size.height; y++) {
+        for (let x = 0; x < size.height; x++) {
+          for (let v = 0; v < elements; v++) {
+            const offset = x * elements + v;
+            const dst_id = y * dst_row + offset;
+            const data_id = y * data_row + offset;
+            dst[dst_id] = data[data_id]
+          } 
+        }
+      }
+      this.backend.resources.destroy_buffer(buf_bid);
+    });
+  }
+
   static async acquire_device(options = {}) {
     options.powerPreference ||= "high-performance";
     const adapter = await navigator.gpu.requestAdapter(options);

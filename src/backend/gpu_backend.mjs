@@ -43,6 +43,22 @@ export class GPUBackend {
     );
   }
 
+  read_texture(tex, options) {
+    const buffer = this.resources.get_buffer(options.dst);
+
+    const size = options.size;
+    const encoder = this.device.createCommandEncoder();
+    encoder.copyTextureToBuffer(
+      { texture: tex },
+      { buffer, bytesPerRow: options.bytes_row, rowsPerImage: size.height },
+      size
+    );
+
+    this.device.queue.submit([encoder.finish()]);
+
+    return buffer;
+  }
+
   render(pass_descriptor, draw_stream) {
     const encoder = this.device.createCommandEncoder();
     const pass = encoder.beginRenderPass(pass_descriptor);
