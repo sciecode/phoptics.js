@@ -2,7 +2,8 @@ import { Engine, Mesh, RenderList, Shader, Buffer, Sampler, Geometry, Material, 
   RenderPass, DynamicLayout, RenderTarget, StructuredBuffer } from 'phoptics';
 import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
 import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
-import { encode_rgb9e5 } from 'phoptics/utils/modules/encoder.mjs';
+import { encode_rgb9e5 } from 'phoptics/utils/data/encoder.mjs';
+import { EXRLoader } from 'phoptics/utils/loaders/exr_loader.mjs';
 
 import luminance_shader from "../shaders/luminance_shader.mjs";
 
@@ -17,7 +18,7 @@ const create_luminance_map = (engine) => {
     for (let j = 0; j < tex_size; j++) {
       const i4 = i * (tex_size * 4) + j * 4;
       data[i4] = j / mask * boost;
-      data[i4+1] = i / mask * boost;
+      data[i4+1] = (mask - i) / mask * boost;
     }
   }
 
@@ -160,27 +161,8 @@ const create_luminance_map = (engine) => {
   mesh1.dynamic.world.translate(pos);
   scene.add(mesh1);
 
-  // const tex = new Texture({
-  //   size: { width: 16, height: 16 },
-  //   format: "rgba32float"
-  // });
-
-  // const data = new Float32Array([
-  //   1, 0, 0, 1,
-  //   0, 1, 0, 1,
-  //   0, 0, 1, 1,
-  //   1, 1, 1, 0,
-  // ]);
-
-  // console.time("write")
-  // engine.upload_texture(tex, data);
-  // console.timeEnd("write")
-
-  // const read = new Float32Array(4 * 4);
-  // console.time("read");
-  // await engine.read_texture(tex, read);
-  // console.timeEnd("read");
-  // console.log(read, data);
+  const exr = await (new EXRLoader()).load('../textures/hdr/blobbies.exr');
+  console.log(exr.header.attributes);
 
   animate();
 })();

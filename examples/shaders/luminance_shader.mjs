@@ -35,7 +35,7 @@ struct Uniforms {
   var c_pos = vec4f(vec4f(w_pos, 1) * globals.view_matrix, 1) * globals.projection_matrix;
 
   output.position = c_pos;
-  output.uv = vec2f(pos.x, pos.y) * .5 + .5;
+  output.uv = vec2f(pos.x, -pos.y) * .5 + .5;
 
   return output;
 }
