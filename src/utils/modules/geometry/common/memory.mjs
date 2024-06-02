@@ -1,15 +1,13 @@
 const pad8 = (size) => (4 - (size & 3)) & 3;
 const pad16 = (size) => size & 1;
 
-export class Memory { 
+export class Memory {
 
   static allocate_layout(layout) {
     let sum = 0;
     for (const key in layout) {
-      const entry = layout[key];
-      let pad = 0, bytes = entry.type.bytes;
-      if (bytes == 1) pad = pad8(entry.count);
-      else if (bytes == 2) pad = pad16(entry.count);
+      const entry = layout[key], bytes = entry.type.bytes;
+      const pad = (bytes == 1) ? pad8(entry.count) : (bytes == 2) ? pad16(entry.count) : 0;
       entry.start = sum;
       sum += (entry.count + pad) * bytes;
     }
@@ -19,7 +17,7 @@ export class Memory {
       const entry = layout[key];
       layout[key] = new entry.type.array(buffer, entry.start, entry.count);
     }
-    
+
     return layout;
   }
 
