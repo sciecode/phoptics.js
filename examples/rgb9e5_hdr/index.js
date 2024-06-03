@@ -161,8 +161,8 @@ const create_luminance_map = (engine) => {
   mesh1.dynamic.world.translate(pos);
   scene.add(mesh1);
 
-  const exr = await (new EXRLoader()).load('../textures/hdr/blobbies.exr');
-  console.log(exr.header.attributes);
+  const exr = await (new EXRLoader(true)).load('../textures/hdr/blobbies.exr');
+  console.log(exr);
 
   animate();
 })();

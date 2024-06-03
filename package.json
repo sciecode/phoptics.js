@@ -1,0 +1,25 @@
+{
+  "name": "phoptics",
+  "version": "0.7.0",
+  "main": "index.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "build": "echo \"NO BUILD\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sciecode/phoptics.js.git"
+  },
+  "keywords": [
+    "webgpu"
+  ],
+  "author": "ScieCode",
+  "license": "MIT",
+  "homepage": "https://github.com/sciecode/phoptics.js#readme",
+  "description": "",
+  "devDependencies": {
+    "phoptics-deflate": "^0.9.8"
+  }
+}
