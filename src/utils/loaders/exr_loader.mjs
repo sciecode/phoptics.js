@@ -15,7 +15,9 @@ export class EXRLoader {
   async parse(buffer) {
     const reader = new EXRReader(buffer);
     const { header, info } = read_header(reader);
+    console.time("exr");
     const out = await decoder(reader, info, this.worker_pool);
+    console.timeEnd("exr");
     return { data: out, header: header };
   }
 }
@@ -118,13 +120,67 @@ const read_header = (reader) => {
 }
 
 const decoder = (reader, info, pool) => {
-  return dispatch_workers({ reader, info, pool, code: worker_code }, [
-    { name: 'phoptics-deflate', url: import.meta.resolve('phoptics-deflate') }
-  ]);
+  return new Promise((res, rej) => {
+    const { type, size, block, channels, algorithm } = info;
+    const type_constructor = type == 2 ? Uint16Array : Float32Array;
+    const line_stride = size.width * channels.output.stride / type;
+    const output = new type_constructor(line_stride * size.height);
+
+    const block_list = []
+    let block_count = block.count; while (block_count--) {
+      let line = reader.i32() - size.start, byte_length = reader.i32();
+      block_list.push({ line, byte_length, byte_start: reader.offset });
+      reader.skip(byte_length);
+    }
+
+    let worker, processed = 0, imports = [
+      { name: 'phoptics-deflate', url: import.meta.resolve('phoptics-deflate') }
+    ];
+
+    const onmessage = (mes) => {
+      // dispatch next
+      let release = false;
+      if (++processed != block.count) {
+        const b = block_list.pop();
+        if (b) {
+          const input = reader.bytes.buffer.slice(b.byte_start, b.byte_start + b.byte_length);
+          mes.target.postMessage({ algorithm: algorithm, input, line: b.line, info, imports }, [input]);
+        } else release = true;
+      } else release = true;
+
+      // process
+      const line = mes.data.line, data = new type_constructor(mes.data.output);
+      output.set(data, line * line_stride);
+
+      // finalize
+      if (release) pool.release(mes.target);
+      if (processed == block.count) res(output);
+    }
+
+    while (worker = pool.acquire()) {
+      worker.onmessage = onmessage;
+      const b = block_list.pop();
+      if (!b) {
+        pool.release(worker);
+        break;
+      }
+      const input = reader.bytes.buffer.slice(b.byte_start, b.byte_start + b.byte_length);
+      worker.postMessage({ algorithm: algorithm, input, line: b.line, info, imports }, [input]);
+    }
+  });
 }
 
 const worker_code = (() => {
-let deflate, tmp_buffer;
+
+let imports = [], deflate, tmp_buffer;
+const load_dynamic = async (list) => {
+  const loading = [];
+  for (let entry of list)
+    if (!imports[entry.name])
+      loading.push(import(entry.url).then(imp => imports[entry.name] = imp))
+
+  return await Promise.all(loading);
+}
 
 onmessage = async (mes) => {
   await load_dynamic(mes.data.imports);
@@ -315,7 +371,7 @@ class EXRReader {
       case 'v3f': return [this.f32(), this.f32(), this.f32()];
       case 'box2i': return { min: [this.i32(), this.i32()], max: [this.i32(), this.i32()] };
       case 'compression': return { name: compressions[code = this.u8()], decoder: decoders[code], height: COMPRESS_BLOCK[code] };
-      case 'lineOrder': return { code };
+      case 'lineOrder': return { code: this.u8() };
       case 'chlist': return this.channels(len);
       case 'string': return this.string_len(len);
       default:
@@ -327,93 +383,23 @@ class EXRReader {
   skip(b) { this.offset += b }
 }
 
-const import_code = (() => {
-  const imports = [];
-  const load_dynamic = async (list) => {
-    const loading = [];
-    for (let entry of list)
-      if (!imports[entry.name])
-        loading.push(import(entry.url).then(imp => imports[entry.name] = imp))
-
-    return await Promise.all(loading);
-  }
-}).toString();
 let process_code = (str) => str.substring(str.indexOf('{') + 1, str.lastIndexOf('}'));
-let build_worker = (body) => ([process_code(import_code), process_code(body)]).join(' ');
-let dispatch_workers = (decoder, imports = []) => {
-  return new Promise((res, rej) => {
-    const { reader, info, pool, code } = decoder;
-    const { type, size, block, channels, algorithm } = info;
-    const type_constructor = type == 2 ? Uint16Array : Float32Array;
-    const line_stride = size.width * channels.output.stride / type;
-    const output = new type_constructor(line_stride * size.height);
-
-    const block_list = []
-    let block_count = block.count; while (block_count--) {
-      let line = reader.i32() - size.start, byte_length = reader.i32();
-      block_list.push({ line, byte_length, byte_start: reader.offset });
-      reader.skip(byte_length);
-    }
-
-    // worker logic
-    let worker, processed = 0;
-    const worker_code = build_worker(code);
-    const worker_url = URL.createObjectURL(new Blob([worker_code]));
-    const onmessage = (mes) => {
-      // dispatch next
-      let release = false;
-      if (++processed != block.count) {
-        const b = block_list.pop();
-        if (b) {
-          const input = reader.bytes.buffer.slice(b.byte_start, b.byte_start + b.byte_length);
-          mes.target.postMessage({ algorithm: algorithm, input, line: b.line, info, imports }, [input]);
-        } else release = true;
-      } else release = true;
-
-      // process
-      const line = mes.data.line, data = new type_constructor(mes.data.output);
-      output.set(data, line * line_stride);
-
-      // finalize
-      if (release) pool.release(mes.target);
-      if (processed == block.count) res(output);
-    }
-
-    while (worker = pool.acquire(worker_url)) {
-      worker.onmessage = onmessage;
-      const b = block_list.pop();
-      if (!b) {
-        pool.release(worker);
-        break;
-      }
-      const input = reader.bytes.buffer.slice(b.byte_start, b.byte_start + b.byte_length);
-      worker.postMessage({ algorithm: algorithm, input, line: b.line, info, imports }, [input]);
-    }
-  });
-}
 
 class WorkerPool {
-  constructor(max) {
-    this.pool = new Array();
-    this.count = 0;
-    this.max = max || Math.min(8, navigator.hardwareConcurrency / 2 | 0);
+  constructor() {
+    const workers = Math.min(8, navigator.hardwareConcurrency / 2 | 0);
+    const worker_url = URL.createObjectURL(new Blob([process_code(worker_code)]));
+    this.pool = new Array(workers);
+    for (let i = 0; i < workers; i++)
+      this.pool[i] = new Worker(worker_url);
   }
 
-  acquire(url) {
-    if (this.count == this.max) return undefined;
-    this.count++;
+  acquire() {
     if (this.pool.length) return this.pool.pop();
-    return new Worker(url);
+    return undefined;
   }
 
   release(worker) {
-    this.count--;
     this.pool.push(worker);
-  }
-
-  terminate() {
-    for (let worker of this.pool) worker.terminate();
-    this.count = 0;
-    this.pool.length = 0;
   }
 }
