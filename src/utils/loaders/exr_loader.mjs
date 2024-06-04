@@ -1,51 +1,60 @@
 import { decode_f16 } from 'phoptics/utils/data/decoder.mjs';
-import { Decompressor } from 'phoptics-deflate';
 
 export class EXRLoader {
-  constructor(debug) { this.debug = debug; };
+  constructor() {
+    this.worker_pool = new WorkerPool();
+  };
 
-  load(url) {
+  async load(url) {
     return fetch(url).then( async response => {
       if (!response.ok) return undefined;
-      return this.parse(await response.arrayBuffer(), this.debug);
+      return this.parse(await response.arrayBuffer());
     });
   }
 
-  parse(buffer, debug) {
-    const view = new EXRView(buffer);
-    const { header, decoder, info } = read_header(view);
-    if (debug) console.log(header);
-    const output = decoder(info);
-    return output;
+  async parse(buffer) {
+    const reader = new EXRReader(buffer);
+    const { header, info } = read_header(reader);
+    const out = await decoder(reader, info, this.worker_pool);
+    return { data: out, header: header };
   }
 }
 
-const read_header = (view) => {
-  if (view.u32() != 20000630) throw 'EXRLoader: file not OpenEXR format.';
+let _;
+const decoders = [_, _, 'zlib', 'zlib', _, _, _, _, _, _];
+const COMPRESS_BLOCK = [1, 1, 1, 16, 32, 16, 0, 0, 32, 256];
+const compressions = ['NO','RLE','ZIPS','ZIP','PIZ','PXR24','B44','B44A','DWAA','DWAB'];
+
+const read_header = (reader) => {
+  if (reader.u32() != 20000630) throw 'EXRLoader: file not OpenEXR format.';
 
   const header = {};
-  header.version = view.u8();
+  header.version = reader.u8();
 
-  const spec = view.u8();
+  const spec = reader.u8();
   header.spec = {
-    tiled: !! ( spec & 2 ),
+    tile: !! ( spec & 2 ),
     deep: !! ( spec & 8 ),
     multi: !! ( spec & 16 ),
   };
 
-  view.skip(2); // preamble
+  if (spec.tile || spec.deep || spec.multi) throw 'EXRLoader: unsupported file extension.';
+
+  reader.skip(2); // preamble
 
   let name;
   const att = header.attributes = {};
-  while (name = view.string()) {
-    const type = view.string();
-    const size = view.u32();
-    att[name] = view.attribute(type, size);
+  while (name = reader.string()) {
+    const type = reader.string();
+    const size = reader.u32();
+    att[name] = reader.attribute(type, size);
   }
 
   const size = {
     width: att.dataWindow.max[0] - att.dataWindow.min[0] + 1,
     height: att.dataWindow.max[1] - att.dataWindow.min[1] + 1,
+    start: att.dataWindow.min[1],
+    order: att.lineOrder.code
   }, block = {
     width: size.width,
     height: att.compression.height,
@@ -62,43 +71,142 @@ const read_header = (view) => {
     }
   }
 
+  const sequence = { R: 0, G: 1, B: 2, A: 3 };
+
   for (let ch of att.channels) {
+    const k = ch.type * 2;
     switch (ch.name) {
       case 'R':
       case 'G':
       case 'B':
       case 'A':
-        channels.output.info[ch.name] = { stride: channels.output.stride, bytes: ch.type * 2 };
-        channels.output.stride += ch.type * 2;
+        channels.output.info[ch.name] = { stride: sequence[ch.name] * k, bytes: k };
+        channels.output.stride += k;
         channels.output.count++;
       default:
-        channels.input.stride += ch.type * 2;
+        channels.input.stride += k;
     }
   }
 
-  // offsets
-  let il = block.count; while (il--) view.i64();
+  const type = channels.output.info.R.bytes;
 
-  const type = (att.channels[0].type == 1) ? Uint16Array : Float32Array;
-  const decoder = att.compression.decoder;
-  const info = {
-    type: type,
-    size,
-    block,
-    channels,
-    view,
+  if (channels.output.count == 3) {
+    channels.output.info.A = { stride: channels.output.stride, bytes: type },
+    channels.output.stride += type;
+    channels.output.count++;
   }
 
-  return { header, decoder, info };
+  header.size = { width: size.width, height: size.height };
+  
+  switch (channels.output.count) {
+    case 1: header.format = type == 2 ? "r16float" : "r32float"; break;
+    case 2: header.format = type == 2 ? "rg16float" : "rg32float"; break;
+    case 4: header.format = type == 2 ? "rgba16float" : "rgba32float"; break;
+    case 0:
+    default: throw `EXRLoader: file doesn't contains recognizable data`;
+  }
+
+  // offsets
+  let il = block.count; while (il--) reader.i64();
+
+  const algorithm = att.compression.decoder;
+  if (!algorithm) throw 'EXRLoader: compression algorithm currently unsupported.'
+
+  const info = { type, size, block, channels, algorithm };
+
+  return { header, info };
 }
 
-const zlib = (info) => {
-  const { type, size, block, channels, view } = info;
-  const output = new type(size.width * size.height * channels.output.stride / type.BYTES_PER_ELEMENT);
-  console.log(info, output);
+const decoder = (reader, info, pool) => {
+  return dispatch_workers({ reader, info, pool, code: worker_code }, [
+    { name: 'phoptics-deflate', url: import.meta.resolve('phoptics-deflate') }
+  ]);
 }
 
-class EXRView {
+const worker_code = (() => {
+let deflate, tmp_buffer;
+
+onmessage = async (mes) => {
+  await load_dynamic(mes.data.imports);
+
+  let algorithm;
+  switch (mes.data.algorithm) {
+    case 'zlib': algorithm = zlib; break;
+    default: 
+  }
+  const output = algorithm(mes.data);
+
+  postMessage({line: mes.data.line, output: output.buffer}, [output.buffer]);
+}
+
+const zlib = (data) => {
+  const line = data.line;
+  const input = new Uint8Array(data.input);
+  const { type, size, block, channels } = data.info;
+
+  const end = line + block.height;
+  const height = end > size.height ? end % block.height : block.height;
+  
+  const input_line_bytes = size.width * channels.input.stride;
+  const input_bytes = input_line_bytes * height;
+
+  const tmp_buffer_bytes = input_line_bytes * block.height * 2;
+  if (!tmp_buffer || tmp_buffer.byteLength < tmp_buffer_bytes) tmp_buffer = new ArrayBuffer(tmp_buffer_bytes);
+  const out_bytes = new Uint8Array(tmp_buffer, 0, input_bytes);
+  const tmp_bytes = new Uint8Array(tmp_buffer, input_bytes, input_bytes);
+  
+  if (!deflate) deflate = new imports['phoptics-deflate'].Decompressor();
+  
+  deflate.zlib(input, tmp_bytes);
+  
+  predictor(tmp_bytes);
+  interleave(tmp_bytes, out_bytes);
+  
+  const type_constructor = type == 2 ? Uint16Array : Float32Array;
+  const output_line_el = size.width * channels.output.stride / type;
+  const output = new type_constructor(output_line_el * height);
+  const input_line_el = input_line_bytes / type;
+  const uncompressed = new type_constructor(out_bytes.buffer, 0, input_line_el * height);
+
+  populate(output, output_line_el, uncompressed, channels, block.width, height);
+
+  return output;
+}
+
+const populate = (dst, dst_stride, src, channels, width, height) => {
+  const output_stride = channels.output.stride / dst.BYTES_PER_ELEMENT;
+  const ch_blocks = channels.input.stride / dst.BYTES_PER_ELEMENT;
+  const ch_count = channels.input.info.length;
+  for (let i = 0; i < height; i++) {
+    for (let ch = 0; ch < ch_count; ch++) {
+      const src_channel = channels.input.info[ch];
+      const dst_channel = channels.output.info[src_channel.name];
+      if (!dst_channel) continue;
+      const stride = dst_channel.stride / (src_channel.type * 2);
+      const src_line = (i * ch_blocks + ch) * width, dst_line = i * dst_stride;
+      for (let j = 0; j < width; j++) dst[dst_line + j * output_stride + stride] = src[src_line + j];
+    }
+  }
+}
+
+const predictor = (stream) => {
+  for (let t = 1; t < stream.length; t++) 
+    stream[t] = stream[t-1] + stream[t] - 128;
+}
+
+const interleave = (src, dst) => { // TODO: optimize (?)
+	let s = 0, t1 = 0, t2 = ((src.length + 1) / 2) | 0;
+	const stop = src.length - 1;
+	while (true) {
+		if (s > stop) break;
+		dst[s++] = src[t1++];
+		if (s > stop) break;
+		dst[s++] = src[t2++];
+	}
+}
+}).toString();
+
+class EXRReader {
   constructor(buffer) {
     this.offset = 0;
     this.dv = new DataView(buffer);
@@ -207,7 +315,7 @@ class EXRView {
       case 'v3f': return [this.f32(), this.f32(), this.f32()];
       case 'box2i': return { min: [this.i32(), this.i32()], max: [this.i32(), this.i32()] };
       case 'compression': return { name: compressions[code = this.u8()], decoder: decoders[code], height: COMPRESS_BLOCK[code] };
-      case 'lineOrder': return { name: orders[code = this.u8()], code };
+      case 'lineOrder': return { code };
       case 'chlist': return this.channels(len);
       case 'string': return this.string_len(len);
       default:
@@ -219,9 +327,93 @@ class EXRView {
   skip(b) { this.offset += b }
 }
 
-const ORDERS = { UP: 0, DOWN: 1, RAND: 2 };
-const orders = ['INCREASING_Y','DECREASING_Y','RANDOM_Y'];
-let _;
-const decoders = [_, _, zlib, zlib, _, _, _, _, _, _];
-const COMPRESS_BLOCK = [1, 1, 1, 16, 32, 16, 0, 0, 32, 256];
-const compressions = ['NO','RLE','ZIPS','ZIP','PIZ','PXR24','B44','B44A','DWAA','DWAB'];
+const import_code = (() => {
+  const imports = [];
+  const load_dynamic = async (list) => {
+    const loading = [];
+    for (let entry of list)
+      if (!imports[entry.name])
+        loading.push(import(entry.url).then(imp => imports[entry.name] = imp))
+
+    return await Promise.all(loading);
+  }
+}).toString();
+let process_code = (str) => str.substring(str.indexOf('{') + 1, str.lastIndexOf('}'));
+let build_worker = (body) => ([process_code(import_code), process_code(body)]).join(' ');
+let dispatch_workers = (decoder, imports = []) => {
+  return new Promise((res, rej) => {
+    const { reader, info, pool, code } = decoder;
+    const { type, size, block, channels, algorithm } = info;
+    const type_constructor = type == 2 ? Uint16Array : Float32Array;
+    const line_stride = size.width * channels.output.stride / type;
+    const output = new type_constructor(line_stride * size.height);
+
+    const block_list = []
+    let block_count = block.count; while (block_count--) {
+      let line = reader.i32() - size.start, byte_length = reader.i32();
+      block_list.push({ line, byte_length, byte_start: reader.offset });
+      reader.skip(byte_length);
+    }
+
+    // worker logic
+    let worker, processed = 0;
+    const worker_code = build_worker(code);
+    const worker_url = URL.createObjectURL(new Blob([worker_code]));
+    const onmessage = (mes) => {
+      // dispatch next
+      let release = false;
+      if (++processed != block.count) {
+        const b = block_list.pop();
+        if (b) {
+          const input = reader.bytes.buffer.slice(b.byte_start, b.byte_start + b.byte_length);
+          mes.target.postMessage({ algorithm: algorithm, input, line: b.line, info, imports }, [input]);
+        } else release = true;
+      } else release = true;
+
+      // process
+      const line = mes.data.line, data = new type_constructor(mes.data.output);
+      output.set(data, line * line_stride);
+
+      // finalize
+      if (release) pool.release(mes.target);
+      if (processed == block.count) res(output);
+    }
+
+    while (worker = pool.acquire(worker_url)) {
+      worker.onmessage = onmessage;
+      const b = block_list.pop();
+      if (!b) {
+        pool.release(worker);
+        break;
+      }
+      const input = reader.bytes.buffer.slice(b.byte_start, b.byte_start + b.byte_length);
+      worker.postMessage({ algorithm: algorithm, input, line: b.line, info, imports }, [input]);
+    }
+  });
+}
+
+class WorkerPool {
+  constructor(max) {
+    this.pool = new Array();
+    this.count = 0;
+    this.max = max || Math.min(8, navigator.hardwareConcurrency / 2 | 0);
+  }
+
+  acquire(url) {
+    if (this.count == this.max) return undefined;
+    this.count++;
+    if (this.pool.length) return this.pool.pop();
+    return new Worker(url);
+  }
+
+  release(worker) {
+    this.count--;
+    this.pool.push(worker);
+  }
+
+  terminate() {
+    for (let worker of this.pool) worker.terminate();
+    this.count = 0;
+    this.pool.length = 0;
+  }
+}

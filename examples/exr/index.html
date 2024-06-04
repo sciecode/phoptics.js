@@ -1,0 +1,29 @@
+<html>
+  <head>
+    <title>Phoptic.js - EXR</title>
+    <style>
+      html, body {
+        margin: 0;
+        background-color: rgba(.3, .3, .3, 1);
+      }
+
+      canvas {
+        width: 100%;
+        height: 100vh;
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "phoptics": "../../src/engine/export.mjs",
+          "phoptics/math": "../../src/datatypes/export.mjs",
+          "phoptics/utils/": "../../src/utils/",
+          "phoptics-deflate": "../../node_modules/phoptics-deflate/dist/phoptics-deflate.mjs"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <script type="module" src="index.js"></script>
+  </body>
+</html>

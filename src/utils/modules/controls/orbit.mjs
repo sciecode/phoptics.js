@@ -26,7 +26,7 @@ export class Orbit {
     this.zn_cb = this.zn.bind(this);
 
     this.node.addEventListener('pointerdown', this.dn_cb);
-    this.node.addEventListener('wheel', this.zn_cb);
+    this.node.addEventListener('wheel', this.zn_cb, { passive: true });
 
     this.update();
   }
