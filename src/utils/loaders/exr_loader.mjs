@@ -21,7 +21,7 @@ export class EXRLoader {
 }
 
 let _;
-const decoders = [_, _, 'zlib', 'zlib', _, _, _, _, _, _];
+const decoders = ['raw', _, 'zlib', 'zlib', _, _, _, _, _, _];
 const COMPRESS_BLOCK = [1, 1, 1, 16, 32, 16, 0, 0, 32, 256];
 const compressions = ['NO','RLE','ZIPS','ZIP','PIZ','PXR24','B44','B44A','DWAA','DWAB'];
 
@@ -171,14 +171,13 @@ onmessage = async (mes) => {
   let algorithm;
   switch (data.algorithm) {
     case 'zlib': algorithm = zlib; break;
+    case 'raw' : algorithm = raw; break;
     default: 
   }
   
   const info = read_block(data);
   const src = info.is_compressed ? algorithm(data, info) : new info.type(info.input);
-
   populate(info.output, info.dst_stride, src, data.info.channels, data.info.block.width, info.height);
-
   postMessage({line: data.line, output: info.output.buffer}, [info.output.buffer]);
 }
 
@@ -210,6 +209,8 @@ const read_block = (data) => {
   }
 }
 
+const raw = (data, cache) => new cache.type(cache.input);
+
 const zlib = (data, cache) => {
   const { type, size, block, channels } = data.info;
   const height = cache.height;
@@ -236,7 +237,6 @@ const zlib = (data, cache) => {
 }
 
 const populate = (dst, dst_stride, src, channels, width, height) => {
-
   const output_stride = channels.output.stride / dst.BYTES_PER_ELEMENT;
   const ch_blocks = channels.input.stride / dst.BYTES_PER_ELEMENT;
   const ch_count = channels.input.info.length;
@@ -258,7 +258,23 @@ const predictor = (stream) => {
     stream[t] = stream[t-1] + stream[t] - 128;
 }
 
-const interleave = (src, dst) => { // TODO: optimize (?)
+const deinterleave = (a) => {
+  const len = a.length, mid = ((len + 1) / 2) | 0;
+  const idx = (i) => {
+    if (i < mid) return i * 2;
+    return (i - mid) * 2 + 1;
+  }
+  let i = 1;
+  for (i = 1; i < len; i++){
+    let j = idx(i);
+    while (j < i) j = idx(j);
+    const tmp = a[i];
+    a[i] = a[j];
+    a[j] = tmp;
+  }
+}
+
+const interleave = (src, dst) => {
 	let s = 0, t1 = 0, t2 = ((src.length + 1) / 2) | 0;
 	const stop = src.length - 1;
 	while (true) {
