@@ -210,11 +210,11 @@ const populate = (dst, dst_stride, src, channels, width, height) => {
   const output_stride = channels.output.stride / dst.BYTES_PER_ELEMENT;
   const ch_blocks = channels.input.stride / dst.BYTES_PER_ELEMENT;
   const ch_count = channels.input.info.length;
-  for (let i = 0; i < height; i++) {
-    for (let ch = 0; ch < ch_count; ch++) {
-      const src_channel = channels.input.info[ch];
-      const dst_channel = channels.output.info[src_channel.name];
-      if (!dst_channel) continue;
+  for (let ch = 0; ch < ch_count; ch++) {
+    const src_channel = channels.input.info[ch];
+    const dst_channel = channels.output.info[src_channel.name];
+    if (!dst_channel) continue;
+    for (let i = 0; i < height; i++) {
       const stride = dst_channel.stride / (src_channel.type * 2);
       const src_line = (i * ch_blocks + ch) * width, dst_line = i * dst_stride;
       for (let j = 0; j < width; j++) dst[dst_line + j * output_stride + stride] = src[src_line + j];
