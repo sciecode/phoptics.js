@@ -75,6 +75,7 @@ let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
 
   const loader = new EXRLoader();
   const { data: texture_data, header } = await loader.load('../textures/hdr/040full.exr');
+  console.log(header);
 
   const hdr = new Texture({
     size: header.size,

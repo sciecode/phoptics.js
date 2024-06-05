@@ -38,7 +38,9 @@ const read_header = (reader) => {
     multi: !! ( spec & 16 ),
   };
 
-  if (spec.tile || spec.deep || spec.multi) throw 'EXRLoader: unsupported file extension.';
+  if (header.spec.deep) throw 'EXRLoader: unsupported deep-scan file extension.';
+  if (header.spec.tile) throw 'EXRLoader: unsupported tiled-scan file extension.';
+  if (header.spec.multi) throw 'EXRLoader: unsupported multi-file extension.';
 
   reader.skip(2); // preamble
 
@@ -71,7 +73,7 @@ const read_header = (reader) => {
     }
   }
 
-  const sequence = { R: 0, G: 1, B: 2, A: 3 };
+  const sequence = { R: 0, G: 1, B: 2, A: 3, Y: 0 };
 
   for (let ch of att.channels) {
     const k = ch.type * 2;
@@ -88,12 +90,14 @@ const read_header = (reader) => {
     }
   }
 
+  let fill;
   const type = channels.output.info.R.bytes;
-
+  
   if (channels.output.count == 3) {
     channels.output.info.A = { stride: channels.output.stride, bytes: type },
     channels.output.stride += type;
     channels.output.count++;
+    if (type == 2) fill = 0x3C00;
   }
 
   header.size = { width: size.width, height: size.height };
@@ -108,18 +112,18 @@ const read_header = (reader) => {
 
   // offsets
   let il = block.count; while (il--) reader.i64();
-
+ 
   const algorithm = att.compression.decoder;
   if (!algorithm) throw 'EXRLoader: compression algorithm currently unsupported.'
 
-  const info = { type, size, block, channels, algorithm };
+  const info = { type, size, block, channels, algorithm, fill };
 
   return { header, info };
 }
 
 const decoder = (reader, info, tasks) => {
   return new Promise((res, rej) => {
-    const { type, size, block, channels, algorithm } = info;
+    const { type, size, block, channels, algorithm, fill } = info;
     const type_constructor = type == 2 ? Uint16Array : Float32Array;
     const line_stride = size.width * channels.output.stride / type;
     const output = new type_constructor(line_stride * size.height);
@@ -140,6 +144,7 @@ const decoder = (reader, info, tasks) => {
       algorithm,
       line_stride,
       len: block.count,
+      fill: fill,
       input: reader.bytes.buffer,
       type: type_constructor,
       cb: res,
@@ -160,29 +165,58 @@ const load_dynamic = async (list) => {
 }
 
 onmessage = async (mes) => {
-  await load_dynamic(mes.data.imports);
+  const data = mes.data;
+  await load_dynamic(data.imports);
 
   let algorithm;
-  switch (mes.data.algorithm) {
+  switch (data.algorithm) {
     case 'zlib': algorithm = zlib; break;
     default: 
   }
-  const output = algorithm(mes.data);
+  
+  const info = read_block(data);
+  const src = info.is_compressed ? algorithm(data, info) : new info.type(info.input);
 
-  postMessage({line: mes.data.line, output: output.buffer}, [output.buffer]);
+  populate(info.output, info.dst_stride, src, data.info.channels, data.info.block.width, info.height);
+
+  postMessage({line: data.line, output: info.output.buffer}, [info.output.buffer]);
 }
 
-const zlib = (data) => {
+const read_block = (data) => {
   const line = data.line;
-  const input = new Uint8Array(data.input);
   const { type, size, block, channels } = data.info;
-
+  
   const end = line + block.height;
   const height = end > size.height ? end % block.height : block.height;
   
   const input_line_bytes = size.width * channels.input.stride;
   const input_bytes = input_line_bytes * height;
+  const is_compressed = input_bytes != data.input.byteLength;
 
+  const input = data.input;
+  const type_constructor = type == 2 ? Uint16Array : Float32Array;
+  const output_line_el = size.width * channels.output.stride / type;
+  const output = new type_constructor(output_line_el * height);
+
+  if (data.fill) output.fill(data.fill);
+
+  return {
+    input,
+    output,
+    height,
+    is_compressed,
+    type: type_constructor,
+    dst_stride: output_line_el,
+  }
+}
+
+const zlib = (data, cache) => {
+  const { type, size, block, channels } = data.info;
+  const height = cache.height;
+  
+  const input_line_bytes = size.width * channels.input.stride;
+  const input_bytes = input_line_bytes * height;
+  
   const tmp_buffer_bytes = input_line_bytes * block.height * 2;
   if (!tmp_buffer || tmp_buffer.byteLength < tmp_buffer_bytes) tmp_buffer = new ArrayBuffer(tmp_buffer_bytes);
   const out_bytes = new Uint8Array(tmp_buffer, 0, input_bytes);
@@ -190,26 +224,23 @@ const zlib = (data) => {
   
   if (!deflate) deflate = new imports['phoptics-deflate'].Decompressor();
   
-  deflate.zlib(input, tmp_bytes);
+  deflate.zlib(new Uint8Array(cache.input), tmp_bytes);
   
   predictor(tmp_bytes);
   interleave(tmp_bytes, out_bytes);
   
-  const type_constructor = type == 2 ? Uint16Array : Float32Array;
-  const output_line_el = size.width * channels.output.stride / type;
-  const output = new type_constructor(output_line_el * height);
   const input_line_el = input_line_bytes / type;
-  const uncompressed = new type_constructor(out_bytes.buffer, 0, input_line_el * height);
+  const src = new cache.type(out_bytes.buffer, 0, input_line_el * height);
 
-  populate(output, output_line_el, uncompressed, channels, block.width, height);
-
-  return output;
+  return src;
 }
 
 const populate = (dst, dst_stride, src, channels, width, height) => {
+
   const output_stride = channels.output.stride / dst.BYTES_PER_ELEMENT;
   const ch_blocks = channels.input.stride / dst.BYTES_PER_ELEMENT;
   const ch_count = channels.input.info.length;
+
   for (let ch = 0; ch < ch_count; ch++) {
     const src_channel = channels.input.info[ch];
     const dst_channel = channels.output.info[src_channel.name];
@@ -398,6 +429,7 @@ class TaskQueue {
           algorithm: job.algorithm,
           info: job.info,
           line: block.line,
+          fill: job.fill,
           imports,
         }, [input]);
         return false;
