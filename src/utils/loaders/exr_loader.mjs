@@ -21,7 +21,7 @@ export class EXRLoader {
 }
 
 let _;
-const decoders = ['raw', _, 'zlib', 'zlib', _, _, _, _, _, _];
+const decoders = ['raw', 'rle', 'zlib', 'zlib', _, _, _, _, _, _];
 const COMPRESS_BLOCK = [1, 1, 1, 16, 32, 16, 0, 0, 32, 256];
 const compressions = ['NO','RLE','ZIPS','ZIP','PIZ','PXR24','B44','B44A','DWAA','DWAB'];
 
@@ -171,6 +171,7 @@ onmessage = async (mes) => {
   let algorithm;
   switch (data.algorithm) {
     case 'zlib': algorithm = zlib; break;
+    case 'rle' : algorithm = rle; break; 
     case 'raw' : algorithm = raw; break;
     default: 
   }
@@ -210,6 +211,29 @@ const read_block = (data) => {
 }
 
 const raw = (data, cache) => new cache.type(cache.input);
+
+const rle = (data, cache) => {
+  const { type, size, block, channels } = data.info;
+  const height = cache.height;
+  
+  const input_line_bytes = size.width * channels.input.stride;
+  const input_bytes = input_line_bytes * height;
+  
+  const tmp_buffer_bytes = input_line_bytes * block.height * 2;
+  if (!tmp_buffer || tmp_buffer.byteLength < tmp_buffer_bytes) tmp_buffer = new ArrayBuffer(tmp_buffer_bytes);
+  const out_bytes = new Uint8Array(tmp_buffer, 0, input_bytes);
+  const tmp_bytes = new Uint8Array(tmp_buffer, input_bytes, input_bytes);
+ 
+  runlength(new Uint8Array(cache.input), tmp_bytes);
+  
+  predictor(tmp_bytes);
+  interleave(tmp_bytes, out_bytes);
+  
+  const input_line_el = input_line_bytes / type;
+  const src = new cache.type(out_bytes.buffer, 0, input_line_el * height);
+
+  return src;
+}
 
 const zlib = (data, cache) => {
   const { type, size, block, channels } = data.info;
@@ -275,14 +299,31 @@ const deinterleave = (a) => {
 }
 
 const interleave = (src, dst) => {
-	let s = 0, t1 = 0, t2 = ((src.length + 1) / 2) | 0;
-	const stop = src.length - 1;
-	while (true) {
-		if (s > stop) break;
-		dst[s++] = src[t1++];
-		if (s > stop) break;
-		dst[s++] = src[t2++];
-	}
+  let s = 0, t1 = 0, t2 = ((src.length + 1) / 2) | 0;
+  const stop = src.length - 1;
+  while (true) {
+    if (s > stop) break;
+    dst[s++] = src[t1++];
+    if (s > stop) break;
+    dst[s++] = src[t2++];
+  }
+}
+
+const runlength = (src, dst) => {
+  let size = src.length, s = 0, d = 0;
+  while (size > 0) {
+    const l = (src[s++] << 24) >> 24;
+    if (l < 0) {
+      const count = -l;
+      size -= count + 1;
+      for (let i = 0; i < count; i++) dst[d++] = src[s++];
+    } else {
+      const count = l;
+      size -= 2;
+      const value = src[s++];
+      for (let i = 0; i < count + 1; i++) dst[d++] = value;
+    }
+  }
 }
 }).toString();
 
