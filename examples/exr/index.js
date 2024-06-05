@@ -76,6 +76,12 @@ let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
   const loader = new EXRLoader();
   const { data: texture_data, header } = await loader.load('../textures/hdr/040full.exr');
 
+  // const st = performance.now();
+  // const loading = [], tot = 50;
+  // for (let i = 0; i < tot; i++) loading.push(loader.load('../textures/hdr/040full.exr'));
+  // await Promise.all(loading);
+  // console.log((performance.now() - st)/tot);
+
   const hdr = new Texture({
     size: header.size,
     format: header.format,

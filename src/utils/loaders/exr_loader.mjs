@@ -2,7 +2,7 @@ import { decode_f16 } from 'phoptics/utils/data/decoder.mjs';
 
 export class EXRLoader {
   constructor() {
-    this.worker_pool = new WorkerPool();
+    this.tasks = new TaskQueue();
   };
 
   async load(url) {
@@ -15,9 +15,7 @@ export class EXRLoader {
   async parse(buffer) {
     const reader = new EXRReader(buffer);
     const { header, info } = read_header(reader);
-    console.time("exr");
-    const out = await decoder(reader, info, this.worker_pool);
-    console.timeEnd("exr");
+    const out = await decoder(reader, info, this.tasks);
     return { data: out, header: header };
   }
 }
@@ -119,54 +117,33 @@ const read_header = (reader) => {
   return { header, info };
 }
 
-const decoder = (reader, info, pool) => {
+const decoder = (reader, info, tasks) => {
   return new Promise((res, rej) => {
     const { type, size, block, channels, algorithm } = info;
     const type_constructor = type == 2 ? Uint16Array : Float32Array;
     const line_stride = size.width * channels.output.stride / type;
     const output = new type_constructor(line_stride * size.height);
 
-    const block_list = []
+    const blocks = [];
     let block_count = block.count; while (block_count--) {
-      let line = reader.i32() - size.start, byte_length = reader.i32();
-      block_list.push({ line, byte_length, byte_start: reader.offset });
+      const line = reader.i32() - size.start,
+        byte_length = reader.i32(),
+        byte_start = reader.offset;
+      blocks.push({line, byte_length, byte_start});
       reader.skip(byte_length);
     }
 
-    let worker, processed = 0, imports = [
-      { name: 'phoptics-deflate', url: import.meta.resolve('phoptics-deflate') }
-    ];
-
-    const onmessage = (mes) => {
-      // dispatch next
-      let release = false;
-      if (++processed != block.count) {
-        const b = block_list.pop();
-        if (b) {
-          const input = reader.bytes.buffer.slice(b.byte_start, b.byte_start + b.byte_length);
-          mes.target.postMessage({ algorithm: algorithm, input, line: b.line, info, imports }, [input]);
-        } else release = true;
-      } else release = true;
-
-      // process
-      const line = mes.data.line, data = new type_constructor(mes.data.output);
-      output.set(data, line * line_stride);
-
-      // finalize
-      if (release) pool.release(mes.target);
-      if (processed == block.count) res(output);
-    }
-
-    while (worker = pool.acquire()) {
-      worker.onmessage = onmessage;
-      const b = block_list.pop();
-      if (!b) {
-        pool.release(worker);
-        break;
-      }
-      const input = reader.bytes.buffer.slice(b.byte_start, b.byte_start + b.byte_length);
-      worker.postMessage({ algorithm: algorithm, input, line: b.line, info, imports }, [input]);
-    }
+    tasks.enqueue({
+      info,
+      blocks,
+      output,
+      algorithm,
+      line_stride,
+      len: block.count,
+      input: reader.bytes.buffer,
+      type: type_constructor,
+      cb: res,
+    });
   });
 }
 
@@ -383,23 +360,64 @@ class EXRReader {
   skip(b) { this.offset += b }
 }
 
+let imports = [
+  { name: 'phoptics-deflate', url: import.meta.resolve('phoptics-deflate') }
+];
+
 let process_code = (str) => str.substring(str.indexOf('{') + 1, str.lastIndexOf('}'));
 
-class WorkerPool {
+class TaskQueue {
   constructor() {
     const workers = Math.min(8, navigator.hardwareConcurrency / 2 | 0);
     const worker_url = URL.createObjectURL(new Blob([process_code(worker_code)]));
+
+    this.jobs = [];
+    this.running = false;
     this.pool = new Array(workers);
-    for (let i = 0; i < workers; i++)
-      this.pool[i] = new Worker(worker_url);
+    for (let i = 0; i < workers; i++) this.pool[i] = new Worker(worker_url);
   }
 
-  acquire() {
-    if (this.pool.length) return this.pool.pop();
-    return undefined;
+  enqueue(info) { 
+    this.jobs.push({ ...info, processed: 0 });
+    if (!this.running) {
+      this.running = true;
+      for (let worker of this.pool) this.submit(worker);
+    }
   }
 
-  release(worker) {
-    this.pool.push(worker);
+  submit(worker) {
+    let empty = true;
+    for (let i = 0; i < this.jobs.length; i++) {
+      const job = this.jobs[i];
+      if (job.blocks.length) {
+        const block = job.blocks.pop();
+        worker.onmessage = ((mes) => { this.finish(i, mes); }).bind(this);
+        const input = job.input.slice(block.byte_start, block.byte_start + block.byte_length);
+        worker.postMessage({
+          input: input,
+          algorithm: job.algorithm,
+          info: job.info,
+          line: block.line,
+          imports,
+        }, [input]);
+        return false;
+      }
+      if (job.processed != job.len) empty = false;
+    }
+    return empty;
+  }
+
+  finish(id, mes) {
+    const job = this.jobs[id];
+    const line = mes.data.line, data = new job.type(mes.data.output);
+    job.output.set(data, line * job.line_stride);
+
+    if (++job.processed == job.len) job.cb(job.output);
+
+    const empty = this.submit(mes.target);
+    if (empty) {
+      this.running = false;
+      this.jobs.length = 0;
+    }
   }
 }
