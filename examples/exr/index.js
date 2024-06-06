@@ -73,9 +73,17 @@ let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
     ]
   });
 
-  const loader = new EXRLoader();
-  const { data: texture_data, header } = await loader.load('../textures/hdr/test.exr');
+  const loader = new EXRLoader(), url = '../textures/hdr/040full.exr';
+  console.time("exr");
+  const { data: texture_data, header } = await loader.load(url);
+  console.timeEnd("exr");
   console.log(header);
+
+  const st = performance.now(), tot = 40;
+  const loading = [];
+  for (let i = 0; i < tot; i++) loading.push(loader.load(url));
+  await Promise.all(loading);
+  console.log("avg:", (performance.now() - st)/tot, "ms");
 
   const hdr = new Texture({
     size: header.size,

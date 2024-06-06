@@ -195,8 +195,14 @@ const read_block = (data) => {
 
   const input = data.input;
   const type_constructor = type == 2 ? Uint16Array : Float32Array;
-  const output_line_el = size.width * channels.output.stride / type;
-  const output = new type_constructor(output_line_el * height);
+  const output_line_stride = size.width * channels.output.stride;
+  const output_line_el = output_line_stride / type;
+  let output;
+  if (data.output && data.output.byteLength >= output_line_stride * height) {
+    output = new type_constructor(data.output, 0, output_line_el * height);
+  } else {
+    output = new type_constructor(output_line_el * height);
+  }
 
   if (data.fill) output.fill(data.fill);
 
@@ -448,9 +454,17 @@ class EXRReader {
   skip(b) { this.offset += b }
 }
 
-let imports = [
+let zlib_imports = [
   { name: 'phoptics-deflate', url: import.meta.resolve('phoptics-deflate') }
 ];
+let empty = [];
+
+let dependencies = (algo) => {
+  switch (algo) {
+    case 'zlib': return zlib_imports;
+    default: return empty;
+  }
+}
 
 let process_code = (str) => str.substring(str.indexOf('{') + 1, str.lastIndexOf('}'));
 
@@ -473,7 +487,7 @@ class TaskQueue {
     }
   }
 
-  submit(worker) {
+  submit(worker, output) {
     let empty = true;
     for (let i = 0; i < this.jobs.length; i++) {
       const job = this.jobs[i];
@@ -481,14 +495,16 @@ class TaskQueue {
         const block = job.blocks.pop();
         worker.onmessage = ((mes) => { this.finish(i, mes); }).bind(this);
         const input = job.input.slice(block.byte_start, block.byte_start + block.byte_length);
+        const transferable = output ? [input, output] : [input];
         worker.postMessage({
           input: input,
+          output,
           algorithm: job.algorithm,
           info: job.info,
           line: block.line,
           fill: job.fill,
-          imports,
-        }, [input]);
+          imports: dependencies(job.algorithm),
+        }, transferable);
         return false;
       }
       if (job.processed != job.len) empty = false;
@@ -503,7 +519,7 @@ class TaskQueue {
 
     if (++job.processed == job.len) job.cb(job.output);
 
-    const empty = this.submit(mes.target);
+    const empty = this.submit(mes.target, data.buffer);
     if (empty) {
       this.running = false;
       this.jobs.length = 0;
