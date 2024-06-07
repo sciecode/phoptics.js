@@ -18,6 +18,10 @@ export class EXRLoader {
     const out = await decoder(reader, info, this.tasks);
     return { data: out, header: header };
   }
+
+  dispose() {
+    this.tasks.dispose();
+  }
 }
 
 let _;
@@ -460,6 +464,7 @@ class TaskQueue {
     this.jobs = [];
     this.running = false;
     this.pool = new Array(workers);
+    this.terminated = false;
     for (let i = 0; i < workers; i++) this.pool[i] = new Worker(worker_url);
   }
 
@@ -507,6 +512,16 @@ class TaskQueue {
     if (empty) {
       this.running = false;
       this.jobs.length = 0;
+      if (this.terminated) this.terminate();
     }
+  }
+
+  terminate() {
+    for (let worker of this.pool) worker.terminate();
+  }
+
+  dispose() {
+    if (this.running) this.terminated = true;
+    else this.terminate();
   }
 }

@@ -133,7 +133,6 @@ export class EXRExporter {
 
     const names = ['A', 'B', 'G', 'R'];
 
-
     for (let i = 4 - stride; i < 4; i++) {
       writer.string(names[i]);
       writer.u32(type);
