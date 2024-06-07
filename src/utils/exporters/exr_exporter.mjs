@@ -2,14 +2,11 @@
 export class EXRExporter {
   constructor() {}
   blob(data, size, format, options) {
-
+    const buffer = this.buffer(data, size, format, options);
+    return new Blob( [buffer], { type: 'image/x-exr' } );
   }
 
   buffer(data, size, format, options) {
-    return this.#decode(data, size, format, options);
-  }
-
-  #decode(data, size, format, options) {
     const width = size.width;
     const height = size.height;
     const input_stride = data.length / (width * height);
