@@ -3,6 +3,7 @@ import { Engine, Mesh, RenderList, Shader, Buffer, Sampler, Geometry, Material, 
 import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
 import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
 import { EXRLoader } from 'phoptics/utils/loaders/exr_loader.mjs';
+import { EXRExporter } from 'phoptics/utils/exporters/exr_exporter.mjs';
 
 import luminance_shader from "../shaders/luminance_shader.mjs";
 
@@ -73,17 +74,36 @@ let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
     ]
   });
 
-  const loader = new EXRLoader(), url = '../textures/hdr/040full.exr';
+  const data = new Float32Array([
+    1, 0, 0, 1,
+    0, 1, 0, 1,
+    0, 0, 1, 1,
+    1, 1, 1, 1,
+  ]);
+
+  const exporter = new EXRExporter();
+  console.time("export");
+  const exr = exporter.buffer(data, { width: 2, height: 2 }, 'RGB');
+  console.timeEnd("export");
+  console.log(exr);
+
+  const loader = new EXRLoader();
   console.time("exr");
-  const { data: texture_data, header } = await loader.load(url);
+  const { data: texture_data, header } = await loader.parse(exr);
   console.timeEnd("exr");
   console.log(header);
 
-  const st = performance.now(), tot = 40;
-  const loading = [];
-  for (let i = 0; i < tot; i++) loading.push(loader.load(url));
-  await Promise.all(loading);
-  console.log("avg:", (performance.now() - st)/tot, "ms");
+  // const loader = new EXRLoader(), url = '../textures/hdr/040full.exr';
+  // console.time("exr");
+  // const { data: texture_data, header } = await loader.load(url);
+  // console.timeEnd("exr");
+  // console.log(header);
+
+  // const st = performance.now(), tot = 40;
+  // const loading = [];
+  // for (let i = 0; i < tot; i++) loading.push(loader.load(url));
+  // await Promise.all(loading);
+  // console.log("avg:", (performance.now() - st)/tot, "ms");
 
   const hdr = new Texture({
     size: header.size,

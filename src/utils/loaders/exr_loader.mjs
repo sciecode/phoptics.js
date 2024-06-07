@@ -97,7 +97,7 @@ const read_header = (reader) => {
     channels.output.info.A = { stride: channels.output.stride, bytes: type },
     channels.output.stride += type;
     channels.output.count++;
-    if (type == 2) fill = 0x3C00;
+    fill = (type == 2) ? 0x3C00 : 1;
   }
 
   header.size = { width: size.width, height: size.height };
@@ -204,7 +204,7 @@ const read_block = (data) => {
     output = new type_constructor(output_line_el * height);
   }
 
-  if (data.fill) output.fill(data.fill);
+  output.fill(data.fill ? data.fill : 0);
 
   return {
     input,
