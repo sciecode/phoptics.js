@@ -1,27 +1,30 @@
 
 export class EXRExporter {
   constructor() {}
-  blob(data, size, format, options) {
-    const buffer = this.buffer(data, size, format, options);
+  blob(data, size, options) {
+    const buffer = this.buffer(data, size, options);
     return new Blob( [buffer], { type: 'image/x-exr' } );
   }
 
-  buffer(data, size, format, options) {
+  buffer(data, size, options = {}) {
     const width = size.width;
     const height = size.height;
     const input_stride = data.length / (width * height);
     let output_stride;
 
-    switch (format) {
-      case 'R':
-      case 'Y':     output_stride = 1; break;
-      case 'RG':    output_stride = 2; break;
-      case 'RGB':   output_stride = 3; break;
-      case 'RGBA':  output_stride = 4; break;
-      default: throw 'EXRExporter: invalid output format.';
+    if (options.format) {
+      switch (options.format) {
+        case 'R':     output_stride = 1; break;
+        case 'RG':    output_stride = 2; break;
+        case 'RGB':   output_stride = 3; break;
+        case 'RGBA':  output_stride = 4; break;
+        default: throw 'EXRExporter: invalid output format.';
+      }
+      if (input_stride < output_stride) throw `EXRExporter: data provided isn't compatible with specified output format.`;
+    } else {
+      if (input_stride > 4) throw `EXRExporter: data provided has more than 4 channels - provide target output format.`;
+      output_stride = input_stride;
     }
-
-    if (input_stride < output_stride) throw `EXRExporter: data provided isn't compatible with specified output format.`;
 
     const { writer, blocks } = this.#write_header(data, width, height, output_stride, options);
     const chunk = new data.constructor(blocks.width * blocks.height * output_stride);
@@ -34,7 +37,7 @@ export class EXRExporter {
       for (let i = 0; i < height; i++) {
         for (let ch = 0; ch < output_stride; ch++) {
           const src_line = (line + i) * blocks.width * input_stride;
-          const dst_line = i * blocks.width * output_stride + ch * blocks.width;
+          const dst_line = i * blocks.width * output_stride + (output_stride - 1 - ch) * blocks.width;
           for (let j = 0; j < blocks.width; j++) chunk[dst_line + j] = data[src_line + j * input_stride + ch];
         }
       }
@@ -70,7 +73,7 @@ export class EXRExporter {
 
     writer.string('compression');
     writer.string('compression');
-    writer.u32(0);  // NO compression for now
+    writer.u32(1);  // NO compression for now
     writer.u8(compression);
 
     writer.string('screenWindowCenter');
@@ -82,12 +85,12 @@ export class EXRExporter {
     writer.string('screenWindowWidth');
     writer.string('float');
     writer.u32(4);
-    writer.f32(1.);
+    writer.f32(1);
 
     writer.string('pixelAspectRatio');
     writer.string('float');
     writer.u32(4);
-    writer.f32(1.);
+    writer.f32(1);
 
     writer.string('lineOrder');
     writer.string('lineOrder');
@@ -116,7 +119,7 @@ export class EXRExporter {
     writer.string('chlist');
     writer.u32(stride * 18 + 1);
 
-    const names = ['R', 'G', 'B', 'A'];
+    const names = ['A', 'B', 'G', 'R'];
 
     for (let i = 0; i < stride; i++) {
       writer.string(names[i]);
@@ -180,12 +183,12 @@ class EXRWriter {
   };
 
   f32(d)  {
-    this.dv.getFloat32(this.offset, d, true)
+    this.dv.setFloat32(this.offset, d, true)
     this.offset += 4;
   };
 
   f64(d)  {
-    this.dv.getFloat64(this.offset, d, true)
+    this.dv.setFloat64(this.offset, d, true)
     this.offset += 8;
   };
 
@@ -201,7 +204,7 @@ class EXRWriter {
 
   chunk(chunk, line, bytes) {
     const offset = BigInt(this.offset);
-    this.dv.setBigUint64(this.offset_table, offset, true)
+    this.dv.setBigUint64(this.offset_table, offset, true);
     this.offset_table += 8;
     this.i32(line);
     this.i32(bytes);
