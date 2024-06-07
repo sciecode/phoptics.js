@@ -1,5 +1,15 @@
 
 export class EXRExporter {
+  static NONE =   0;
+  static RLE =    1;
+  static ZIPS =   2;
+  static ZIP =    3;
+  static PIZ =    4;
+  static PXR24 =  5;
+  static B44 =    6;
+  static B44A =   7;
+  static DWAA =   8;
+  static DWAB =   9;
   constructor() {}
   blob(data, size, options) {
     const buffer = this.buffer(data, size, options);
@@ -26,8 +36,10 @@ export class EXRExporter {
       output_stride = input_stride;
     }
 
-    const { writer, blocks } = this.#write_header(data, width, height, output_stride, options);
+    const { writer, blocks, decoder } = this.#write_header(data, width, height, output_stride, options);
     const chunk = new data.constructor(blocks.width * blocks.height * output_stride);
+    const bytes = new Uint8Array(chunk.buffer);
+    const tmp = new Uint8Array(bytes.length);
 
     // reorder
     let line = 0, line_bytes = blocks.width * output_stride * data.BYTES_PER_ELEMENT;
@@ -42,8 +54,8 @@ export class EXRExporter {
         }
       }
         
-      // raw
-      writer.chunk(new Uint8Array(chunk.buffer), line, line_bytes * height);
+      const { output, len } = decoder(bytes, tmp, line_bytes * height);
+      writer.chunk(output, line, len);
       line += height;
     }
 
@@ -52,9 +64,11 @@ export class EXRExporter {
 
   #write_header(data, width, height, stride, options) {
 
+    const compression = options.compression ? options.compression : 0;
+
     const blocks = {
       width: width,
-      height: 1, // NO compression for now
+      height: COMPRESS_BLOCK[compression],
       count: Math.ceil(height / 1),
     }
 
@@ -64,8 +78,6 @@ export class EXRExporter {
 
     const type = data.BYTES_PER_ELEMENT == 2 ? 1 : 2;
 
-    const compression = 0; // NO for now
-
     writer.u32(20000630);   // magic
   	writer.u32(2);          // mask
 
@@ -73,7 +85,7 @@ export class EXRExporter {
 
     writer.string('compression');
     writer.string('compression');
-    writer.u32(1);  // NO compression for now
+    writer.u32(1);
     writer.u8(compression);
 
     writer.string('screenWindowCenter');
@@ -121,7 +133,8 @@ export class EXRExporter {
 
     const names = ['A', 'B', 'G', 'R'];
 
-    for (let i = 0; i < stride; i++) {
+
+    for (let i = 4 - stride; i < 4; i++) {
       writer.string(names[i]);
       writer.u32(type);
       writer.skip(4);
@@ -139,9 +152,72 @@ export class EXRExporter {
 
     writer.table(blocks.count);
 
-    return { writer, blocks };
+    return { writer, blocks, decoder: decoders[compression] };
   }
 }
+
+const raw = (output, tmp, len) => { return { output, len } };
+
+const rle = (output, tmp, len) => {
+  deinterleave(output, tmp, len);
+  
+  predictor(tmp, len);
+
+  len = runlength(tmp, output, len);
+
+  return { output, len };
+}
+
+const runlength = (src, dst, len) => {
+  let rs = 0, re = 1, w = 0;
+
+  while (rs < len) {
+    while (re < len && src[rs] == src[re] && re - rs - 1 < 127) re++;
+
+    if (re - rs >= 3) {
+      dst[w++] = re - rs - 1;
+      dst[w++] = src[((rs << 24) >> 24)];
+      rs = re;
+    } else {
+      while (re < len &&
+        ((re + 1 >= len || src[re] != src[re + 1]) ||
+        (re + 2 >= len || src[re + 1] != src[re + 2])) &&
+        re - rs < 127) re++;
+
+      dst[w++] = rs - re;
+
+      while (rs < re) dst[w++] = src[((rs++ << 24) >> 24)];
+    }
+    ++re;
+  }
+
+  return w;
+}
+
+const deinterleave = (src, dst, len) => {
+	let t1 = 0, s = 0, t2 = ((len + 1) / 2) | 0;
+	const stop = len - 1;
+
+	while (true) {
+		if (s > stop) break;
+		dst[t1++] = src[s++];
+		if (s > stop) break;
+		dst[t2++] = src[s++];
+	}
+}
+
+const predictor = (data, len) => {
+	let p = data[ 0 ];
+	for (let t = 1, tl = len; t < tl; t++) {
+		const d = data[ t ] - p + (128 + 256);
+		p = data[ t ];
+		data[ t ] = d;
+	}
+}
+
+let _;
+const decoders = [raw, rle, _, _, _, _, _, _, _, _];
+const COMPRESS_BLOCK = [1, 1, 1, 16, 32, 16, 0, 0, 32, 256];
 
 class EXRWriter {
   constructor(buffer) {

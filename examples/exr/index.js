@@ -81,25 +81,9 @@ let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
     1, 1, 1, 1,
   ]);
 
-  // const exporter = new EXRExporter();
-  // console.time("export");
-  // const blob = exporter.blob(data, { width: 2, height: 2 });
-  // console.timeEnd("export");
-  // console.log(blob);
-  // const link = document.createElement( 'a' );
-  // link.href = URL.createObjectURL( blob );
-  // link.download = 'test.exr';
-  // link.click();
-
-  // const loader = new EXRLoader(), url = '../textures/hdr/test.exr';
-  // console.time("exr");
-  // let { data: texture_data, header } = await loader.load(url);
-  // console.timeEnd("exr");
-  // console.log(header);
-
   const exporter = new EXRExporter();
   console.time("export");
-  const exr = exporter.buffer(data, { width: 2, height: 2 });
+  const exr = exporter.buffer(data, { width: 2, height: 2 }, { compression: EXRExporter.RLE, format: 'RGB' });
   console.timeEnd("export");
 
   const loader = new EXRLoader();
@@ -108,11 +92,9 @@ let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
   console.timeEnd("exr");
   console.log(header);
 
-  // const st = performance.now(), tot = 40;
-  // const loading = [];
-  // for (let i = 0; i < tot; i++) loading.push(loader.load(url));
-  // await Promise.all(loading);
-  // console.log("avg:", (performance.now() - st)/tot, "ms");
+  // console.time("exr");
+  // const { data: texture_data, header } = await loader.load('../textures/hdr/040full.exr');
+  // console.timeEnd("exr");
 
   const hdr = new Texture({
     size: header.size,
@@ -120,11 +102,6 @@ let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
   });
 
   engine.upload_texture(hdr, texture_data);
-
-  // console.time("exr");
-  // const t = await loader.load('../textures/hdr/040full.exr');
-  // console.timeEnd("exr");
-  // console.log(t.header);
 
   const mat = new Material({
     shader: shader,

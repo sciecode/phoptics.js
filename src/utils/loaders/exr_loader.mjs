@@ -288,22 +288,6 @@ const predictor = (stream) => {
     stream[t] = stream[t-1] + stream[t] - 128;
 }
 
-const deinterleave = (a) => {
-  const len = a.length, mid = ((len + 1) / 2) | 0;
-  const idx = (i) => {
-    if (i < mid) return i * 2;
-    return (i - mid) * 2 + 1;
-  }
-  let i = 1;
-  for (i = 1; i < len; i++){
-    let j = idx(i);
-    while (j < i) j = idx(j);
-    const tmp = a[i];
-    a[i] = a[j];
-    a[j] = tmp;
-  }
-}
-
 const interleave = (src, dst) => {
   let s = 0, t1 = 0, t2 = ((src.length + 1) / 2) | 0;
   const stop = src.length - 1;
