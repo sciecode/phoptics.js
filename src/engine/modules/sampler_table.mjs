@@ -29,6 +29,18 @@ export class SamplerTable {
       case Format.R32_FLOAT:
       case Format.RG32_FLOAT:
       case Format.RGBA32_FLOAT:
+      case Format.BC1_UNORM:
+      case Format.BC1_UNORM_SRGB:
+      case Format.BC4_UNORM:
+      case Format.BC4_SNORM:
+      case Format.BC3_UNORM:
+      case Format.BC3_UNORM_SRGB:
+      case Format.BC5_UNORM:
+      case Format.BC5_SNORM:
+      case Format.BC6_UFLOAT:
+      case Format.BC6_FLOAT:
+      case Format.BC7_UNORM:
+      case Format.BC7_UNORM_SRGB:
         return this.float;
 
       case Format.DEPTH16:
