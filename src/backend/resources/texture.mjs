@@ -14,7 +14,7 @@ export class Texture {
       dimensions: options.dimensions,
       mipLevelCount: options.mip_levels || 1,
     });
-    this.stride = Format.stride(options.format);
+    this.block = Format.block(options.format);
   }
 
   update_texture(device, size) {

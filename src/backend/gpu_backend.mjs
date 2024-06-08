@@ -14,16 +14,17 @@ export class GPUBackend {
 
   upload_texture_data(bid, options) {
     const resource = this.resources.get_texture(bid);
-    const gpu_tex = resource.texture, stride = resource.stride;
-    const level = options.mip_level;
+    const gpu_tex = resource.texture, block = resource.block;
+    const level = options.mip_level, bytes = block.bytes;
     const size = {
       width: options.size?.width || Math.max(1, gpu_tex.width >> level),
       height: options.size?.height || Math.max(1, gpu_tex.height >> level),
     };
+    const row = size.width / block.width, column = size.height / block.height;
     this.device.queue.writeTexture(
       { texture: gpu_tex, origin: options.target_origin, mipLevel: level },
       options.data,
-      { offset: options.offset, bytesPerRow: stride * size.width, rowsPerImage: size.height },
+      { offset: options.offset, bytesPerRow: bytes * row, rowsPerImage: column },
       size
     );
   }

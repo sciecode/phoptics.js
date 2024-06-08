@@ -107,14 +107,14 @@ Format.internal = (id) => {
   }
 }
 
-Format.stride = (id) => {
+Format.block = (id) => {
   switch (id) {
     case Format.R8_UNORM:
     case Format.R8_SNORM:
     case Format.R8_UINT:
     case Format.R8_SINT:
     case Format.STENCIL8:
-      return 1;
+      return { width: 1, height: 1, bytes: 1 };
 
     case Format.RG8_UNORM:
     case Format.RG8_SNORM:
@@ -124,10 +124,10 @@ Format.stride = (id) => {
     case Format.R16_UINT:
     case Format.R16_SINT:
     case Format.DEPTH16:
-      return 2;
+      return { width: 1, height: 1, bytes: 2 };
 
     case Format.DEPTH24:
-      return 3;
+      return { width: 1, height: 1, bytes: 3 };
 
     case Format.RGBA8_UNORM:
     case Format.RGBA8_SNORM:
@@ -147,10 +147,10 @@ Format.stride = (id) => {
     case Format.R32_SINT:
     case Format.DEPTH24STENCIL8:
     case Format.DEPTH32:
-      return 4;
+      return { width: 1, height: 1, bytes: 4 };
 
     case Format.DEPTH32STENCIL8:
-      return 5;
+      return { width: 1, height: 1, bytes: 5 };
 
     case Format.RGBA16_FLOAT:
     case Format.RGBA16_UINT:
@@ -158,11 +158,11 @@ Format.stride = (id) => {
     case Format.RG32_FLOAT:
     case Format.RG32_UINT:
     case Format.RG32_SINT:
-      return 8;
+      return { width: 1, height: 1, bytes: 8 };
 
     case Format.RGBA32_FLOAT:
     case Format.RGBA32_UINT:
     case Format.RGBA32_SINT:
-      return 16;
+      return { width: 1, height: 1, bytes: 16 };
   }
 }
