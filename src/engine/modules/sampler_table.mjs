@@ -1,3 +1,4 @@
+import { Format } from "../../common/constants.mjs";
 
 export class SamplerTable {
   constructor(features) {
@@ -7,59 +8,59 @@ export class SamplerTable {
   get_sample_type(format) {
     switch (format) {
       // float
-      case 'r8unorm':
-      case 'r8snorm':
-      case 'rg8unorm':
-      case 'rg8snorm':
-      case 'rgba8unorm':
-      case 'rgba8snorm':
-      case 'rgba8unorm-srgb':
-      case 'bgra8unorm':
-      case 'bgra8unorm-srgb':
-      case 'r16float':
-      case 'rg16float':
-      case 'rgba16float':
-      case 'rgb10a2unorm':
-      case 'rg11b10ufloat':
-      case 'rgb9e5ufloat':
+      case Format.R8_UNORM:
+      case Format.R8_SNORM:
+      case Format.RG8_UNORM:
+      case Format.RG8_SNORM:
+      case Format.RGBA8_UNORM:
+      case Format.RGBA8_SNORM:
+      case Format.RGBA8_UNORM_SRGB:
+      case Format.BGRA8_UNORM:
+      case Format.BGRA8_UNORM_SRGB:
+      case Format.R16_FLOAT:
+      case Format.RG16_FLOAT:
+      case Format.RGBA16_FLOAT:
+      case Format.RGB10A2_UNORM:
+      case Format.RG11B10_UFLOAT:
+      case Format.RGB9E5_UFLOAT:
         return 'float';
 
       // unfilterable-float
-      case 'r32float':
-      case 'rg32float':
-      case 'rgba32float':
+      case Format.R32_FLOAT:
+      case Format.RG32_FLOAT:
+      case Format.RGBA32_FLOAT:
         return this.float;
 
-      case 'depth16unorm':
-      case 'depth24plus':
-      case 'depth24plus-stencil8':
-      case 'depth32float':
-      case 'depth32float-stencil8':
+      case Format.DEPTH16:
+      case Format.DEPTH24:
+      case Format.DEPTH24STENCIL8:
+      case Format.DEPTH32:
+      case Format.DEPTH32STENCIL8:
         return 'depth';
 
       // uint
-      case 'r8uint':
-      case 'rg8uint':
-      case 'rgba8uint':
-      case 'r16uint':
-      case 'rg16uint':
-      case 'rgba16uint':
-      case 'r32uint':
-      case 'rg32uint':
-      case 'rgba32uint':
-      case 'stencil8':
+      case Format.R8_UINT:
+      case Format.RG8_UINT:
+      case Format.RGBA8_UINT:
+      case Format.R16_UINT:
+      case Format.RG16_UINT:
+      case Format.RGBA16_UINT:
+      case Format.R32_UINT:
+      case Format.RG32_UINT:
+      case Format.RGBA32_UINT:
+      case Format.STENCIL8:
         return 'uint';
 
       // sint
-      case 'r8sint':
-      case 'rg8sint':
-      case 'rgba8sint':
-      case 'r16sint':
-      case 'rg16sint':
-      case 'rgba16sint':
-      case 'r32sint':
-      case 'rg32sint':
-      case 'rgba32sint':
+      case Format.R8_SINT:
+      case Format.RG8_SINT:
+      case Format.RGBA8_SINT:
+      case Format.R16_SINT:
+      case Format.RG16_SINT:
+      case Format.RGBA16_SINT:
+      case Format.R32_SINT:
+      case Format.RG32_SINT:
+      case Format.RGBA32_SINT:
         return 'sint';
         
     }

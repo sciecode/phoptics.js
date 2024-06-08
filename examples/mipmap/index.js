@@ -1,5 +1,5 @@
 import { Engine, Mesh, RenderList, Shader, Sampler, Material, Texture, Geometry, CanvasTexture,
-  RenderPass, RenderTarget, StructuredBuffer} from 'phoptics';
+  RenderPass, RenderTarget, StructuredBuffer, Format } from 'phoptics';
 import { Vec4 } from 'phoptics/math';
 
 import mipmap_shader from "../shaders/mipmap_shader.mjs";
@@ -93,14 +93,14 @@ const generate_mipmap_cubemap = (engine, original) => {
 (async () => {
   engine = new Engine(await Engine.acquire_device());
 
-  canvas_texture = new CanvasTexture({ format: navigator.gpu.getPreferredCanvasFormat() });
+  canvas_texture = new CanvasTexture({ format: Engine.canvas_format() });
   canvas_texture.set_size(viewport);
   document.body.append(canvas_texture.canvas);
 
   globals = new StructuredBuffer([{ name: "info", type: Vec4 }]);
 
   const bitmaps = await Promise.all(urls.map(e => load_bitmap(e)));
-  const original = new Texture({ size: { width: 1024, height: 1024, depth: 6 }, format: "rgba8unorm-srgb" });
+  const original = new Texture({ size: { width: 1024, height: 1024, depth: 6 }, format: Format.RGBA8_UNORM_SRGB });
   for (let i = 0; i < bitmaps.length; i++) engine.upload_texture(original, bitmaps[i], { target_origin: [0, 0, i] });
 
   const cubemap = generate_mipmap_cubemap(engine, original);
@@ -108,9 +108,7 @@ const generate_mipmap_cubemap = (engine, original) => {
   original.destroy();
 
   render_pass = new RenderPass({
-    formats: {
-      color: [canvas_texture.format],
-    },
+    formats: { color: [canvas_texture.format] },
     bindings: [
       { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear" } }) },
       { binding: 1, name: "cube", resource: cubemap.create_view({ dimension: "cube" }) },

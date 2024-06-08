@@ -1,3 +1,4 @@
+import { Format } from 'phoptics';
 import { decode_f16 } from 'phoptics/utils/data/decoder.mjs';
 
 export class EXRLoader {
@@ -107,10 +108,9 @@ const read_header = (reader) => {
   header.size = { width: size.width, height: size.height };
   
   switch (channels.output.count) {
-    case 1: header.format = type == 2 ? "r16float" : "r32float"; break;
-    case 2: header.format = type == 2 ? "rg16float" : "rg32float"; break;
-    case 4: header.format = type == 2 ? "rgba16float" : "rgba32float"; break;
-    case 0:
+    case 1: header.format = type == 2 ? Format.R16_FLOAT : Format.R32_FLOAT; break;
+    case 2: header.format = type == 2 ? Format.RG16_FLOAT : Format.RG32_FLOAT; break;
+    case 4: header.format = type == 2 ? Format.RGBA16_FLOAT : Format.RGBA32_FLOAT; break;
     default: throw `EXRLoader: file doesn't contains recognizable data`;
   }
 

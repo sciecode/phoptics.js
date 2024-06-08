@@ -1,5 +1,5 @@
 import { Engine, Mesh, RenderList, Shader, Material, Texture, CanvasTexture,
-  RenderPass, RenderTarget, StructuredBuffer, DynamicLayout } from 'phoptics';
+  RenderPass, RenderTarget, StructuredBuffer, DynamicLayout, Format } from 'phoptics';
 import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
 import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
 
@@ -15,7 +15,7 @@ const renderlist = new RenderList();
 (async () => {
   engine = new Engine(await Engine.acquire_device());
 
-  canvas_texture = new CanvasTexture({ format: navigator.gpu.getPreferredCanvasFormat() });
+  canvas_texture = new CanvasTexture({ format: Engine.canvas_format() });
   canvas_texture.set_size(viewport);
   document.body.append(canvas_texture.canvas);
 
@@ -30,7 +30,7 @@ const renderlist = new RenderList();
     multisampled: true,
     formats: {
       color: [canvas_texture.format],
-      depth: "depth32float",
+      depth: Format.DEPTH32,
     },
     bindings: [{ binding: 0,  name: "camera", resource: camera }]
   });

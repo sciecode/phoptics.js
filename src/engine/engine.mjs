@@ -5,6 +5,7 @@ import { RenderState } from "./modules/render_state.mjs";
 import { RenderCache } from "./modules/render_cache.mjs";
 import { DynamicManager } from "./modules/dynamic_manager.mjs";
 import Keys from "./modules/keys.mjs";
+import { Format } from "../common/constants.mjs";
 
 export class Engine {
   constructor(device) {
@@ -144,6 +145,10 @@ export class Engine {
         device_descriptor.requiredFeatures.push(feat);
 
     return await adapter.requestDevice(device_descriptor);
+  }
+
+  static canvas_format() {
+    return (navigator.gpu.getPreferredCanvasFormat() == "rgba8unorm") ? Format.RGBA8_UNORM : Format.BGRA8_UNORM;
   }
 }
 

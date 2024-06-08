@@ -5,6 +5,7 @@ import { SamplerTable } from "./sampler_table.mjs";
 import { MaterialManager } from "./material_manager.mjs";
 import { PoolStorage } from "../../common/pool_storage.mjs";
 import { SparseSet } from "../../common/sparse_set.mjs";
+import { Format } from "../../common/constants.mjs";
 
 export class RenderCache {
   constructor(backend) {
@@ -44,7 +45,7 @@ export class RenderCache {
       if (canvas_texture.get_version() == UNINITIALIZED) {
         canvas_texture.context.configure({
           device: this.backend.device,
-          format: canvas_texture.format
+          format: Format.internal(canvas_texture.format)
         });
         canvas_texture.initialize(0);
       }

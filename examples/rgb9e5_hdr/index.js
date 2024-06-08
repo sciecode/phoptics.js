@@ -1,5 +1,5 @@
 import { Engine, Mesh, RenderList, Shader, Buffer, Sampler, Geometry, Material, Texture, CanvasTexture,
-  RenderPass, DynamicLayout, RenderTarget, StructuredBuffer } from 'phoptics';
+  RenderPass, DynamicLayout, RenderTarget, StructuredBuffer, Format } from 'phoptics';
 import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
 import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
 import { encode_rgb9e5 } from 'phoptics/utils/data/encoder.mjs';
@@ -23,7 +23,7 @@ const create_luminance_map = (engine) => {
 
   const hdr = new Texture({
     size: { width: tex_size, height: tex_size },
-    format: "rgba32float",
+    format: Format.RGBA32_FLOAT,
   });
 
   engine.upload_texture(hdr, data);
@@ -31,7 +31,7 @@ const create_luminance_map = (engine) => {
   const rgb9e5 = new Texture({
     size: { width: tex_size, height: tex_size },
     usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
-    format: "rgb9e5ufloat",
+    format: Format.RGB9E5_UFLOAT,
   });
 
   const vec = new Vec3();
@@ -51,7 +51,7 @@ const create_luminance_map = (engine) => {
 (async () => {
   engine = new Engine(await Engine.acquire_device());
 
-  canvas_texture = new CanvasTexture({ format: navigator.gpu.getPreferredCanvasFormat() });
+  canvas_texture = new CanvasTexture({ format: Engine.canvas_format() });
   canvas_texture.set_size(viewport);
   document.body.append(canvas_texture.canvas);
 
@@ -66,7 +66,7 @@ const create_luminance_map = (engine) => {
     multisampled: true,
     formats: {
       color: [canvas_texture.format],
-      depth: "depth32float",
+      depth: Format.DEPTH32,
     },
     bindings: [{ binding: 0,  name: "camera", resource: camera }]
   });

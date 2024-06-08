@@ -1,5 +1,5 @@
 import { Engine, Mesh, RenderList, Buffer, Shader, Sampler, Geometry, Material, Texture, CanvasTexture,
-  RenderPass, RenderTarget, StructuredBuffer, DynamicLayout } from 'phoptics';
+  RenderPass, RenderTarget, StructuredBuffer, DynamicLayout, Format } from 'phoptics';
 import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
 import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
 
@@ -15,7 +15,7 @@ let target = new Vec3(), obj_pos = new Vec3();
 (async () => {
   engine = new Engine(await Engine.acquire_device());
 
-  canvas_texture = new CanvasTexture({ format: navigator.gpu.getPreferredCanvasFormat() });
+  canvas_texture = new CanvasTexture({ format: Engine.canvas_format() });
   canvas_texture.set_size(viewport);
   document.body.append(canvas_texture.canvas);
 
@@ -30,15 +30,15 @@ let target = new Vec3(), obj_pos = new Vec3();
 
   gbuffer_pass = new RenderPass({
     formats: {
-      color: ["rgba32float", "rgba32float"],
-      depth: "depth32float"
+      color: [Format.RGBA32_FLOAT, Format.RGBA32_FLOAT],
+      depth: Format.DEPTH32,
     },
     bindings: [{ binding: 0,  name: "camera", resource: camera }]
   });
 
-  const gbuffer_pos = new Texture({ size: viewport, format: "rgba32float" });
-  const gbuffer_normal = new Texture({ size: viewport, format: "rgba32float" });
-  const gbuffer_depth = new Texture({ size: viewport, format: "depth32float" });
+  const gbuffer_pos = new Texture({ size: viewport, format: Format.RGBA32_FLOAT });
+  const gbuffer_normal = new Texture({ size: viewport, format: Format.RGBA32_FLOAT });
+  const gbuffer_depth = new Texture({ size: viewport, format: Format.DEPTH32 });
   const multisampled_texture = new Texture({ size: viewport, format: canvas_texture.format, multisampled: true });
 
   gbuffer_target = new RenderTarget({

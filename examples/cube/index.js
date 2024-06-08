@@ -1,5 +1,5 @@
 import { Engine, Mesh, RenderList, Shader, Sampler, Geometry, Material, Texture, CanvasTexture,
-  RenderPass, RenderTarget, StructuredBuffer } from 'phoptics';
+  RenderPass, RenderTarget, StructuredBuffer, Format } from 'phoptics';
 import { Vec4, Mat4x4 } from 'phoptics/math';
 import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
 
@@ -26,7 +26,7 @@ const load_bitmap = (url) => fetch(url).then(resp => resp.blob()).then(blob => c
 
   engine = new Engine(await Engine.acquire_device());
 
-  canvas_texture = new CanvasTexture({ format: navigator.gpu.getPreferredCanvasFormat() });
+  canvas_texture = new CanvasTexture({ format: Engine.canvas_format() });
   canvas_texture.set_size(viewport);
   document.body.append(canvas_texture.canvas);
 
@@ -57,7 +57,7 @@ const load_bitmap = (url) => fetch(url).then(resp => resp.blob()).then(blob => c
   proj.perspective(Math.PI / 2, viewport.width / viewport.height, 1, 600);
   camera.inverse.copy(proj).affine(orbit.view).inverse();
 
-  const cubemap = new Texture({ size: { width: 1024, height: 1024, depth: 6 }, format: "rgba8unorm-srgb" });
+  const cubemap = new Texture({ size: { width: 1024, height: 1024, depth: 6 }, format: Format.RGBA8_UNORM_SRGB });
 
   for (let i = 0; i < bitmaps.length; i++)
     engine.upload_texture(cubemap, bitmaps[i], { target_origin: [0, 0, i] });

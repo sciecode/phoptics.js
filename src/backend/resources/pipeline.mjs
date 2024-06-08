@@ -1,3 +1,5 @@
+import { Format } from "../../common/constants.mjs";
+
 export class Pipeline {
   constructor(device, resources, options = {}) {
       
@@ -36,7 +38,7 @@ export class Pipeline {
         entryPoint: options.shader.fragment || 'fs',
         targets: graphics.formats.color.map( format => { 
           return {
-            format: format,
+            format: Format.internal(format),
             blend: blend
           };
         }),
@@ -45,7 +47,7 @@ export class Pipeline {
         depthWriteEnabled: depth.write !== undefined ? depth.write : true,
         depthCompare: depth.test || "greater",
         depthBias: depth.bias,
-        format: graphics.formats.depth
+        format: Format.internal(graphics.formats.depth)
       } : undefined,
       multisample: { count: graphics.multisampled ? 4 : 1 },
       primitive: {

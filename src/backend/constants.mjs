@@ -25,7 +25,6 @@ export const DrawStreamFlags = Object.entries(DrawStreamBits)
   }, {}
 );
 
-
 export const GPUResource = {
   BUFFER: 0,
   TEXTURE: 1,

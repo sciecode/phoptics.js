@@ -1,5 +1,5 @@
 import { Engine, Mesh, RenderList, Shader, Sampler, Material, Geometry, Texture, CanvasTexture,
-  RenderPass, RenderTarget, StructuredBuffer, DynamicLayout } from 'phoptics';
+  RenderPass, RenderTarget, StructuredBuffer, DynamicLayout, Format } from 'phoptics';
 import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
 import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
 import { SkyboxGeometry } from 'phoptics/utils/objects/skybox.mjs';
@@ -160,7 +160,7 @@ const generate_pmlm = (engine, cubemap) => {
 const generate_ggx_lut = (engine) => {
   const tex_size = 1024;
   const lut = new Texture({
-    format: 'rg16float',
+    format: Format.RG16_FLOAT,
     size: { width: tex_size, height: tex_size },
   });
 
@@ -198,13 +198,13 @@ const generate_ggx_lut = (engine) => {
 (async () => {
   engine = new Engine(await Engine.acquire_device());
 
-  canvas_texture = new CanvasTexture({ format: navigator.gpu.getPreferredCanvasFormat() });
+  canvas_texture = new CanvasTexture({ format: Engine.canvas_format() });
   canvas_texture.set_size(viewport);
   document.body.append(canvas_texture.canvas);
 
   globals = new StructuredBuffer([{ name: "info", type: Vec4 }]);
   const bitmaps = await Promise.all(urls.map(e => load_bitmap(e)));
-  const original = new Texture({ size: { width: 1024, height: 1024, depth: 6 }, format: "rgba8unorm" });
+  const original = new Texture({ size: { width: 1024, height: 1024, depth: 6 }, format: Format.RGBA8_UNORM });
   for (let i = 0; i < bitmaps.length; i++) engine.upload_texture(original, bitmaps[i], { target_origin: [0, 0, i] });
 
   const cubemap = generate_mipmap_cubemap(engine, original);
@@ -224,7 +224,7 @@ const generate_ggx_lut = (engine) => {
     multisampled: true,
     formats: {
       color: [canvas_texture.format],
-      depth: "depth32float",
+      depth: Format.DEPTH32,
     },
     bindings: [
       { binding: 0, name: "camera", resource: camera },
@@ -262,7 +262,7 @@ const generate_ggx_lut = (engine) => {
 
   const albedo = new Texture({
     size: { width: 2048, height: 2048 },
-    format: "rgba8unorm-srgb",
+    format: Format.RGBA8_UNORM_SRGB,
   });
 
   const bitmap = await load_bitmap("../textures/cerberus/albedo.jpg");
