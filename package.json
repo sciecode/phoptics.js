@@ -18,8 +18,5 @@
   "author": "ScieCode",
   "license": "MIT",
   "homepage": "https://github.com/sciecode/phoptics.js#readme",
-  "description": "",
-  "devDependencies": {
-    "phoptics-deflate": "^0.9.8"
-  }
+  "description": ""
 }

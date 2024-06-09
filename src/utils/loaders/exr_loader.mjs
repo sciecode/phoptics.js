@@ -1,9 +1,19 @@
 import { Format } from 'phoptics';
-import { decode_f16 } from 'phoptics/utils/data/decoder.mjs';
+import { TaskQueue } from '../common/task_queue.mjs';
+import exr_worker from './exr_worker.mjs';
+
+let process_code = (str) => str.substring(str.indexOf('{') + 1, str.lastIndexOf('}'));
 
 export class EXRLoader {
-  constructor() {
-    this.tasks = new TaskQueue();
+  constructor(options = {}) {
+    const worker_url = URL.createObjectURL(new Blob([process_code(exr_worker.toString())]));
+    const task_options = {
+      workers: options.workers,
+      max_workers: options.max_workers || 8,
+      factor: options.factor || .25
+    }
+    this.tasks = new TaskQueue(worker_url, task_options);
+    URL.revokeObjectURL(worker_url);
   };
 
   async load(url) {
@@ -20,9 +30,7 @@ export class EXRLoader {
     return { data: out, header: header };
   }
 
-  dispose() {
-    this.tasks.dispose();
-  }
+  dispose() { this.tasks.dispose(); }
 }
 
 let _;
@@ -141,7 +149,7 @@ const decoder = (reader, info, tasks) => {
       reader.skip(byte_length);
     }
 
-    tasks.enqueue({
+    const data = {
       info,
       blocks,
       output,
@@ -151,175 +159,42 @@ const decoder = (reader, info, tasks) => {
       fill: fill,
       input: reader.bytes.buffer,
       type: type_constructor,
-      cb: res,
-    });
+      processed: 0,
+    }
+
+    const dispatch = (worker, data, output) => {
+      if (data.blocks.length) {
+        const block = data.blocks.pop();
+        const input = data.input.slice(block.byte_start, block.byte_start + block.byte_length);
+        const transferable = output ? [input, output] : [input];
+        worker.postMessage({
+          input: input,
+          output,
+          algorithm: data.algorithm,
+          info: data.info,
+          line: block.line,
+          fill: data.fill,
+        }, transferable);
+        return true;
+      }
+      return false;
+    }
+
+    const fulfill = (job, mes) => {
+      const line = mes.data.line, data = new job.type(mes.data.output);
+      job.output.set(data, line * job.line_stride);
+
+      if (++job.processed == job.len) {
+        res(job.output);
+        return { finished: true };
+      }
+      
+      return { finished: false, extra: data.buffer };
+    }
+
+    tasks.enqueue({ data, dispatch, fulfill });
   });
 }
-
-const worker_code = (() => {
-
-let imports = [], deflate, tmp_buffer;
-const load_dynamic = async (list) => {
-  const loading = [];
-  for (let entry of list)
-    if (!imports[entry.name])
-      loading.push(import(entry.url).then(imp => imports[entry.name] = imp))
-
-  return await Promise.all(loading);
-}
-
-onmessage = async (mes) => {
-  const data = mes.data;
-  await load_dynamic(data.imports);
-
-  let algorithm;
-  switch (data.algorithm) {
-    case 'zlib': algorithm = zlib; break;
-    case 'rle' : algorithm = rle; break; 
-    case 'raw' : algorithm = raw; break;
-    default: 
-  }
-  
-  const info = read_block(data);
-  const src = info.is_compressed ? algorithm(data, info) : new info.type(info.input);
-  populate(info.output, info.dst_stride, src, data.info.channels, data.info.block.width, info.height);
-  postMessage({line: data.line, output: info.output.buffer}, [info.output.buffer]);
-}
-
-const read_block = (data) => {
-  const line = data.line;
-  const { type, size, block, channels } = data.info;
-  
-  const end = line + block.height;
-  const height = end > size.height ? end % block.height : block.height;
-  
-  const input_line_bytes = size.width * channels.input.stride;
-  const input_bytes = input_line_bytes * height;
-  const is_compressed = input_bytes != data.input.byteLength;
-
-  const input = data.input;
-  const type_constructor = type == 2 ? Uint16Array : Float32Array;
-  const output_line_stride = size.width * channels.output.stride;
-  const output_line_el = output_line_stride / type;
-  let output;
-  if (data.output && data.output.byteLength >= output_line_stride * height) {
-    output = new type_constructor(data.output, 0, output_line_el * height);
-  } else {
-    output = new type_constructor(output_line_el * height);
-  }
-
-  output.fill(data.fill ? data.fill : 0);
-
-  return {
-    input,
-    output,
-    height,
-    is_compressed,
-    type: type_constructor,
-    dst_stride: output_line_el,
-  }
-}
-
-const raw = (data, cache) => new cache.type(cache.input);
-
-const rle = (data, cache) => {
-  const { type, size, block, channels } = data.info;
-  const height = cache.height;
-  
-  const input_line_bytes = size.width * channels.input.stride;
-  const input_bytes = input_line_bytes * height;
-  
-  const tmp_buffer_bytes = input_line_bytes * block.height * 2;
-  if (!tmp_buffer || tmp_buffer.byteLength < tmp_buffer_bytes) tmp_buffer = new ArrayBuffer(tmp_buffer_bytes);
-  const out_bytes = new Uint8Array(tmp_buffer, 0, input_bytes);
-  const tmp_bytes = new Uint8Array(tmp_buffer, input_bytes, input_bytes);
- 
-  runlength(new Uint8Array(cache.input), tmp_bytes);
-  
-  predictor(tmp_bytes);
-  interleave(tmp_bytes, out_bytes);
-  
-  const input_line_el = input_line_bytes / type;
-  const src = new cache.type(out_bytes.buffer, 0, input_line_el * height);
-
-  return src;
-}
-
-const zlib = (data, cache) => {
-  const { type, size, block, channels } = data.info;
-  const height = cache.height;
-  
-  const input_line_bytes = size.width * channels.input.stride;
-  const input_bytes = input_line_bytes * height;
-  
-  const tmp_buffer_bytes = input_line_bytes * block.height * 2;
-  if (!tmp_buffer || tmp_buffer.byteLength < tmp_buffer_bytes) tmp_buffer = new ArrayBuffer(tmp_buffer_bytes);
-  const out_bytes = new Uint8Array(tmp_buffer, 0, input_bytes);
-  const tmp_bytes = new Uint8Array(tmp_buffer, input_bytes, input_bytes);
-  
-  if (!deflate) deflate = new imports['phoptics-deflate'].Decompressor();
-  
-  deflate.zlib(new Uint8Array(cache.input), tmp_bytes);
-  
-  predictor(tmp_bytes);
-  interleave(tmp_bytes, out_bytes);
-  
-  const input_line_el = input_line_bytes / type;
-  const src = new cache.type(out_bytes.buffer, 0, input_line_el * height);
-
-  return src;
-}
-
-const populate = (dst, dst_stride, src, channels, width, height) => {
-  const output_stride = channels.output.stride / dst.BYTES_PER_ELEMENT;
-  const ch_blocks = channels.input.stride / dst.BYTES_PER_ELEMENT;
-  const ch_count = channels.input.info.length;
-
-  for (let ch = 0; ch < ch_count; ch++) {
-    const src_channel = channels.input.info[ch];
-    const dst_channel = channels.output.info[src_channel.name];
-    if (!dst_channel) continue;
-    for (let i = 0; i < height; i++) {
-      const stride = dst_channel.stride / (src_channel.type * 2);
-      const src_line = (i * ch_blocks + ch) * width, dst_line = i * dst_stride;
-      for (let j = 0; j < width; j++) dst[dst_line + j * output_stride + stride] = src[src_line + j];
-    }
-  }
-}
-
-const predictor = (stream) => {
-  for (let t = 1; t < stream.length; t++) 
-    stream[t] = stream[t-1] + stream[t] - 128;
-}
-
-const interleave = (src, dst) => {
-  let s = 0, t1 = 0, t2 = ((src.length + 1) / 2) | 0;
-  const stop = src.length - 1;
-  while (true) {
-    if (s > stop) break;
-    dst[s++] = src[t1++];
-    if (s > stop) break;
-    dst[s++] = src[t2++];
-  }
-}
-
-const runlength = (src, dst) => {
-  let size = src.length, s = 0, d = 0;
-  while (size > 0) {
-    const l = (src[s++] << 24) >> 24;
-    if (l < 0) {
-      const count = -l;
-      size -= count + 1;
-      for (let i = 0; i < count; i++) dst[d++] = src[s++];
-    } else {
-      const count = l;
-      size -= 2;
-      const value = src[s++];
-      for (let i = 0; i < count + 1; i++) dst[d++] = value;
-    }
-  }
-}
-}).toString();
 
 class EXRReader {
   constructor(buffer) {
@@ -374,12 +249,6 @@ class EXRReader {
   i64()  {
     const v = this.dv.getBigInt64(this.offset, true)
     this.offset += 8;
-    return v;
-  };
-
-  f16()  {
-    const v = decode_f16(this.dv.getUint16(this.offset, true))
-    this.offset += 2;
     return v;
   };
 
@@ -440,88 +309,4 @@ class EXRReader {
   }
 
   skip(b) { this.offset += b }
-}
-
-let zlib_imports = [
-  { name: 'phoptics-deflate', url: import.meta.resolve('phoptics-deflate') }
-];
-let empty = [];
-
-let dependencies = (algo) => {
-  switch (algo) {
-    case 'zlib': return zlib_imports;
-    default: return empty;
-  }
-}
-
-let process_code = (str) => str.substring(str.indexOf('{') + 1, str.lastIndexOf('}'));
-
-class TaskQueue {
-  constructor() {
-    const workers = Math.min(8, navigator.hardwareConcurrency / 2 | 0);
-    const worker_url = URL.createObjectURL(new Blob([process_code(worker_code)]));
-
-    this.jobs = [];
-    this.running = false;
-    this.pool = new Array(workers);
-    this.terminated = false;
-    for (let i = 0; i < workers; i++) this.pool[i] = new Worker(worker_url);
-  }
-
-  enqueue(info) { 
-    this.jobs.push({ ...info, processed: 0 });
-    if (!this.running) {
-      this.running = true;
-      for (let worker of this.pool) this.submit(worker);
-    }
-  }
-
-  submit(worker, output) {
-    let empty = true;
-    for (let i = 0; i < this.jobs.length; i++) {
-      const job = this.jobs[i];
-      if (job.blocks.length) {
-        const block = job.blocks.pop();
-        worker.onmessage = ((mes) => { this.finish(i, mes); }).bind(this);
-        const input = job.input.slice(block.byte_start, block.byte_start + block.byte_length);
-        const transferable = output ? [input, output] : [input];
-        worker.postMessage({
-          input: input,
-          output,
-          algorithm: job.algorithm,
-          info: job.info,
-          line: block.line,
-          fill: job.fill,
-          imports: dependencies(job.algorithm),
-        }, transferable);
-        return false;
-      }
-      if (job.processed != job.len) empty = false;
-    }
-    return empty;
-  }
-
-  finish(id, mes) {
-    const job = this.jobs[id];
-    const line = mes.data.line, data = new job.type(mes.data.output);
-    job.output.set(data, line * job.line_stride);
-
-    if (++job.processed == job.len) job.cb(job.output);
-
-    const empty = this.submit(mes.target, data.buffer);
-    if (empty) {
-      this.running = false;
-      this.jobs.length = 0;
-      if (this.terminated) this.terminate();
-    }
-  }
-
-  terminate() {
-    for (let worker of this.pool) worker.terminate();
-  }
-
-  dispose() {
-    if (this.running) this.terminated = true;
-    else this.terminate();
-  }
 }

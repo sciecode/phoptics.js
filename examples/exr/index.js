@@ -74,27 +74,27 @@ let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
     ]
   });
 
-  const data = new Float32Array([
-    1, 0, 0, 1,
-    0, 1, 0, 1,
-    0, 0, 1, 1,
-    1, 1, 1, 1,
-  ]);
+  // const data = new Float32Array([
+  //   1, 0, 0, 1,
+  //   0, 1, 0, 1,
+  //   0, 0, 1, 1,
+  //   1, 1, 1, 1,
+  // ]);
 
-  const exporter = new EXRExporter();
-  console.time("export");
-  const exr = exporter.buffer(data, { width: 2, height: 2 }, { compression: EXRExporter.RLE, format: 'RGB' });
-  console.timeEnd("export");
+  // const exporter = new EXRExporter();
+  // console.time("export");
+  // const exr = exporter.buffer(data, { width: 2, height: 2 }, { compression: EXRExporter.RLE, format: 'RGB' });
+  // console.timeEnd("export");
 
   const loader = new EXRLoader();
-  console.time("exr");
-  const { data: texture_data, header } = await loader.parse(exr);
-  console.timeEnd("exr");
-  console.log(header);
-
   // console.time("exr");
-  // const { data: texture_data, header } = await loader.load('../textures/hdr/040full.exr');
+  // const { data: texture_data, header } = await loader.parse(exr);
   // console.timeEnd("exr");
+  // console.log(header);
+
+  console.time("exr");
+  const { data: texture_data, header } = await loader.load('../textures/hdr/040full.exr');
+  console.timeEnd("exr");
 
   const hdr = new Texture({
     size: header.size,
