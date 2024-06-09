@@ -1,3 +1,5 @@
 node_modules
 *.psd
 *.exr
+*.ktx
+*.ktx2

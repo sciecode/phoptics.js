@@ -9,8 +9,7 @@ export class TaskQueue {
 
     this.jobs = new Map();
     this.idle = new Array(count);
-    for (let i = 0; i < count; i++)
-      this.idle[i] = new Worker(url);
+    for (let i = 0; i < count; i++) this.idle[i] = new Worker(url);
   }
 
   enqueue(info) {
