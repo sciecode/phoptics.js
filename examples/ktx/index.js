@@ -7,7 +7,7 @@ import { KTXLoader } from 'phoptics/utils/loaders/ktx_loader.mjs';
   const loader = new KTXLoader();
 
   console.time("ktx");
-  const t = await loader.load('../textures/ktx/dice.ktx2');
+  const t = await loader.load('../textures/ktx/array.ktx2');
   console.timeEnd("ktx");
 
 })();

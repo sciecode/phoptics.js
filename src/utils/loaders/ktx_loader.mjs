@@ -1,17 +1,31 @@
+import { Format } from 'phoptics';
 import { DataReader } from "../common/data_reader.mjs";
 
-const model = (id) => {
+const model = (id, signed, gamma) => {
+  let f;
   switch (id) {
-    case 128: return { name: 'BC1', id: id };
-    case 129: return { name: 'BC2', id: id };
-    case 130: return { name: 'BC3', id: id };
-    case 131: return { name: 'BC4', id: id };
-    case 132: return { name: 'BC5', id: id };
-    case 133: return { name: 'BC6', id: id };
-    case 134: return { name: 'BC7', id: id };
-    case 166: return { name: 'ASTC', id: id };
+    case 128: 
+      f = gamma.id ? Format.BC1_UNORM_SRGB : Format.BC1_UNORM;
+      break;
+      
+    case 130:
+      f = gamma.id ? Format.BC3_UNORM_SRGB : Format.BC3_UNORM;
+      break;
+    case 131: 
+      f = signed ? Format.BC4_SNORM : Format.BC4_UNORM;
+      break;
+    case 132:
+      f = signed ? Format.BC5_SNORM : Format.BC5_UNORM;
+      break;
+    case 133:
+      f = signed ? Format.BC6_FLOAT : Format.BC6_UFLOAT;
+      break
+    case 134: 
+      f = gamma.id ? Format.BC7_UNORM_SRGB : Format.BC7_UNORM;
+      break;
     default: throw 'unsupported texture format';
   }
+  return { name: Format.internal(f), format: f };
 }
 
 export class KTXLoader {
@@ -30,10 +44,8 @@ export class KTXLoader {
     if (!reader.magic()) throw `KTXLoader: file not KTX format.`;
 
     const header = {
-      vk_format: reader.u32(),
-      bytes: reader.u32(),
       size: {
-        width: reader.u32(),
+        width: reader.skip(8) || reader.u32(),
         height: reader.u32(),
         depth: reader.u32(),
       },
@@ -48,41 +60,44 @@ export class KTXLoader {
       else throw `KTXLoader: compression scheme unsupported`;
     }
 
-    const index = {
-      data_offset: reader.u32(),
-      data_size: reader.u32(),
-      kvd_offset: reader.u32(),
-      kvd_size: reader.u32(),
-      sgd_offset: reader.u64(),
-      sgd_size:  reader.u64(),
-      levels: [],
-    }
+    // header offsets
+    reader.skip(32);
 
+    const levels = [];
     for (let i = 0; i < header.levels; i++) {
-      index.levels.push({
+      levels.push({
         offset: reader.u64(),
         compressed: reader.u64(),
         uncompressed: reader.u64(),
       });
     }
+    header.levels = levels;
 
-    reader.skip(10);
-    const base_end = reader.u16() - 8 + reader.offset;
+    // dfdblock offsets
+    reader.skip(12);
 
-    const format = {
-      model: model(reader.u8()),
+    const header_format = {
+      model: reader.u8(),
       gamma: reader.skip(1) || reader.u8() < 2 ? { name: 'LINEAR', id: 0 } : { name: 'SRGB', id: 1 },
       premultiplied: !!reader.u8(),
       block: {
         width: reader.u8(),
         height: reader.u8(),
         depth: reader.u8(),
-      }
+      },
+      signed: false,
     };
 
-    reader.skip(base_end - reader.offset);
+    reader.skip(9); // planes
+    const ch_offset = reader.u16();
+    const ch_length = reader.u8();
+    const ch_info = reader.u8();
 
-    console.log(header, index, format);
+    header_format.signed = !!(ch_info & (1 << 6));
+    header_format.model = model(header_format.model, header_format.signed, header_format.gamma);
+    header.format = header_format;
+
+    console.log(header, header.format.model);
   }
 }
 
