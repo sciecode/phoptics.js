@@ -1,5 +1,19 @@
 import { DataReader } from "../common/data_reader.mjs";
 
+const model = (id) => {
+  switch (id) {
+    case 128: return { name: 'BC1', id: id };
+    case 129: return { name: 'BC2', id: id };
+    case 130: return { name: 'BC3', id: id };
+    case 131: return { name: 'BC4', id: id };
+    case 132: return { name: 'BC5', id: id };
+    case 133: return { name: 'BC6', id: id };
+    case 134: return { name: 'BC7', id: id };
+    case 166: return { name: 'ASTC', id: id };
+    default: throw 'unsupported texture format';
+  }
+}
+
 export class KTXLoader {
   constructor (options) {}
 
@@ -52,20 +66,23 @@ export class KTXLoader {
       });
     }
 
-    reader.skip(4); // repeated data size
+    reader.skip(10);
+    const base_end = reader.u16() - 8 + reader.offset;
 
-    // TODO: read N-blocks
+    const format = {
+      model: model(reader.u8()),
+      gamma: reader.skip(1) || reader.u8() < 2 ? { name: 'LINEAR', id: 0 } : { name: 'SRGB', id: 1 },
+      premultiplied: !!reader.u8(),
+      block: {
+        width: reader.u8(),
+        height: reader.u8(),
+        depth: reader.u8(),
+      }
+    };
 
-    const type_vendor = reader.u32();
+    reader.skip(base_end - reader.offset);
 
-    const data_block = {
-      type: type_vendor >>> 16,
-      vendor: type_vendor & 0x1ffff,
-      size: 24 + 16 * reader.u16(),
-      version: reader.u16()
-    }
-
-    console.log(header, index, data_block);
+    console.log(header, index, format);
   }
 }
 
