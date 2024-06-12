@@ -103,7 +103,7 @@ const generate_pmlm = (engine, cubemap) => {
   const render_pass = new RenderPass({
     formats: { color: [cubemap.format] },
     bindings: [
-      { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mipmap: "linear" } }) },
+      { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
       { binding: 1, name: "cube", resource: cubemap.create_view() },
       { binding: 2, name: "globals", resource: globals }
     ]
@@ -205,7 +205,7 @@ const generate_ggx_lut = (engine) => {
   render_pass = new RenderPass({
     formats: { color: [canvas_texture.format] },
     bindings: [
-      { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mipmap: "linear" } }) },
+      { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
       { binding: 1, name: "cube", resource: pmlm.create_view({ dimension: "cube" }) },
       { binding: 2, name: "globals", resource: globals },
       { binding: 3, name: "lut", resource: ggx_lut.create_view() },

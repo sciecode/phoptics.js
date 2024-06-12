@@ -19,8 +19,10 @@ export class GPUBackend {
     const size = {
       width: options.size?.width || Math.max(1, gpu_tex.width >> level),
       height: options.size?.height || Math.max(1, gpu_tex.height >> level),
+      depthOrArrayLayers: options.size?.depth,
     };
     const row = size.width / block.width, column = size.height / block.height;
+    size.depthOrArrayLayers ||= options.data.byteLength / (row * column * bytes) | 0;
     this.device.queue.writeTexture(
       { texture: gpu_tex, origin: options.target_origin, mipLevel: level },
       options.data,

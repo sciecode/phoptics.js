@@ -50,7 +50,7 @@ let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
   render_pass.set_render_target(render_target);
 
   orbit = new Orbit(canvas_texture.canvas);
-  orbit.position.set(0, 0, 4);
+  orbit.position.set(0, 0, 2.5);
   orbit.update();
   camera.luma.set(250, 8);
   camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 300);
@@ -78,19 +78,16 @@ let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
   const loader = new KTXLoader();
 
   console.time("ktx");
-  const { data: texture, header } = await loader.load('../textures/ktx/array.ktx2');
+  const { textures, header } = await loader.load('../textures/ktx/array.ktx2');
   console.timeEnd("ktx");
 
-  const hdr = new Texture({
+  const bc3 = new Texture({
     size: header.size,
-    format: texture.format,
+    format: header.format,
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
   });
 
-  const mip = texture.mipmaps[0], bytes = mip.length / texture.layers;
-  const first_image = new Uint8Array(mip.buffer, mip.byteOffset + bytes * 0, bytes);
-
-  engine.upload_texture(hdr, first_image);
+  engine.upload_texture(bc3, textures[0]);
 
   const mat = new Material({
     shader: shader,
@@ -107,7 +104,7 @@ let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
           filtering: { mag: "linear", min: "linear" },
         })
       },
-      { binding: 1, name: "luminance", resource: hdr.create_view() },
+      { binding: 1, name: "luminance", resource: bc3.create_view({ dimension: "2d", baseArrayLayer: 2 }) },
     ],
   });
 

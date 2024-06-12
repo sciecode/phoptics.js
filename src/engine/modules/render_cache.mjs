@@ -88,7 +88,7 @@ export class RenderCache {
           addressModeW: sampler_obj.address.w,
           magFilter: sampler_obj.filtering.mag,
           minFilter: sampler_obj.filtering.min,
-          mipmapFilter: sampler_obj.filtering.mipmap,
+          mipmapFilter: sampler_obj.filtering.mip,
         });
         id = this.samplers.set(hash, bid);
       }
@@ -231,7 +231,7 @@ export class RenderCache {
               break;
             case ResourceType.Sampler:
               const filtering = binding.filtering;
-              const filterable = filtering.min != "nearest" || filtering.mag != "nearest" || filtering.mipmap != "nearest";
+              const filterable = filtering.min != "nearest" || filtering.mag != "nearest" || filtering.mip != "nearest";
               resource.sampler = { type: filterable ? "filtering" : "non-filtering" };
               break;
           }

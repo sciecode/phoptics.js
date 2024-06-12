@@ -13,7 +13,7 @@ export class Sampler {
     this.filtering = {
       min: options.filtering?.min || "nearest",
       mag: options.filtering?.mag || "nearest",
-      mipmap: options.filtering?.mipmap || "nearest",
+      mip: options.filtering?.mip || "nearest",
     };
   }
 

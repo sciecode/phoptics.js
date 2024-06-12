@@ -111,7 +111,7 @@ const generate_pmlm = (engine, cubemap) => {
   const render_pass = new RenderPass({
     formats: { color: [cubemap.format] },
     bindings: [
-      { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mipmap: "linear" } }) },
+      { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
       { binding: 1, name: "cube", resource: cubemap.create_view() },
       { binding: 2, name: "globals", resource: globals }
     ]
@@ -228,7 +228,7 @@ const generate_ggx_lut = (engine) => {
     },
     bindings: [
       { binding: 0, name: "camera", resource: camera },
-      { binding: 1, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mipmap: "linear" } }) },
+      { binding: 1, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
       { binding: 2, name: "lut", resource: ggx_lut.create_view() },
       { binding: 3, name: "cubemap", resource: pmlm.create_view({ dimension: "cube" }) },
     ]
@@ -308,7 +308,7 @@ const generate_ggx_lut = (engine) => {
         { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }] }
       ],
       bindings: [
-        { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mipmap: "linear" } }) },
+        { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
         { binding: 1, name: "cubemap", resource: original.create_view({ dimension: "cube" }) },
       ]
     })

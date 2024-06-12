@@ -23,7 +23,7 @@ const model = (id, signed, gamma) => {
     case 134: 
       f = gamma.id ? Format.BC7_UNORM_SRGB : Format.BC7_UNORM;
       break;
-    default: throw 'unsupported texture format';
+    default: throw `unsupported texture format - ${id}`;
   }
   return { name: Format.internal(f), format: f };
 }
@@ -41,8 +41,8 @@ export class KTXLoader {
   async parse(buffer) {
     const reader = new KTXReader(buffer);
     const header = this.#header(reader);
-    const out = await this.#decoder(header, reader);
-    return { data: out, header };
+    const textures = await this.#decoder(header, reader);
+    return { textures, header };
   }
    
   #header(reader) {
@@ -53,9 +53,8 @@ export class KTXLoader {
       size: {
         width: reader.skip(8) || Math.max(1, reader.u32()),
         height: Math.max(1, reader.u32()),
-        depth: Math.max(1, reader.u32()),
+        depth: Math.max(1, reader.u32()) * reader.u32(),
       },
-      layers: reader.u32(),
       faces: reader.u32(),
       levels: Math.max(1, reader.u32()),
       compression: reader.u32(),
@@ -67,16 +66,9 @@ export class KTXLoader {
     }
 
     // header offsets
-    const dd = reader.u32();
-    const ds = reader.u32();
-    const sd = reader.u32();
-    const ss = reader.u32();
-    const kd = Number(reader.u64());
-    const ks = Number(reader.u64());
+    reader.skip(32);
 
-    header.data_offset = (kd + ks) || (sd + ss) || (dd + ds);
-
-    // if you try to load more than 4GB (U32_MAX) - I'm gonna be so dissapointed at you
+    // if you try to load more than 4GB (U32_MAX) - I'm gonna be so disappointed at you
     const levels = [];
     for (let i = 0; i < header.levels; i++) {
       levels.push({
@@ -93,14 +85,15 @@ export class KTXLoader {
     header.info = {
       ktx_id: reader.u8(),
       gamma: reader.skip(1) || reader.u8() < 2 ? { name: 'LINEAR', id: 0 } : { name: 'SRGB', id: 1 },
-      premultiplied: !!reader.u8(),
-      block: {
-        width: reader.u8() + 1,
-        height: reader.u8() + 1,
-        depth: reader.u8() + 1,
-      },
-      signed: false,
+    }
+
+    header.premultiplied = !!reader.u8(),
+    header.info.block = {
+      width: reader.u8() + 1,
+      height: reader.u8() + 1,
+      depth: reader.u8() + 1,
     };
+    header.info.signed = false;
 
     reader.skip(12); // planes
     const ch_info = reader.u8();
@@ -108,29 +101,20 @@ export class KTXLoader {
     header.info.signed = !!(ch_info & (1 << 6));
     const { name, format } = model(header.info.ktx_id, header.info.signed, header.info.gamma);
 
-    header.info.format = format;
-    header.info.format_name = name;
+    header.format = format;
+    header.info.name = name;
 
     return header;
   }
 
   async #decoder(header, reader) {
-    const out = { 
-      mipmaps: [], 
-      layers: header.faces * header.layers, 
-      format: header.info.format, 
-      premultiplied: header.info.premultiplied
-    };
-
-    const input = reader.bytes.buffer;
-    reader.offset = header.data_offset;
-    
+    const textures = [], input = reader.bytes;
     for (let i = 0, il = header.levels.length; i < il; i++) {
       const level = header.levels[i];
-      out.mipmaps.push(new Uint8Array(input, level.offset, level.uncompressed));
+      textures.push(input.subarray(level.offset, level.offset + level.uncompressed));
     }
 
-    return out;
+    return textures;
   }
 }
 

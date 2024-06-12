@@ -4,12 +4,16 @@ import { DrawStream } from "./modules/draw_stream.mjs";
 import { RenderState } from "./modules/render_state.mjs";
 import { RenderCache } from "./modules/render_cache.mjs";
 import { DynamicManager } from "./modules/dynamic_manager.mjs";
-import Keys from "./modules/keys.mjs";
 import { Format } from "../common/constants.mjs";
+import Keys from "./modules/keys.mjs";
 
 export class Engine {
   constructor(device) {
     this.backend = new GPUBackend(device);
+
+    this.features = {};
+    for (let feat of device.features.keys())
+      this.features[feat] = true;
 
     this.cache = new RenderCache(this.backend);
     this.dynamic = new DynamicManager(this.backend);
