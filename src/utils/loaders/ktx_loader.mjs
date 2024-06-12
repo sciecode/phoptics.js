@@ -67,7 +67,14 @@ export class KTXLoader {
     }
 
     // header offsets
-    reader.skip(32);
+    const dd = reader.u32();
+    const ds = reader.u32();
+    const sd = reader.u32();
+    const ss = reader.u32();
+    const kd = Number(reader.u64());
+    const ks = Number(reader.u64());
+
+    header.data_offset = (kd + ks) || (sd + ss) || (dd + ds);
 
     // if you try to load more than 4GB (U32_MAX) - I'm gonna be so dissapointed at you
     const levels = [];
@@ -116,7 +123,8 @@ export class KTXLoader {
     };
 
     const input = reader.bytes.buffer;
-
+    reader.offset = header.data_offset;
+    
     for (let i = 0, il = header.levels.length; i < il; i++) {
       const level = header.levels[i];
       out.mipmaps.push(new Uint8Array(input, level.offset, level.uncompressed));

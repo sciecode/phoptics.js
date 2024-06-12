@@ -88,7 +88,7 @@ let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
   });
 
   const mip = texture.mipmaps[0], bytes = mip.length / texture.layers;
-  const first_image = new Uint8Array(mip.buffer, bytes * 0, bytes);
+  const first_image = new Uint8Array(mip.buffer, mip.byteOffset + bytes * 0, bytes);
 
   engine.upload_texture(hdr, first_image);
 
