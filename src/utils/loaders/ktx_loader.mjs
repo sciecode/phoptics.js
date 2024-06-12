@@ -31,23 +31,29 @@ const model = (id, signed, gamma) => {
 export class KTXLoader {
   constructor (options) {}
 
-  load(url) {
+  async load(url) {
     return fetch(url).then( async response => {
       if (!response.ok) return undefined;
       return this.parse(await response.arrayBuffer());
     });
   }
 
-  parse(buffer, reader) {
-    if (!reader) reader = new KTXReader(buffer);
+  async parse(buffer) {
+    const reader = new KTXReader(buffer);
+    const header = this.#header(reader);
+    const out = await this.#decoder(header, reader);
+    return { data: out, header };
+  }
+   
+  #header(reader) {
 
     if (!reader.magic()) throw `KTXLoader: file not KTX format.`;
 
     const header = {
       size: {
-        width: reader.skip(8) || reader.u32(),
-        height: reader.u32(),
-        depth: reader.u32(),
+        width: reader.skip(8) || Math.max(1, reader.u32()),
+        height: Math.max(1, reader.u32()),
+        depth: Math.max(1, reader.u32()),
       },
       layers: reader.u32(),
       faces: reader.u32(),
@@ -63,12 +69,13 @@ export class KTXLoader {
     // header offsets
     reader.skip(32);
 
+    // if you try to load more than 4GB (U32_MAX) - I'm gonna be so dissapointed at you
     const levels = [];
     for (let i = 0; i < header.levels; i++) {
       levels.push({
-        offset: reader.u64(),
-        compressed: reader.u64(),
-        uncompressed: reader.u64(),
+        offset: Number(reader.u64()),
+        compressed: Number(reader.u64()),
+        uncompressed: Number(reader.u64()),
       });
     }
     header.levels = levels;
@@ -76,34 +83,62 @@ export class KTXLoader {
     // dfdblock offsets
     reader.skip(12);
 
-    const header_format = {
-      model: reader.u8(),
+    header.info = {
+      ktx_id: reader.u8(),
       gamma: reader.skip(1) || reader.u8() < 2 ? { name: 'LINEAR', id: 0 } : { name: 'SRGB', id: 1 },
       premultiplied: !!reader.u8(),
       block: {
-        width: reader.u8(),
-        height: reader.u8(),
-        depth: reader.u8(),
+        width: reader.u8() + 1,
+        height: reader.u8() + 1,
+        depth: reader.u8() + 1,
       },
       signed: false,
     };
 
-    reader.skip(9); // planes
-    const ch_offset = reader.u16();
-    const ch_length = reader.u8();
+    reader.skip(12); // planes
     const ch_info = reader.u8();
 
-    header_format.signed = !!(ch_info & (1 << 6));
-    header_format.model = model(header_format.model, header_format.signed, header_format.gamma);
-    header.format = header_format;
+    header.info.signed = !!(ch_info & (1 << 6));
+    const { name, format } = model(header.info.ktx_id, header.info.signed, header.info.gamma);
 
-    console.log(header, header.format.model);
+    header.info.format = format;
+    header.info.format_name = name;
+
+    return header;
+  }
+
+  async #decoder(header, reader) {
+    const out = { 
+      mipmaps: [], 
+      layers: header.faces * header.layers, 
+      format: header.info.format, 
+      premultiplied: header.info.premultiplied
+    };
+
+    const input = reader.bytes.buffer;
+
+    for (let i = 0, il = header.levels.length; i < il; i++) {
+      const level = header.levels[i];
+      out.mipmaps.push(new Uint8Array(input, level.offset, level.uncompressed));
+    }
+
+    return out;
   }
 }
 
 const MAGIC = [
   0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A
-]
+];
+
+const gcd = (a, b) => {
+  if (!a) return b;
+  return gcd(b % a, a);
+}
+
+const lcm4 = (a) => {
+  if (!(a & 0x03)) return a;
+  return (a*4) / gcd(a, 4);
+}
 
 class KTXReader extends DataReader {
   constructor(buffer) { super(buffer) };

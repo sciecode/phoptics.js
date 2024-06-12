@@ -3,3 +3,4 @@ node_modules
 *.exr
 *.ktx
 *.ktx2
+*.Identifier
