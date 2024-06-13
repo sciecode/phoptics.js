@@ -78,16 +78,18 @@ let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
   const loader = new KTXLoader();
 
   console.time("ktx");
-  const { textures, header } = await loader.load('../textures/ktx/array.ktx2');
+  const { textures, header } = await loader.load('../textures/cerberus/albedo.ktx2');
   console.timeEnd("ktx");
 
-  const bc3 = new Texture({
+  console.log(header);
+
+  const bc7 = new Texture({
     size: header.size,
-    format: header.format,
+    format: Format.BC7_UNORM_SRGB,
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
   });
 
-  engine.upload_texture(bc3, textures[0]);
+  engine.upload_texture(bc7, textures[0]);
 
   const mat = new Material({
     shader: shader,
@@ -104,7 +106,7 @@ let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
           filtering: { mag: "linear", min: "linear" },
         })
       },
-      { binding: 1, name: "luminance", resource: bc3.create_view({ dimension: "2d", baseArrayLayer: 2 }) },
+      { binding: 1, name: "luminance", resource: bc7.create_view({ dimension: "2d", baseArrayLayer: 0 }) },
     ],
   });
 

@@ -4,6 +4,7 @@ import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
 import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
 import { SkyboxGeometry } from 'phoptics/utils/objects/skybox.mjs';
 import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
+import { KTXLoader } from 'phoptics/utils/loaders/ktx_loader.mjs';
 
 import mipmap_shader from "../shaders/mipmap_shader.mjs";
 import filtering_shader from "../shaders/filtering_shader.mjs";
@@ -260,13 +261,26 @@ const generate_ggx_lut = (engine) => {
     { name: "world", type: Mat3x4 },
   ]);
 
+  const loader = new KTXLoader();
+  const { textures: a_tex, header: a_header } = await loader.load("../textures/cerberus/albedo.ktx2");
+
   const albedo = new Texture({
-    size: { width: 2048, height: 2048 },
-    format: Format.RGBA8_UNORM_SRGB,
+    size: a_header.size,
+    format: Format.BC7_UNORM_SRGB,
+    usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
   });
 
-  const bitmap = await load_bitmap("../textures/cerberus/albedo.jpg");
-  engine.upload_texture(albedo, bitmap, { flip_y: true });
+  engine.upload_texture(albedo, a_tex[0]);
+  
+  const { textures: m_tex, header: m_header } = await loader.load("../textures/cerberus/metallic.ktx2");
+
+  const metallic = new Texture({
+    size: m_header.size,
+    format: m_header.format,
+    usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+  });
+
+  engine.upload_texture(metallic, m_tex[0]);
 
   const material = new Material({
     shader: new Shader({ code: albedo_shader }),
@@ -276,6 +290,7 @@ const generate_ggx_lut = (engine) => {
         filtering: { mag: "linear", min: "linear" },
       }) },
       { binding: 1, name: "albedo", resource: albedo.create_view() },
+      { binding: 2, name: "metallic", resource: metallic.create_view() },
     ],
     vertex: [
       {

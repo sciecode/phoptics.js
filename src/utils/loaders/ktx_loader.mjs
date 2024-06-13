@@ -53,9 +53,9 @@ export class KTXLoader {
       size: {
         width: reader.skip(8) || Math.max(1, reader.u32()),
         height: Math.max(1, reader.u32()),
-        depth: Math.max(1, reader.u32()) * reader.u32(),
+        depth: Math.max(1, reader.u32()) * Math.max(1, reader.u32()),
       },
-      faces: reader.u32(),
+      cubemap: reader.u32() == 6,
       levels: Math.max(1, reader.u32()),
       compression: reader.u32(),
     };
@@ -121,16 +121,6 @@ export class KTXLoader {
 const MAGIC = [
   0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A
 ];
-
-const gcd = (a, b) => {
-  if (!a) return b;
-  return gcd(b % a, a);
-}
-
-const lcm4 = (a) => {
-  if (!(a & 0x03)) return a;
-  return (a*4) / gcd(a, 4);
-}
 
 class KTXReader extends DataReader {
   constructor(buffer) { super(buffer) };

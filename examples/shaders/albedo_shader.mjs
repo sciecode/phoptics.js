@@ -145,9 +145,12 @@ fn indirect(frag : ptr<function, RenderInfo>, r : f32) {
 
 @group(2) @binding(0) var samp: sampler;
 @group(2) @binding(1) var t_albedo: texture_2d<f32>;
+@group(2) @binding(2) var t_metallic: texture_2d<f32>;
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
-  const metalness = 0.;
+  let uv = vec2(in.uv.x, 1 - in.uv.y);
+  let metalness = textureSample(t_metallic, samp, uv).r;
+
   const perceptual_roughness = .25;
   let a = max(perceptual_roughness * perceptual_roughness, 0.089);
 
@@ -158,7 +161,7 @@ fn indirect(frag : ptr<function, RenderInfo>, r : f32) {
   frag.cosNV = saturate(dot(frag.V, frag.N));
   frag.a2 = a * a;
 
-  var albedo = textureSample(t_albedo, samp, in.uv).rgb;
+  var albedo = textureSample(t_albedo, samp, uv).rgb;
   frag.f0 = mix(vec3(0.04), albedo, metalness); // TODO: use reflectance for dielectric
 
   point_light(&frag,
