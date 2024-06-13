@@ -43,6 +43,11 @@ fn dec_oct16(data : u32) -> vec3f {
   return normalize(nor);
 }
 
+fn normal_rg(v : vec2f) -> vec3f {
+  let z = sqrt(saturate(1 - dot(v,v)));
+	return normalize(vec3f(v, z));
+}
+
 @vertex fn vs(attrib : Attributes) -> FragInput {
   var output : FragInput;
 
@@ -146,10 +151,30 @@ fn indirect(frag : ptr<function, RenderInfo>, r : f32) {
 @group(2) @binding(0) var samp: sampler;
 @group(2) @binding(1) var t_albedo: texture_2d<f32>;
 @group(2) @binding(2) var t_metallic: texture_2d<f32>;
+@group(2) @binding(3) var t_normal: texture_2d<f32>;
+
+fn tbn_mat(eye : vec3f, norm : vec3f, uv : vec2f) -> mat3x3f {
+	let q0 = dpdx(eye);
+	let q1 = dpdy(eye);
+	let st0 = dpdx(uv);
+	let st1 = dpdy(uv);
+
+	let q1perp = cross(q1, norm);
+	let q0perp = cross(norm, q0);
+
+	let T = q1perp * st0.x + q0perp * st1.x;
+	let B = q1perp * st0.y + q0perp * st1.y;
+
+	let det = max(dot(T,T), dot(B,B));
+	let scale = select(inverseSqrt(det), 0, det == 0);
+
+	return mat3x3f(T * scale, B * scale, norm);
+}
+  
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
-  let uv = vec2(in.uv.x, 1 - in.uv.y);
-  let metalness = textureSample(t_metallic, samp, uv).r;
+  let metalness = textureSample(t_metallic, samp, in.uv).r;
+  let tbn_normal = normal_rg(textureSample(t_normal, samp, in.uv).rg * 2 - 1);
 
   const perceptual_roughness = .25;
   let a = max(perceptual_roughness * perceptual_roughness, 0.089);
@@ -157,11 +182,11 @@ fn indirect(frag : ptr<function, RenderInfo>, r : f32) {
   var frag : RenderInfo;
   frag.pos = in.w_pos;
   frag.V = normalize(globals.camera_pos - frag.pos);
-  frag.N = normalize(in.w_normal);
-  frag.cosNV = saturate(dot(frag.V, frag.N));
+  frag.N = normalize(tbn_mat(frag.V, normalize(in.w_normal), in.uv) * tbn_normal);
+  frag.cosNV = saturate(dot(frag.V, frag.N)) + 1e-5;
   frag.a2 = a * a;
 
-  var albedo = textureSample(t_albedo, samp, uv).rgb;
+  var albedo = textureSample(t_albedo, samp, in.uv).rgb;
   frag.f0 = mix(vec3(0.04), albedo, metalness); // TODO: use reflectance for dielectric
 
   point_light(&frag,
@@ -182,7 +207,7 @@ fn indirect(frag : ptr<function, RenderInfo>, r : f32) {
     800.                  // intensity
   );
 
-  frag.Li_dif += 60;
+  frag.Li_dif += 20;
   indirect(&frag, perceptual_roughness);
 
   let L = albedo * (1. - metalness) * (frag.Ld_dif + frag.Li_dif) + (frag.Ld_spe + frag.Li_spe);

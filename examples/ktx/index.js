@@ -78,14 +78,14 @@ let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
   const loader = new KTXLoader();
 
   console.time("ktx");
-  const { textures, header } = await loader.load('../textures/cerberus/albedo.ktx2');
+  const { textures, header } = await loader.load('../textures/cerberus/normal.ktx2');
   console.timeEnd("ktx");
 
   console.log(header);
 
   const bc7 = new Texture({
     size: header.size,
-    format: Format.BC7_UNORM_SRGB,
+    format: header.format,
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
   });
 

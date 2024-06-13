@@ -263,23 +263,27 @@ const generate_ggx_lut = (engine) => {
 
   const loader = new KTXLoader();
   const { textures: a_tex, header: a_header } = await loader.load("../textures/cerberus/albedo.ktx2");
-
   const albedo = new Texture({
     size: a_header.size,
-    format: Format.BC7_UNORM_SRGB,
+    format: a_header.format,
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
   });
-
   engine.upload_texture(albedo, a_tex[0]);
+
+  const { textures: n_tex, header: n_header } = await loader.load("../textures/cerberus/normal.ktx2");
+  const normal = new Texture({
+    size: n_header.size,
+    format: n_header.format,
+    usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+  });
+  engine.upload_texture(normal, n_tex[0]);
   
   const { textures: m_tex, header: m_header } = await loader.load("../textures/cerberus/metallic.ktx2");
-
   const metallic = new Texture({
     size: m_header.size,
     format: m_header.format,
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
   });
-
   engine.upload_texture(metallic, m_tex[0]);
 
   const material = new Material({
@@ -291,6 +295,7 @@ const generate_ggx_lut = (engine) => {
       }) },
       { binding: 1, name: "albedo", resource: albedo.create_view() },
       { binding: 2, name: "metallic", resource: metallic.create_view() },
+      { binding: 3, name: "normal", resource: normal.create_view() },
     ],
     vertex: [
       {

@@ -97,7 +97,7 @@ fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
   frag.pos = in.w_pos;
   frag.V = normalize(globals.camera_pos - frag.pos);
   frag.N = normalize(in.w_normal);
-  frag.cosNV = max(dot(frag.V, frag.N), 0.);
+  frag.cosNV = saturate(dot(frag.V, frag.N)) + 1e-5;
 
   frag.Ld_dif += 4; // ambient
 
