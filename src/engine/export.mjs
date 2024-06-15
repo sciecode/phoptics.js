@@ -15,10 +15,12 @@ import { DynamicLayout } from "./objects/dynamic_layout.mjs";
 import { StructuredBuffer } from "./objects/structured_buffer.mjs";
 import { StructuredDynamic } from "./objects/structured_dynamic.mjs";
 import { Format } from "../common/constants.mjs";
+import { ResourceType } from "./constants.mjs";
 import { Engine } from "./engine.mjs";
 
 export {
   Format,
   Engine, Mesh, RenderList, Shader, Buffer, Sampler, Texture, Material, Geometry, Bindings,
-  RenderPass, TextureView, RenderTarget, CanvasTexture, DynamicLayout, StructuredBuffer, StructuredDynamic,
+  RenderPass, TextureView, RenderTarget, CanvasTexture, DynamicLayout, ResourceType,
+  StructuredBuffer, StructuredDynamic,
 };

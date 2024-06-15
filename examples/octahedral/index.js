@@ -1,11 +1,12 @@
 import {
-  Engine, Mesh, RenderList, Shader, Buffer, Sampler, Geometry, Material, Texture, CanvasTexture,
-  RenderPass, DynamicLayout, RenderTarget, StructuredBuffer, Format
+  Engine, Mesh, RenderList, Shader, Sampler, Geometry, Material, Texture, CanvasTexture,
+  RenderPass, RenderTarget, StructuredBuffer, Format, ResourceType
 } from 'phoptics';
-import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
+import { Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
 import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
+import { SkyboxGeometry } from 'phoptics/utils/objects/skybox.mjs';
 
-import luminance_shader from "../shaders/luminance_shader.mjs";
+import skybox_oct_shader from '../shaders/skybox_oct_shader.mjs';
 import octahedral_shader from "../shaders/octahedral_shader.mjs";
 
 const urls = [
@@ -28,7 +29,7 @@ const create_octahedral_envmap = async (engine) => {
   const original = new Texture({ size: { width: 1024, height: 1024, depth: 6 }, format: Format.RGBA8_UNORM });
   for (let i = 0; i < bitmaps.length; i++) engine.upload_texture(original, bitmaps[i], { target_origin: [0, 0, i] });
   
-  const oct_envmap = new Texture({ size: { width: 512, height: 512 }, format: Format.RGBA16_FLOAT });
+  const oct_envmap = new Texture({ size: { width: 1024, height: 1024 }, format: Format.RGBA16_FLOAT });
   const globals = new StructuredBuffer([{ name: "info", type: Vec4 }]);
   
   const render_pass = new RenderPass({
@@ -43,8 +44,7 @@ const create_octahedral_envmap = async (engine) => {
     color: [{ view: oct_envmap.create_view() }],
   });
 
-  globals.info.x = 512;
-  globals.info.y = 16;
+  globals.info.set(oct_envmap.size.width, 32);
 
   const scene = new RenderList();
   const quad = new Mesh(
@@ -102,57 +102,32 @@ const create_octahedral_envmap = async (engine) => {
   orbit = new Orbit(canvas_texture.canvas);
   orbit.position.set(0, 0, 2.5);
   orbit.update();
-  camera.luma.set(250, 8);
+  camera.luma.set(250, 1);
   camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, .1, 30);
-
-  const shader = new Shader({ code: luminance_shader });
-  const transform_layout = new DynamicLayout([{ name: "world", type: Mat3x4 }]);
-
-  const geometry = new Geometry({
-    draw: { count: 6 },
-    attributes: [
-      new Buffer({
-        data: new Float32Array([
-          1, 1, 0,
-          -1, 1, 0,
-          1, -1, 0,
-          -1, 1, 0,
-          -1, -1, 0,
-          1, -1, 0,
-        ]),
-        stride: 12,
-      })
-    ]
-  });
 
   const oct_envmap = await create_octahedral_envmap(engine);
 
-  const mat = new Material({
-    shader: shader,
-    dynamic: transform_layout,
-    vertex: [
-      {
-        arrayStride: 12,
-        attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x2' }]
-      }
-    ],
-    bindings: [
-      {
-        binding: 0, name: "sampler", resource: new Sampler({
-          filtering: { mag: "linear", min: "linear" },
-        })
-      },
-      { binding: 1, name: "luminance", resource: oct_envmap.create_view({ dimension: "2d", baseArrayLayer: 0 }) },
-    ],
-  });
-
   scene = new RenderList();
-  const pos = new Vec3();
-  const mesh = new Mesh(geometry, mat);
+  const skybox = new Mesh(
+    new SkyboxGeometry(),
+    new Material({
+      shader: new Shader({ code: skybox_oct_shader }),
+      graphics: { depth: { write: false } },
+      vertex: [
+        { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }] }
+      ],
+      bindings: [
+        { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear" } }) },
+        { binding: 1, name: "cubemap", resource: oct_envmap.create_view() },
+        { binding: 2, name: "size", type: ResourceType.StructuredBuffer, info: [
+          { name: "dim", type: Vec4 }
+        ]}
+      ]
+    })
+  );
+  skybox.material.bindings.size.dim.set(oct_envmap.size.width, 32);
 
-  pos.set(0, 0, 0);
-  mesh.dynamic.world.translate(pos);
-  scene.add(mesh);
+  scene.add(skybox);
 
   animate();
 })();

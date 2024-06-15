@@ -13,6 +13,7 @@ struct FragInput {
   let coord = vec2f(f32((vertexIndex & 1) << 2), f32((vertexIndex & 2) << 1));
   output.position = vec4f(coord - 1., .5, 1);
   output.uv = coord * .5;
+  output.uv.y = 1. - output.uv.y;
   
   return output;
 }
@@ -27,7 +28,7 @@ fn dec_oct_uv(uv : vec2f) -> vec3f {
   let t = max(-nor.z, 0);
   nor.x += select(t, -t, nor.x > 0.);
   nor.y += select(t, -t, nor.y > 0.);
-  return nor;
+  return normalize(nor);
 }
 
 fn oct_border(qw : vec2f) -> vec2f {
@@ -42,14 +43,14 @@ fn oct_border(qw : vec2f) -> vec2f {
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
   let st = oct_border(in.uv);
-  let dir = dec_oct_uv(st) * vec3f(1,1,1);
-  var col = textureSample(cubemap, samp, dir);
-  if (abs(dir.x) < 0.01) {
-    col = vec4f(1, .5, .5, 1);
-  } else if ( abs(dir.y) < 0.01) {
-    col = vec4f(.5, 1, .5, 1);
-  } else if (abs(dir.z) < 0.01) {
-    col = vec4f(.5, .5, 1, 1);
-  }
-  return col;
+  let dir = dec_oct_uv(st);
+  var col = pow(textureSample(cubemap, samp, dir).rgb, vec3f(2.2)); // LDR - sRGB
+  // if (abs(dir.x) < 0.005) {
+  //   col = vec3f(1, .5, .5);
+  // } else if ( abs(dir.y) < 0.005) {
+  //   col = vec3f(.5, 1, .5);
+  // } else if (abs(dir.z) < 0.005) {
+  //   col = vec3f(.5, .5, 1);
+  // }
+  return vec4f(col,1);
 }`;
