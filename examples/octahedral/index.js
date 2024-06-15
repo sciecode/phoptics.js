@@ -12,12 +12,12 @@ import filtering_shader from '../shaders/filtering_shader.mjs';
 import luminance_shader from '../shaders/luminance_shader.mjs';
 
 const urls = [
-  "../textures/rh_cubemap/px.jpg",
-  "../textures/rh_cubemap/nx.jpg",
-  "../textures/rh_cubemap/py.jpg",
-  "../textures/rh_cubemap/ny.jpg",
-  "../textures/rh_cubemap/nz.jpg",
-  "../textures/rh_cubemap/pz.jpg",
+  "../textures/lh_cubemap/bridge_px.jpg",
+  "../textures/lh_cubemap/bridge_nx.jpg",
+  "../textures/lh_cubemap/bridge_py.jpg",
+  "../textures/lh_cubemap/bridge_ny.jpg",
+  "../textures/lh_cubemap/bridge_pz.jpg",
+  "../textures/lh_cubemap/bridge_nz.jpg",
 ];
 
 const load_bitmap = (url) => fetch(url).then(resp => resp.blob()).then(blob => createImageBitmap(blob));
@@ -170,7 +170,7 @@ const create_octahedral_envmap = async (engine, pmlm, level) => {
   
   const pmlm = await generate_pmlm(engine, original);
   
-  const level = 0;
+  const level = .1;
   const oct_envmap = await create_octahedral_envmap(engine, pmlm, level);
 
   scene = new RenderList();
@@ -183,7 +183,7 @@ const create_octahedral_envmap = async (engine, pmlm, level) => {
         { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }] }
       ],
       bindings: [
-        { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear" } }) },
+        { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
         { binding: 1, name: "cubemap", resource: oct_envmap.create_view() },
         { binding: 2, name: "size", type: ResourceType.StructuredBuffer, info: [
           { name: "dim", type: Vec4 }
