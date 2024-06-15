@@ -18,6 +18,7 @@ struct Globals {
   null0 : f32, // unused
   nits : f32,
   exposure : f32,
+  scl : f32,
 }
 
 struct Uniforms {
@@ -31,7 +32,8 @@ struct Uniforms {
   var output : FragInput;
 
   var pos = attrib.pos;
-  var w_pos = vec4f(pos, 1) * uniforms.world_matrix;
+  var scl = 1. / f32(1 << u32(globals.scl));
+  var w_pos = vec4f(scl * pos, 1) * uniforms.world_matrix;
   var c_pos = vec4f(vec4f(w_pos, 1) * globals.view_matrix, 1) * globals.projection_matrix;
 
   output.position = c_pos;

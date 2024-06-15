@@ -13,7 +13,6 @@ struct FragInput {
   let coord = vec2f(f32((vertexIndex & 1) << 2), f32((vertexIndex & 2) << 1));
   output.position = vec4f(coord - 1., .5, 1);
   output.uv = coord * .5;
-  output.uv.y = 1. - output.uv.y;
   
   return output;
 }
@@ -44,7 +43,7 @@ fn oct_border(qw : vec2f) -> vec2f {
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
   let st = oct_border(in.uv);
   let dir = dec_oct_uv(st);
-  var col = pow(textureSample(cubemap, samp, dir).rgb, vec3f(2.2)); // LDR - sRGB
+  var col = pow(textureSampleLevel(cubemap, samp, dir, globals.z).rgb, vec3f(2.2)); // LDR - sRGB
   // if (abs(dir.x) < 0.005) {
   //   col = vec3f(1, .5, .5);
   // } else if ( abs(dir.y) < 0.005) {

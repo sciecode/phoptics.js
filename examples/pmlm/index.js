@@ -104,7 +104,7 @@ const generate_pmlm = (engine, cubemap) => {
     formats: { color: [cubemap.format] },
     bindings: [
       { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
-      { binding: 1, name: "cube", resource: cubemap.create_view() },
+      { binding: 1, name: "cube", resource: cubemap.create_view({ dimension: "cube"}) },
       { binding: 2, name: "globals", resource: globals }
     ]
   });
@@ -126,8 +126,6 @@ const generate_pmlm = (engine, cubemap) => {
   // mips
   for (let m = 0; m < mips; m++) {
     const roughness = m / (mips - 1);
-    render_pass.bindings.cube = cubemap.create_view({ dimension: "cube" });
-    render_pass.bindings.update();
     for (let i = 0; i < 6; i++) {
       globals.info.set(i, roughness, sample_count, tex_size); // face / lod
       globals.update();
@@ -220,7 +218,7 @@ const generate_ggx_lut = (engine) => {
   });
 
   render_pass.set_render_target(render_target);
-  globals.info.set(4, 1.5);
+  globals.info.set(4, 1);
   globals.update();
 
   scene = new RenderList();

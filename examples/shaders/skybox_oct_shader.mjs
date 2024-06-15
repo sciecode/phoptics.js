@@ -74,6 +74,7 @@ fn enc_oct_uv(nor : vec3f) -> vec2f {
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
   var dir = in.dir * vec3(1, 1, -1);
   var st = border_contract(enc_oct_uv(normalize(dir)));
+  st.y = 1. - st.y;
   var L = textureSample(envmap, samp, st).rgb * globals.nits; // nits boost SDR cubemap
   let Ln = phoptics_tonemap(L, globals.exposure, globals.nits);
   let output = pow(Ln, vec3f(1./2.2));
