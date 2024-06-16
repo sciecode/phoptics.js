@@ -18,10 +18,6 @@ struct FragInput {
   return output;
 }
 
-@group(0) @binding(0) var samp: sampler;
-@group(0) @binding(1) var cubemap: texture_cube<f32>;
-@group(0) @binding(2) var<storage, read> globals: vec4f;
-
 fn dec_oct_uv(uv : vec2f) -> vec3f {
   let v = uv / .5 - 1.;
   // assumes input uv [0,0] top-left corner (WebGPU)
@@ -33,25 +29,26 @@ fn dec_oct_uv(uv : vec2f) -> vec3f {
 }
 
 fn oct_border(qw : vec2f) -> vec2f {
-  let ext = globals.x; let border = globals.y;
-  let I = ext - 2. * border;
-  let uv = (qw - border/ext) * ext/I;
+  let uv = (qw - dim.outset) * dim.scale;
   var st = uv;
   st = select(st, vec2f(1. - fract(st.x), 1. - st.y), uv.x < 0. || uv.x > 1.);
   st = select(st, vec2f(1. - st.x, 1. - fract(st.y)), uv.y < 0. || uv.y > 1.);
   return st;
 }
 
+struct Mapping {
+  outset: f32,
+  scale:  f32,
+  mip:  f32,
+}
+
+@group(2) @binding(0) var samp: sampler;
+@group(2) @binding(1) var cubemap: texture_cube<f32>;
+@group(2) @binding(2) var<storage, read> dim: Mapping;
+
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
   var st = oct_border(in.uv);
   let dir = dec_oct_uv(st) * vec3(1, 1, -1);
-  var col = pow(textureSampleLevel(cubemap, samp, dir, globals.z).rgb, vec3f(2.2)); // LDR - sRGB
-  // if (abs(dir.x) < 0.005) {
-  //   col = vec3f(1, .5, .5);
-  // } else if ( abs(dir.y) < 0.005) {
-  //   col = vec3f(.5, 1, .5);
-  // } else if (abs(dir.z) < 0.005) {
-  //   col = vec3f(.5, .5, 1);
-  // }
+  var col = pow(textureSampleLevel(cubemap, samp, dir, dim.mip).rgb, vec3f(2.2)); // LDR - sRGB
   return vec4f(col,1);
 }`;

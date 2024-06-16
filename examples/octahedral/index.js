@@ -1,13 +1,13 @@
 import {
-  Engine, Mesh, Buffer, RenderList, Shader, Sampler, Geometry, Material, Texture, CanvasTexture,
-  RenderPass, RenderTarget, StructuredBuffer, Format, ResourceType, DynamicLayout
+  Engine, Mesh, RenderList, Shader, Sampler, Geometry, Material, Texture, CanvasTexture,
+  RenderPass, RenderTarget, StructuredBuffer, Format
 } from 'phoptics';
 import { Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
 import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
 import { SkyboxGeometry } from 'phoptics/utils/objects/skybox.mjs';
 
 import skybox_oct_shader from '../shaders/skybox_oct_shader.mjs';
-import octahedral_shader from "../shaders/octahedral_shader.mjs";
+import octahedral_encode_shader from "../shaders/octahedral_encode_shader.mjs";
 import filtering_shader from '../shaders/filtering_shader.mjs';
 
 const urls = [
@@ -26,7 +26,7 @@ let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight 
 let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
 
 const generate_pmlm = (engine, cubemap) => {
-  const tex_size = 256, mips = Texture.max_mip_levels(tex_size) - 4; // MAX - MIN
+  const tex_size = 256, mips = Texture.max_mip_levels(tex_size) - 4; // 32x32 lowest mip
   const pmlm = new Texture({
     format: cubemap.format,
     size: { width: tex_size, height: tex_size, depth: 6 },
@@ -44,10 +44,7 @@ const generate_pmlm = (engine, cubemap) => {
     ]
   });
 
-  const render_target = new RenderTarget({
-    color: [{ view: undefined, clear: [.0, .0, .0, 0] }],
-  });
-
+  const render_target = new RenderTarget({ color: [{ view: undefined, clear: [.0, .0, .0, 0] }] });
   render_pass.set_render_target(render_target);
 
   scene = new RenderList();
@@ -85,53 +82,54 @@ const generate_pmlm = (engine, cubemap) => {
 }
 
 const create_octahedral_envmap = async (engine, pmlm) => {
-  const mips = pmlm.mip_levels;
-  const oct_envmap = new Texture({ 
-    size: { width: 512, height: 512 }, 
-    format: Format.RGBA16_FLOAT,
-    mip_levels: mips,
-  });
-  const globals = new StructuredBuffer([{ name: "info", type: Vec4 }]);
-  
-  const render_pass = new RenderPass({
-    formats: { color: [oct_envmap.format] },
-    bindings: [
-      { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
-      { binding: 1, name: "cube", resource: pmlm.create_view({ dimension: "cube" }) },
-      { binding: 2, name: "globals", resource: globals }
-    ]
-  });
-  const render_target = new RenderTarget({
-    color: [{ view: undefined }],
-  });
+  const mips = pmlm.mip_levels, size = pmlm.size.width, border = 1 << (mips - 1);
 
-  const scene = new RenderList();
+  const oct_envmap = new Texture({ 
+    mip_levels: mips,
+    size: { width: size, height: size }, 
+    format: Format.RGBA16_FLOAT,
+  });
+  
+  const render_pass = new RenderPass({ formats: { color: [oct_envmap.format] } });
+  const render_target = new RenderTarget({ color: [{ view: undefined }] });
+  render_pass.set_render_target(render_target);
+
+  const outset = border / size, scale = size / (size - 2 * border);
+  const dim = new StructuredBuffer([{ name: "mapping", type: Vec4 }]);
+  
   const quad = new Mesh(
     new Geometry({ draw: { count: 3 } }),
-    new Material({ shader: new Shader({ code: octahedral_shader }) })
+    new Material({ 
+      shader: new Shader({ code: octahedral_encode_shader }),
+      bindings: [
+        { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
+        { binding: 1, name: "cube", resource: pmlm.create_view({ dimension: "cube" }) },
+        { binding: 2, name: "dim", resource: dim }
+      ]
+    })
   );
-  scene.add(quad);
 
-  render_pass.set_render_target(render_target);
+  const scene = new RenderList();
+  scene.add(quad);
 
   // mips
   for (let m = 0; m < mips; m++) {
-      globals.info.set(oct_envmap.size.width, 16, m);
-      globals.update();
-      render_target.color[0].view = oct_envmap.create_view({
-        dimension: "2d",
-        mipLevelCount: 1,
-        baseMipLevel: m,
+    dim.mapping.set(outset, scale, m);
+    dim.update();
+    render_target.color[0].view = oct_envmap.create_view({
+      dimension: "2d",
+      mipLevelCount: 1,
+      baseMipLevel: m,
     })
     engine.render(render_pass, scene);
   }
 
-  globals.destroy();
+  dim.destroy();
   quad.geometry.destroy();
   quad.geometry.destroy();
   pmlm.destroy();
 
-  return oct_envmap;
+  return { tex: oct_envmap, info: { outset, scale } };
 }
 
 (async () => {
@@ -177,14 +175,17 @@ const create_octahedral_envmap = async (engine, pmlm) => {
   camera.luma.set(250, 9);
   camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, .1, 30);
 
+  // load cubemap & pre-convolve mipmaps
   const bitmaps = await Promise.all(urls.map(e => load_bitmap(e)));
   const original = new Texture({ size: { width: 1024, height: 1024, depth: 6 }, format: Format.RGBA8_UNORM });
   for (let i = 0; i < bitmaps.length; i++) engine.upload_texture(original, bitmaps[i], { target_origin: [0, 0, i] });
-  
   const pmlm = await generate_pmlm(engine, original);
-  const oct_envmap = await create_octahedral_envmap(engine, pmlm);
 
-  scene = new RenderList();
+  // encode octahedral mipmaps
+  const { tex: oct_envmap, info } = await create_octahedral_envmap(engine, pmlm);
+  const dim = new StructuredBuffer([{ name: "mapping", type: Vec4 }]);
+  dim.mapping.set(info.outset, info.scale, .8);
+
   const skybox = new Mesh(
     new SkyboxGeometry(),
     new Material({
@@ -196,13 +197,12 @@ const create_octahedral_envmap = async (engine, pmlm) => {
       bindings: [
         { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
         { binding: 1, name: "cubemap", resource: oct_envmap.create_view() },
-        { binding: 2, name: "size", type: ResourceType.StructuredBuffer, info: [
-          { name: "dim", type: Vec4 }
-        ]}
+        { binding: 2, name: "dim", resource: dim }
       ]
     })
   );
-  skybox.material.bindings.size.dim.set(oct_envmap.size.width, 16, .1);
+
+  scene = new RenderList();
   scene.add(skybox);
 
   animate();

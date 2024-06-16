@@ -36,9 +36,15 @@ struct Globals {
   return output;
 }
 
+struct Mapping {
+  outset: f32,
+  scale: f32,
+  mip: f32
+}
+
 @group(2) @binding(0) var samp: sampler;
 @group(2) @binding(1) var envmap: texture_2d<f32>;
-@group(2) @binding(2) var<storage, read> size : vec3f;
+@group(2) @binding(2) var<storage, read> dim : Mapping;
 
 fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
   let ev10 = (ev2 - 1.) * .301029995;
@@ -51,15 +57,11 @@ fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
 }
 
 fn border_contract(qw : vec2f) -> vec2f {
-  let ext = size.x; let border = size.y;
-  let I = ext - 2. * border;
-  let uv = qw / (ext/I) + border/ext;
-  return uv;
+  return qw / dim.scale + dim.outset;
 }
 
 fn enc_oct_uv(nor : vec3f) -> vec2f {
-  var n = nor.xy;
-  n /= (abs(nor.x) + abs(nor.y) + abs(nor.z));
+  var n = nor.xy / (abs(nor.x) + abs(nor.y) + abs(nor.z));
   let sgn = select(vec2f(-1.), vec2f(1.), n >= vec2f(0));
   n = select((1.0-abs(n.yx)) * sgn, n.xy, nor.z >= 0.0);
   // outputs WebGPU uv [0,0] top-left corner
@@ -69,7 +71,7 @@ fn enc_oct_uv(nor : vec3f) -> vec2f {
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
   var dir = in.dir;
   var st = border_contract(enc_oct_uv(normalize(dir)));
-  var L = textureSampleLevel(envmap, samp, st, size.z).rgb;
+  var L = textureSampleLevel(envmap, samp, st, dim.mip).rgb;
   let Ln = phoptics_tonemap(L, globals.exposure, globals.nits);
   let output = pow(Ln, vec3f(1./2.2));
   return vec4f(output, 1);
