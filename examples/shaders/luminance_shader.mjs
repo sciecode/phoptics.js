@@ -32,8 +32,7 @@ struct Uniforms {
   var output : FragInput;
 
   var pos = attrib.pos;
-  var scl = 1. / f32(1 << u32(globals.scl));
-  var w_pos = vec4f(scl * pos, 1) * uniforms.world_matrix;
+  var w_pos = vec4f(pos, 1) * uniforms.world_matrix;
   var c_pos = vec4f(vec4f(w_pos, 1) * globals.view_matrix, 1) * globals.projection_matrix;
 
   output.position = c_pos;

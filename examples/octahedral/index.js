@@ -9,7 +9,6 @@ import { SkyboxGeometry } from 'phoptics/utils/objects/skybox.mjs';
 import skybox_oct_shader from '../shaders/skybox_oct_shader.mjs';
 import octahedral_shader from "../shaders/octahedral_shader.mjs";
 import filtering_shader from '../shaders/filtering_shader.mjs';
-import luminance_shader from '../shaders/luminance_shader.mjs';
 
 const urls = [
   "../textures/lh_cubemap/bridge_px.jpg",
@@ -85,8 +84,13 @@ const generate_pmlm = (engine, cubemap) => {
   return pmlm;
 }
 
-const create_octahedral_envmap = async (engine, pmlm, level) => {
-  const oct_envmap = new Texture({ size: { width: 512, height: 512 }, format: Format.RGBA16_FLOAT });
+const create_octahedral_envmap = async (engine, pmlm) => {
+  const mips = pmlm.mip_levels;
+  const oct_envmap = new Texture({ 
+    size: { width: 512, height: 512 }, 
+    format: Format.RGBA16_FLOAT,
+    mip_levels: mips,
+  });
   const globals = new StructuredBuffer([{ name: "info", type: Vec4 }]);
   
   const render_pass = new RenderPass({
@@ -98,10 +102,8 @@ const create_octahedral_envmap = async (engine, pmlm, level) => {
     ]
   });
   const render_target = new RenderTarget({
-    color: [{ view: oct_envmap.create_view() }],
+    color: [{ view: undefined }],
   });
-
-  globals.info.set(oct_envmap.size.width, 16, level);
 
   const scene = new RenderList();
   const quad = new Mesh(
@@ -112,7 +114,17 @@ const create_octahedral_envmap = async (engine, pmlm, level) => {
 
   render_pass.set_render_target(render_target);
 
-  engine.render(render_pass, scene);
+  // mips
+  for (let m = 0; m < mips; m++) {
+      globals.info.set(oct_envmap.size.width, 16, m);
+      globals.update();
+      render_target.color[0].view = oct_envmap.create_view({
+        dimension: "2d",
+        mipLevelCount: 1,
+        baseMipLevel: m,
+    })
+    engine.render(render_pass, scene);
+  }
 
   globals.destroy();
   quad.geometry.destroy();
@@ -162,6 +174,7 @@ const create_octahedral_envmap = async (engine, pmlm, level) => {
   orbit = new Orbit(canvas_texture.canvas);
   orbit.position.set(0, 0, 2.5);
   orbit.update();
+  camera.luma.set(250, 9);
   camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, .1, 30);
 
   const bitmaps = await Promise.all(urls.map(e => load_bitmap(e)));
@@ -169,9 +182,7 @@ const create_octahedral_envmap = async (engine, pmlm, level) => {
   for (let i = 0; i < bitmaps.length; i++) engine.upload_texture(original, bitmaps[i], { target_origin: [0, 0, i] });
   
   const pmlm = await generate_pmlm(engine, original);
-  
-  const level = .1;
-  const oct_envmap = await create_octahedral_envmap(engine, pmlm, level);
+  const oct_envmap = await create_octahedral_envmap(engine, pmlm);
 
   scene = new RenderList();
   const skybox = new Mesh(
@@ -191,48 +202,8 @@ const create_octahedral_envmap = async (engine, pmlm, level) => {
       ]
     })
   );
-  skybox.material.bindings.size.dim.set(oct_envmap.size.width, 16);
+  skybox.material.bindings.size.dim.set(oct_envmap.size.width, 16, .1);
   scene.add(skybox);
-
-  // const geometry = new Geometry({
-  //   draw: { count: 6 },
-  //   attributes: [
-  //     new Buffer({
-  //       data: new Float32Array([
-  //         1, 1, 0,
-  //         -1, 1, 0,
-  //         1, -1, 0,
-  //         -1, 1, 0,
-  //         -1, -1, 0,
-  //         1, -1, 0,
-  //       ]),
-  //       stride: 12,
-  //     })
-  //   ]
-  // });
-
-  // const mat = new Material({
-  //   shader: new Shader({ code: luminance_shader }),
-  //   dynamic: new DynamicLayout([{ name: "world", type: Mat3x4 }]),
-  //   vertex: [
-  //     {
-  //       arrayStride: 12,
-  //       attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x2' }]
-  //     }
-  //   ],
-  //   bindings: [
-  //     {
-  //       binding: 0, name: "sampler", resource: new Sampler({
-  //         filtering: { mag: "linear", min: "linear" },
-  //       })
-  //     },
-  //     { binding: 1, name: "luminance", resource: oct_envmap.create_view() },
-  //   ],
-  // });
-  // const mesh = new Mesh(geometry, mat);
-  // scene.add(mesh);
-
-  camera.luma.set(250, 1, level);
 
   animate();
 })();
