@@ -1,0 +1,178 @@
+<html>
+  <head>
+    <title>Phoptic.js - Forward</title>
+    <style>
+      html, body {
+        margin: 0;
+        background-color: rgba(.3, .3, .3, 1);
+      }
+
+      canvas {
+        width: 100%;
+        height: 100vh;
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "phoptics": "../src/engine/export.mjs",
+          "phoptics/math": "../src/datatypes/export.mjs",
+          "phoptics/utils/": "../src/utils/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <script type="module">
+      import { Engine, Mesh, RenderList, Shader, Material, Texture, CanvasTexture,
+        RenderPass, RenderTarget, StructuredBuffer, DynamicLayout, Format } from 'phoptics';
+      import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
+      import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
+      import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
+
+      import forward_shader from "./assets/shaders/objects/forward_shader.mjs";
+
+      const dpr = window.devicePixelRatio;
+      let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
+      let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
+      let mesh1, mesh2, mesh3, obj_pos = new Vec3(), q = new Quat();
+
+      const distance_ratio = ((1 << 30) - 1) / 1_000_000;
+      const renderlist = new RenderList();
+
+      (async () => {
+        engine = new Engine(await Engine.acquire_device());
+
+        canvas_texture = new CanvasTexture({ format: Engine.canvas_format() });
+        canvas_texture.set_size(viewport);
+        document.body.append(canvas_texture.canvas);
+
+        camera = new StructuredBuffer([
+          { name: "projection", type: Mat4x4 },
+          { name: "view", type: Mat3x4 },
+          { name: "position", type: Vec4 },
+          { name: "luma", type: Vec4 },
+        ]);
+
+        render_pass = new RenderPass({
+          multisampled: true,
+          formats: {
+            color: [canvas_texture.format],
+            depth: Format.DEPTH32,
+          },
+          bindings: [{ binding: 0,  name: "camera", resource: camera }]
+        });
+
+        const multisampled_texture = new Texture({ size: viewport, format: canvas_texture.format, multisampled: true });
+        const depth_texture = new Texture({ size: viewport, format: render_pass.formats.depth, multisampled: true });
+        
+        render_target = new RenderTarget({
+          color: [ { 
+            view: multisampled_texture.create_view(), 
+            resolve: canvas_texture.create_view(), 
+            clear: [.05, .05, .05, 0]
+          } ],
+          depth: { view: depth_texture.create_view(), clear: 0 }
+        });
+
+        render_pass.set_render_target(render_target);
+
+        orbit = new Orbit(canvas_texture.canvas);
+        orbit.target.set(0, 1, 0);
+        orbit.position.set(0, 4, 8);
+        orbit.update();
+        camera.luma.set(250, 1);
+        camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 300);
+
+        const transform_layout = new DynamicLayout([
+          { name: "world", type: Mat3x4 },
+          { name: "color", type: Vec4 }
+        ]);
+
+        const shader_base = new Shader({ code: forward_shader });
+
+        const material = new Material({
+          shader: shader_base,
+          dynamic: transform_layout,
+          vertex: [
+            {
+              arrayStride: 8, 
+              attributes: [{ shaderLocation: 0, offset: 0, format: 'uint32x2' }]
+            },
+          ],
+        });
+
+        const query = await fetch('./assets/models/walt.phg');
+        const compressed = new Uint8Array( await query.arrayBuffer() );
+        console.time("uncompress");
+        const geo = uncompress(compressed);
+        console.timeEnd("uncompress");
+
+        scene = [];
+        mesh1 = new Mesh(geo, material);
+        scene.push(mesh1);
+        
+        mesh2 = new Mesh(geo, material);
+        scene.push(mesh2);
+
+        mesh3 = new Mesh(geo, material);
+        scene.push(mesh3);
+
+        engine.preload(render_pass, mesh1);
+
+        animate();
+      })();
+
+      const auto_resize = () => {
+        const dpr = window.devicePixelRatio;
+        const newW = (canvas_texture.canvas.clientWidth * dpr) | 0;
+        const newH = (canvas_texture.canvas.clientHeight * dpr) | 0;
+        
+        if (viewport.width != newW || viewport.height != newH) {
+          viewport.width = newW; viewport.height = newH;
+          render_target.set_size(viewport);
+          
+          camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 300);
+        }
+      }
+
+      const animate = () => {
+        requestAnimationFrame(animate);
+
+        auto_resize();
+
+        const nr = performance.now() / 2000;
+
+        camera.position.copy(orbit.position);
+        camera.view.copy(orbit.view);
+        camera.luma.y = Math.sin(nr * 4) + 1.;
+        camera.update();
+
+        {
+          renderlist.reset();
+
+          obj_pos.set(-1.5, 0, 0);
+          q.set().rot_y(Math.PI / 4 * nr);
+          mesh1.dynamic.world.rigid(obj_pos, q);
+          mesh1.dynamic.color.set(.5, 1, .5);
+          const dist1 = obj_pos.squared_distance(camera.position) * distance_ratio;
+          renderlist.add(mesh1, dist1);
+          
+          obj_pos.set(1.5, 0, 0);
+          q.set().rot_y(-Math.PI / 4 * nr);
+          mesh2.dynamic.world.rigid(obj_pos, q);
+          mesh2.dynamic.color.set(.5, 1, .5);
+          const dist2 = obj_pos.squared_distance(camera.position) * distance_ratio;
+          renderlist.add(mesh2, dist2);
+
+          obj_pos.set(0, 0, 0);
+          mesh3.dynamic.color.set(1, .5, .5);
+          const dist3 = obj_pos.squared_distance(camera.position) * distance_ratio;
+          renderlist.add(mesh3, dist3);
+        }
+
+        engine.render(render_pass, renderlist);
+}
+    </script>
+  </body>
+</html>

@@ -1,0 +1,175 @@
+<html>
+  <head>
+    <title>Phoptic.js - Deferred</title>
+    <style>
+      html, body {
+        margin: 0;
+        background-color: rgba(.3, .3, .3, 1);
+      }
+
+      canvas {
+        width: 100%;
+        height: 100vh;
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "phoptics": "../src/engine/export.mjs",
+          "phoptics/math": "../src/datatypes/export.mjs",
+          "phoptics/utils/": "../src/utils/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <script type="module">
+      import { Engine, Mesh, RenderList, Buffer, Shader, Sampler, Geometry, Material, Texture, CanvasTexture,
+        RenderPass, RenderTarget, StructuredBuffer, DynamicLayout, Format } from 'phoptics';
+      import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
+      import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
+
+      import gbuffer_shader from "./assets/shaders/objects/deferred_gbuffer.mjs";
+      import lighting_shader from "./assets/shaders/objects/deferred_lighting.mjs";
+
+      const dpr = window.devicePixelRatio;
+      let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
+      let engine, camera, gbuffer_scene, lighting_scene, mesh;
+      let gbuffer_pass, gbuffer_target, render_pass, render_target, canvas_texture;
+      let target = new Vec3(), obj_pos = new Vec3();
+
+      (async () => {
+        engine = new Engine(await Engine.acquire_device());
+
+        canvas_texture = new CanvasTexture({ format: Engine.canvas_format() });
+        canvas_texture.set_size(viewport);
+        document.body.append(canvas_texture.canvas);
+
+        camera = new StructuredBuffer([
+          { name: "projection", type: Mat4x4 }, 
+          { name: "view", type: Mat3x4 }, 
+          { name: "position", type: Vec4 }, 
+        ]);
+
+        target.set(0, .8, 0);
+        camera.projection.perspective(Math.PI / 2.5, viewport.width / viewport.height, 1, 600);
+
+        gbuffer_pass = new RenderPass({
+          formats: {
+            color: [Format.RGBA32_FLOAT, Format.RGBA32_FLOAT],
+            depth: Format.DEPTH32,
+          },
+          bindings: [{ binding: 0,  name: "camera", resource: camera }]
+        });
+
+        const gbuffer_pos = new Texture({ size: viewport, format: Format.RGBA32_FLOAT });
+        const gbuffer_normal = new Texture({ size: viewport, format: Format.RGBA32_FLOAT });
+        const gbuffer_depth = new Texture({ size: viewport, format: Format.DEPTH32 });
+        const multisampled_texture = new Texture({ size: viewport, format: canvas_texture.format, multisampled: true });
+
+        gbuffer_target = new RenderTarget({
+          color: [
+            { view: gbuffer_pos.create_view(), clear: [0, 0, 0, 0] },
+            { view: gbuffer_normal.create_view(), clear: [0, 0, 0, 0] },
+          ],
+          depth: { view: gbuffer_depth.create_view(), clear: 0 }
+        });
+        gbuffer_pass.set_render_target(gbuffer_target);
+
+        render_pass = new RenderPass({
+          multisampled: true,
+          formats: {
+            color: [canvas_texture.format],
+          },
+          bindings: [
+            { binding: 0, name: "camera", resource: camera },
+            { binding: 1, name: "sampler", resource: new Sampler() },
+            { binding: 2, name: "t_pos", resource: gbuffer_pos.create_view() },
+            { binding: 3, name: "t_normal", resource: gbuffer_normal.create_view() },
+          ]
+        });
+
+        render_target = new RenderTarget({
+          color: [ { 
+            view: multisampled_texture.create_view(), 
+            resolve: canvas_texture.create_view(), 
+            clear: [.05, .05, .05, 1]
+          } ],
+        });
+        render_pass.set_render_target(render_target);
+
+        const transform_layout = new DynamicLayout([
+          { name: "world", type: Mat3x4 }
+        ]);
+
+        const gbuffer_material = new Material({
+          shader: new Shader({ code: gbuffer_shader }),
+          dynamic: transform_layout,
+          vertex: [
+            { 
+              arrayStride: 8, 
+              attributes: [{ shaderLocation: 0, offset: 0, format: 'uint32x2' }]
+            },
+          ],
+        });
+
+        const query = await fetch('./assets/models/walt.phg');
+        const compressed = new Uint8Array( await query.arrayBuffer() );
+        console.time("uncompress");
+        const geometry = uncompress(compressed);
+        console.timeEnd("uncompress");
+
+        mesh = new Mesh(geometry, gbuffer_material);
+        gbuffer_scene = new RenderList();
+        gbuffer_scene.add(mesh);
+
+        const lighting_material = new Material({
+          shader: new Shader({ code: lighting_shader }),
+        });
+
+        const lighting = new Mesh(
+          new Geometry({ draw: { count: 3 } }),
+          lighting_material
+        );
+        lighting_scene = new RenderList();
+        lighting_scene.add(lighting);
+
+        animate();
+      })();
+
+      const auto_resize = () => {
+        const dpr = window.devicePixelRatio;
+        const newW = (canvas_texture.canvas.clientWidth * dpr) | 0;
+        const newH = (canvas_texture.canvas.clientHeight * dpr) | 0;
+        
+        if (viewport.width != newW || viewport.height != newH) {
+          viewport.width = newW; viewport.height = newH;
+          gbuffer_target.set_size(viewport);
+          render_target.set_size(viewport);
+          
+          camera.projection.perspective(Math.PI / 2.5, viewport.width / viewport.height, 1, 600);
+        }
+      }
+
+      const animate = () => {
+        requestAnimationFrame(animate);
+
+        auto_resize();
+
+        const phase = performance.now() / 1000;
+        camera.position.set(3 * Math.sin(phase), .8, 3 * Math.cos(phase), 250);
+        camera.view.translate(camera.position).look_at(target).view_inverse();
+        camera.update();
+
+        {
+          const amplitude = .4 * Math.sin(phase) - .2;
+          obj_pos.set(0, amplitude, 0);
+          mesh.dynamic.world.translate(obj_pos);
+        }
+
+        engine.render(gbuffer_pass, gbuffer_scene);
+        engine.render(render_pass, lighting_scene);
+}
+    </script>
+  </body>
+</html>
