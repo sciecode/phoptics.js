@@ -145,7 +145,7 @@ fn indirect(frag : ptr<function, RenderInfo>, r : f32) {
   let L = pow(textureSampleLevel(cubemap, gsamp, dir, r * 4.).rgb, vec3f(2.2));
   let dfg = textureSample(lut, gsamp, vec2f((*frag).cosNV, 1. - r)).xy;
 
-  (*frag).Li_spe = L * (dfg.x * (*frag).f0 + dfg.y) * globals.nits; // nits boost because of SDR cubemap
+  (*frag).Li_spe = (dfg.x * (*frag).f0 + dfg.y) * L * 350; // nits boost because of SDR cubemap
 }
 
 @group(2) @binding(0) var samp: sampler;
@@ -170,13 +170,12 @@ fn tbn_mat(eye : vec3f, norm : vec3f, uv : vec2f) -> mat3x3f {
 
 	return mat3x3f(T * scale, B * scale, norm);
 }
-  
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
   let metalness = textureSample(t_metallic, samp, in.uv).r;
   let tbn_normal = normal_rg(textureSample(t_normal, samp, in.uv).rg * 2 - 1);
 
-  const perceptual_roughness = .25;
+  const perceptual_roughness = .15;
   let a = max(perceptual_roughness * perceptual_roughness, 0.089);
 
   var frag : RenderInfo;
@@ -207,7 +206,7 @@ fn tbn_mat(eye : vec3f, norm : vec3f, uv : vec2f) -> mat3x3f {
     800.                  // intensity
   );
 
-  frag.Li_dif += 20;
+  frag.Li_dif += 60;
   indirect(&frag, perceptual_roughness);
 
   let L = albedo * (1. - metalness) * (frag.Ld_dif + frag.Li_dif) + (frag.Ld_spe + frag.Li_spe);

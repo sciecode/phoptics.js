@@ -43,12 +43,12 @@
       let engine, canvas_texture, render_pass, render_target, scene, camera, orbit, globals;
 
       const urls = [
-        "./assets/textures/rh_cubemap/px.jpg",
-        "./assets/textures/rh_cubemap/nx.jpg",
-        "./assets/textures/rh_cubemap/py.jpg",
-        "./assets/textures/rh_cubemap/ny.jpg",
-        "./assets/textures/rh_cubemap/nz.jpg",
-        "./assets/textures/rh_cubemap/pz.jpg",
+        "./assets/textures/lh_cubemap/bridge_px.jpg",
+        "./assets/textures/lh_cubemap/bridge_nx.jpg",
+        "./assets/textures/lh_cubemap/bridge_py.jpg",
+        "./assets/textures/lh_cubemap/bridge_ny.jpg",
+        "./assets/textures/lh_cubemap/bridge_pz.jpg",
+        "./assets/textures/lh_cubemap/bridge_nz.jpg",
       ];
 
       const load_bitmap = (url) => fetch(url).then(resp => resp.blob()).then(blob => createImageBitmap(blob));
