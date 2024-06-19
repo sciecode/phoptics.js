@@ -44,13 +44,12 @@ export class AttributePool {
       attrib_obj.buffer.initialize(id, attrib_bid, this.free_callback);
     }
 
-    const cache = this.attributes.get(id)
-    if (attrib_obj.has_updated()) {
-      if (ArrayBuffer.isView(attrib_obj.data)) {
-        this.backend.write_buffer(cache.bid, cache.offset, attrib_obj.data);
-      } else {
-        this.backend.write_buffer(cache.bid, cache.offset, attrib_obj.data, attrib_obj.offset, attrib_obj.size);
-      }
+    const cache = this.attributes.get(id), update = attrib_obj.has_update();
+    if (update) {
+      this.backend.write_buffer(
+        cache.bid, cache.offset + attrib_obj.offset,
+        update.data, update.offset, update.size
+      );
     }
 
     return cache;

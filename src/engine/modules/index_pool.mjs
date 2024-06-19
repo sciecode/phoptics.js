@@ -37,13 +37,12 @@ export class IndexPool {
       index_obj.buffer.initialize(id, bid, this.index_callback);
     }
 
-    const cache = this.indices.get(id); 
-    if (index_obj.has_updated()) {
-      if (ArrayBuffer.isView(index_obj.data)) {
-        this.backend.write_buffer(cache.bid, cache.offset, index_obj.data);
-      } else {
-        this.backend.write_buffer(cache.bid, cache.offset, index_obj.data, index_obj.offset, index_obj.size);
-      }
+    const cache = this.indices.get(id), update = index_obj.has_update();
+    if (update) {
+      this.backend.write_buffer(
+        cache.bid, cache.offset + index_obj.offset, 
+        update.data, update.offset, update.size
+      );
     }
 
     return cache;

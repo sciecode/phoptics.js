@@ -34,13 +34,12 @@ export class InterleavedPool {
       inter_obj.buffer.initialize(id, attrib_bid, this.free_callback);
     }
 
-    const cache = this.interleaved.get(id);
-    if (inter_obj.has_updated()) {
-      if (ArrayBuffer.isView(inter_obj.data)) {
-        this.backend.write_buffer(cache.bid, cache.offset, inter_obj.data);
-      } else {
-        this.backend.write_buffer(cache.bid, cache.offset, inter_obj.data, inter_obj.offset, inter_obj.size);
-      }
+    const cache = this.interleaved.get(id), update = inter_obj.has_update();
+    if (update) {
+      this.backend.write_buffer(
+        cache.bid, cache.offset + inter_obj.offset,
+        update.data, update.offset, update.size
+      );
     }
 
     return cache;
