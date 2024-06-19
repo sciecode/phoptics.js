@@ -63,8 +63,14 @@
           bindings: [{ binding: 0,  name: "camera", resource: camera }]
         });
 
-        const multisampled_texture = new Texture({ size: viewport, format: canvas_texture.format, multisampled: true });
-        const depth_texture = new Texture({ size: viewport, format: render_pass.formats.depth, multisampled: true });
+        const multisampled_texture = new Texture({ 
+          renderable: true, multisampled: true,
+          size: viewport, format: canvas_texture.format
+        });
+        const depth_texture = new Texture({
+          renderable: true, multisampled: true,
+          size: viewport, format: render_pass.formats.depth
+        });
         
         render_target = new RenderTarget({
           color: [ { 
@@ -79,7 +85,7 @@
 
         orbit = new Orbit(canvas_texture.canvas);
         orbit.target.set(0, 1, 0);
-        orbit.position.set(0, 4, 8);
+        orbit.position.set(0, 2, 4);
         orbit.update();
         camera.luma.set(250, 1);
         camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 300);

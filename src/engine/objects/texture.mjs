@@ -13,8 +13,9 @@ export class Texture {
     this.size = { ...options.size };
     this.mip_levels = options.mip_levels || 1;
     this.format = options.format;
-    this.usage = options.usage ||
-      (GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING);
+    this.usage = GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING;
+    if (options.renderable) this.usage |= GPUTextureUsage.RENDER_ATTACHMENT;
+    if (options.storage) this.usage |= GPUTextureUsage.STORAGE_BINDING;
     this.multisampled = options.multisampled || false;
   }
 

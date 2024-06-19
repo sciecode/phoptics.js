@@ -62,10 +62,13 @@
           bindings: [{ binding: 0,  name: "camera", resource: camera }]
         });
 
-        const gbuffer_pos = new Texture({ size: viewport, format: Format.RGBA32_FLOAT });
-        const gbuffer_normal = new Texture({ size: viewport, format: Format.RGBA32_FLOAT });
-        const gbuffer_depth = new Texture({ size: viewport, format: Format.DEPTH32 });
-        const multisampled_texture = new Texture({ size: viewport, format: canvas_texture.format, multisampled: true });
+        const gbuffer_pos = new Texture({ size: viewport, format: Format.RGBA32_FLOAT, renderable: true });
+        const gbuffer_normal = new Texture({ size: viewport, format: Format.RGBA32_FLOAT, renderable: true });
+        const gbuffer_depth = new Texture({ size: viewport, format: Format.DEPTH32, renderable: true });
+        const multisampled_texture = new Texture({
+          renderable: true, multisampled: true,
+          size: viewport, format: canvas_texture.format,
+        });
 
         gbuffer_target = new RenderTarget({
           color: [

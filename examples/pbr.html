@@ -56,6 +56,7 @@
       const generate_mipmap_cubemap = (engine, original) => {
         const tex_size = 256, mips = Texture.max_mip_levels(tex_size);
         const cubemap = new Texture({
+          renderable: true,
           format: original.format,
           size: { width: tex_size, height: tex_size, depth: 6 },
           mip_levels: mips,
@@ -130,9 +131,10 @@
       const generate_pmlm = (engine, cubemap) => {
         const tex_size = cubemap.size.width, mips = Texture.max_mip_levels(tex_size) - 4; // MAX - MIN
         const pmlm = new Texture({
+          renderable: true,
+          mip_levels: mips,
           format: cubemap.format,
           size: { width: tex_size, height: tex_size, depth: 6 },
-          mip_levels: mips,
         });
 
         const render_pass = new RenderPass({
@@ -187,6 +189,7 @@
       const generate_ggx_lut = (engine) => {
         const tex_size = 1024;
         const lut = new Texture({
+          renderable: true,
           format: Format.RG16_FLOAT,
           size: { width: tex_size, height: tex_size },
         });
@@ -231,7 +234,11 @@
 
         globals = new StructuredBuffer([{ name: "info", type: Vec4 }]);
         const bitmaps = await Promise.all(urls.map(e => load_bitmap(e)));
-        const original = new Texture({ size: { width: 1024, height: 1024, depth: 6 }, format: Format.RGBA8_UNORM });
+        const original = new Texture({
+          renderable: true,
+          format: Format.RGBA8_UNORM,
+          size: { width: 1024, height: 1024, depth: 6 },
+        });
         for (let i = 0; i < bitmaps.length; i++) engine.upload_texture(original, bitmaps[i], { target_origin: [0, 0, i] });
 
         const cubemap = generate_mipmap_cubemap(engine, original);
@@ -261,8 +268,14 @@
           ]
         });
 
-        const multisampled_texture = new Texture({ size: viewport, format: canvas_texture.format, multisampled: true });
-        const depth_texture = new Texture({ size: viewport, format: render_pass.formats.depth, multisampled: true });
+        const multisampled_texture = new Texture({
+          renderable: true, multisampled: true,
+          size: viewport, format: canvas_texture.format
+        });
+        const depth_texture = new Texture({
+          renderable: true, multisampled: true,
+          size: viewport, format: render_pass.formats.depth,
+        });
         
         render_target = new RenderTarget({
           color: [ { 
@@ -292,7 +305,6 @@
         const albedo = new Texture({
           size: a_header.size,
           format: a_header.format,
-          usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
         });
         engine.upload_texture(albedo, a_tex[0]);
 
@@ -300,7 +312,6 @@
         const normal = new Texture({
           size: n_header.size,
           format: n_header.format,
-          usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
         });
         engine.upload_texture(normal, n_tex[0]);
         
@@ -308,7 +319,6 @@
         const metallic = new Texture({
           size: m_header.size,
           format: m_header.format,
-          usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
         });
         engine.upload_texture(metallic, m_tex[0]);
 

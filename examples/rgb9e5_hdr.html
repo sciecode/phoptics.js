@@ -56,7 +56,6 @@
 
         const rgb9e5 = new Texture({
           size: { width: tex_size, height: tex_size },
-          usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
           format: Format.RGB9E5_UFLOAT,
         });
 
@@ -97,8 +96,14 @@
           bindings: [{ binding: 0,  name: "camera", resource: camera }]
         });
 
-        const multisampled_texture = new Texture({ size: viewport, format: canvas_texture.format, multisampled: true });
-        const depth_texture = new Texture({ size: viewport, format: render_pass.formats.depth, multisampled: true });
+        const multisampled_texture = new Texture({
+          renderable: true, multisampled: true,
+          size: viewport, format: canvas_texture.format
+        });
+        const depth_texture = new Texture({
+          renderable: true, multisampled: true,
+          size: viewport, format: render_pass.formats.depth
+        });
         
         render_target = new RenderTarget({
           color: [ { 

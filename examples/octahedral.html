@@ -54,9 +54,10 @@
       const generate_pmlm = (engine, cubemap) => {
         const tex_size = 256, mips = Texture.max_mip_levels(tex_size) - 4; // 32x32 lowest mip
         const pmlm = new Texture({
+          renderable: true,
+          mip_levels: mips,
           format: cubemap.format,
           size: { width: tex_size, height: tex_size, depth: 6 },
-          mip_levels: mips,
         });
 
         const globals = new StructuredBuffer([{ name: "info", type: Vec4 }]);
@@ -110,7 +111,8 @@
       const create_octahedral_envmap = async (engine, pmlm) => {
         const mips = pmlm.mip_levels, size = pmlm.size.width, border = 1 << (mips - 1);
 
-        const oct_envmap = new Texture({ 
+        const oct_envmap = new Texture({
+          renderable: true,
           mip_levels: mips,
           size: { width: size, height: size }, 
           format: Format.RGBA16_FLOAT,
@@ -181,8 +183,14 @@
           bindings: [{ binding: 0, name: "camera", resource: camera }]
         });
 
-        const multisampled_texture = new Texture({ size: viewport, format: canvas_texture.format, multisampled: true });
-        const depth_texture = new Texture({ size: viewport, format: render_pass.formats.depth, multisampled: true });
+        const multisampled_texture = new Texture({
+          renderable: true, multisampled: true,
+          size: viewport, format: canvas_texture.format
+        });
+        const depth_texture = new Texture({
+          renderable: true, multisampled: true,
+          size: viewport, format: render_pass.formats.depth
+        });
 
         render_target = new RenderTarget({
           color: [{
@@ -203,7 +211,11 @@
 
         // load cubemap & pre-convolve mipmaps
         const bitmaps = await Promise.all(urls.map(e => load_bitmap(e)));
-        const original = new Texture({ size: { width: 1024, height: 1024, depth: 6 }, format: Format.RGBA8_UNORM });
+        const original = new Texture({
+          renderable: true,
+          format: Format.RGBA8_UNORM,
+          size: { width: 1024, height: 1024, depth: 6 },
+        });
         for (let i = 0; i < bitmaps.length; i++) engine.upload_texture(original, bitmaps[i], { target_origin: [0, 0, i] });
         const pmlm = await generate_pmlm(engine, original);
 
