@@ -9,7 +9,7 @@
  * 
 **/
 
-import { Buffer } from 'phoptics';
+import { BufferMap } from 'phoptics';
 import { TYPE } from "../common/type.mjs";
 import { Hash32 } from "../common/hash.mjs";
 import { Memory, memcpy } from '../common/memory.mjs';
@@ -115,9 +115,8 @@ class Remapper {
     for (let i = 0, il = this.index_count; i < il; ++i)
       indices[i] = this.table[get_index(i)];
 
-    geometry.index = new Buffer({
+    geometry.index = new BufferMap({
       data: indices,
-      total_bytes: indices.byteLength,
       stride: indices.BYTES_PER_ELEMENT
     });
     geometry.draw.offset = 0;

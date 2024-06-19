@@ -1,4 +1,4 @@
-import { Geometry, Buffer } from 'phoptics';
+import { Geometry, BufferMap } from 'phoptics';
 
 import { TYPE } from './common/type.mjs';
 import { Memory, memcpy } from "./common/memory.mjs";
@@ -164,9 +164,9 @@ export const uncompress = (buffer) => {
 
   const geometry = new Geometry({
     draw: { count: indices.length },
-    index: new Buffer({ data: indices, stride: indices.BYTES_PER_ELEMENT }),
+    index: new BufferMap({ data: indices, stride: indices.BYTES_PER_ELEMENT }),
     attributes: info.vertices.map(vert => {
-      return new Buffer({ data: vert.output, stride: vert.vertex_size }); 
+      return new BufferMap({ data: vert.output, stride: vert.vertex_size }); 
     }),
   });
 

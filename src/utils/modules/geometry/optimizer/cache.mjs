@@ -8,7 +8,7 @@
  * 
 **/
 
-import { Buffer } from 'phoptics';
+import { BufferMap } from 'phoptics';
 import { TYPE } from "../common/type.mjs";
 import { Memory } from '../common/memory.mjs';
 
@@ -158,9 +158,8 @@ export const opt_cache = (geometry) => {
   const indices = geometry.index.data;
   const output = new indices.constructor(indices.length + (indices.length & 1));
   opt_cache_group(geometry, output);
-  geometry.index = new Buffer({
+  geometry.index = new BufferMap({
     data: output,
-    total_bytes: output.byteLength,
     stride: output.BYTES_PER_ELEMENT
   });
 } 

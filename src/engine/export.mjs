@@ -7,6 +7,7 @@ import { Texture } from "./objects/texture.mjs";
 import { Material } from "./objects/material.mjs";
 import { Geometry } from "./objects/geometry.mjs";
 import { Bindings } from "./objects/bindings.mjs";
+import { BufferMap } from "./objects/buffer_map.mjs";
 import { RenderPass } from "./objects/render_pass.mjs";
 import { TextureView } from "./objects/texture_view.mjs";
 import { RenderTarget } from "./objects/render_target.mjs";
@@ -19,8 +20,8 @@ import { ResourceType } from "./constants.mjs";
 import { Engine } from "./engine.mjs";
 
 export {
-  Format,
+  Format, ResourceType,
   Engine, Mesh, RenderList, Shader, Buffer, Sampler, Texture, Material, Geometry, Bindings,
-  RenderPass, TextureView, RenderTarget, CanvasTexture, DynamicLayout, ResourceType,
+  BufferMap, RenderPass, TextureView, RenderTarget, CanvasTexture, DynamicLayout, 
   StructuredBuffer, StructuredDynamic,
 };

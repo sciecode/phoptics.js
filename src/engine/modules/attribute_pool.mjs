@@ -22,10 +22,10 @@ export class AttributePool {
   }
 
   get(attrib_obj) {
-    let id = attrib_obj.get_id();
+    let id = attrib_obj.buffer.get_id();
 
     if (id == UNINITIALIZED) {
-      const size = attrib_obj.total_bytes;
+      const size = attrib_obj.buffer.size;
       const { heap, slot, offset, bid } = this.create(size);
 
       const attrib_bid = this.backend.resources.create_attribute({
@@ -35,23 +35,21 @@ export class AttributePool {
       });
 
       id = this.attributes.allocate({
-        version: -1,
         heap: heap,
         slot: slot,
         bid: bid,
         attrib_bid: attrib_bid,
         offset: offset,
       });
-      attrib_obj.initialize(id, attrib_bid, this.free_callback);
+      attrib_obj.buffer.initialize(id, attrib_bid, this.free_callback);
     }
 
-    const cache = this.attributes.get(id), version = attrib_obj.get_version();
-    if (cache.version != version) {
-      cache.version = version;
+    const cache = this.attributes.get(id)
+    if (attrib_obj.has_updated()) {
       if (ArrayBuffer.isView(attrib_obj.data)) {
         this.backend.write_buffer(cache.bid, cache.offset, attrib_obj.data);
       } else {
-        this.backend.write_buffer(cache.bid, cache.offset, attrib_obj.data, attrib_obj.offset, attrib_obj.total_bytes);
+        this.backend.write_buffer(cache.bid, cache.offset, attrib_obj.data, attrib_obj.offset, attrib_obj.size);
       }
     }
 

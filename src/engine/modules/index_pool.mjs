@@ -22,29 +22,27 @@ export class IndexPool {
   }
 
   get(index_obj) {
-    let id = index_obj.get_id();
+    let id = index_obj.buffer.get_id();
 
     if (id == UNINITIALIZED) {
-      const { heap, slot, offset, bid } = this.create(index_obj.total_bytes);
+      const { heap, slot, offset, bid } = this.create(index_obj.buffer.size);
       
       id = this.indices.allocate({
-        version: -1,
         heap: heap,
         slot: slot,
         bid: bid,
         offset: offset,
         index_offset: offset / index_obj.stride,
       });
-      index_obj.initialize(id, bid, this.index_callback);
+      index_obj.buffer.initialize(id, bid, this.index_callback);
     }
 
-    const cache = this.indices.get(id), version = index_obj.get_version();
-    if (cache.version != version) {
-      cache.version = version;
+    const cache = this.indices.get(id); 
+    if (index_obj.has_updated()) {
       if (ArrayBuffer.isView(index_obj.data)) {
         this.backend.write_buffer(cache.bid, cache.offset, index_obj.data);
       } else {
-        this.backend.write_buffer(cache.bid, cache.offset, index_obj.data, index_obj.offset, index_obj.total_bytes);
+        this.backend.write_buffer(cache.bid, cache.offset, index_obj.data, index_obj.offset, index_obj.size);
       }
     }
 

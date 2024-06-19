@@ -86,7 +86,7 @@
 
         // base mip
         for (let i = 0; i < 6; i++) {
-          globals.info.set(i, 0, tex_size); // face / lod
+          globals.info.set(i, 0); // face / lod
           globals.update();
           render_target.color[0].view = cubemap.create_view({
             dimension: "2d",

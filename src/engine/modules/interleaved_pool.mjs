@@ -18,13 +18,12 @@ export class InterleavedPool {
   }
 
   get(inter_obj) {
-    let id = inter_obj.get_id();
+    let id = inter_obj.buffer.get_id();
 
     if (id == UNINITIALIZED) {
-      const { heap, slot, offset, bid, attrib_bid } = this.create(inter_obj.total_bytes, inter_obj.stride);
+      const { heap, slot, offset, bid, attrib_bid } = this.create(inter_obj.buffer.size, inter_obj.stride);
      
       id = this.interleaved.allocate({
-        version: -1,
         heap: heap,
         slot: slot,
         bid: bid,
@@ -32,16 +31,15 @@ export class InterleavedPool {
         offset: offset,
         vertex_offset: offset / inter_obj.stride
       });
-      inter_obj.initialize(id, attrib_bid, this.free_callback);
+      inter_obj.buffer.initialize(id, attrib_bid, this.free_callback);
     }
 
-    const cache = this.interleaved.get(id), version = inter_obj.get_version();
-    if (cache.version != version) {
-      cache.version = version;
+    const cache = this.interleaved.get(id);
+    if (inter_obj.has_updated()) {
       if (ArrayBuffer.isView(inter_obj.data)) {
         this.backend.write_buffer(cache.bid, cache.offset, inter_obj.data);
       } else {
-        this.backend.write_buffer(cache.bid, cache.offset, inter_obj.data, inter_obj.offset, inter_obj.total_bytes);
+        this.backend.write_buffer(cache.bid, cache.offset, inter_obj.data, inter_obj.offset, inter_obj.size);
       }
     }
 

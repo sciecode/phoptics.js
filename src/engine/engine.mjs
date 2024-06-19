@@ -62,12 +62,12 @@ export class Engine {
       draw_info.draw_count = geometry.draw.count;
       draw_info.index_offset = geometry.get_index_offset();
       draw_info.vertex_offset = geometry.get_vertex_offset();
-      draw_info.index = geometry.index ? geometry.index.get_bid() : NULL_HANDLE;
+      draw_info.index = geometry.index ? geometry.index.buffer.get_bid() : NULL_HANDLE;
 
       let attrib = 0;
       const attributes = geometry.attributes;
       for (const al = attributes.length; attrib < al; attrib++)
-        this.draw_stream.set_attribute(attrib, attributes[attrib].get_bid());
+        this.draw_stream.set_attribute(attrib, attributes[attrib].buffer.get_bid());
       for (; attrib < 4; attrib++)
         this.draw_stream.set_attribute(attrib, NULL_HANDLE);
 
