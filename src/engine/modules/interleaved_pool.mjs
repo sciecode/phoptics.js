@@ -2,8 +2,8 @@ import { UNINITIALIZED } from "../constants.mjs";
 import { OffsetAllocator } from "../../common/offset_allocator.mjs";
 import { PoolStorage } from "../../common/pool_storage.mjs";
 
-const MAX_ALLOC = 0x7FFFF;
-const BLOCK_SIZE = 128 * 1024 * 1024;
+const MAX_SIZE = 0x8000000; // 128MB
+const MAX_ALLOCATIONS = 0x8000;
 
 export class InterleavedPool {
   constructor(backend) {
@@ -66,10 +66,10 @@ export class InterleavedPool {
 
     if (heap == undefined) {
       heap = this.allocators.length;
-      this.allocators.push(new OffsetAllocator(BLOCK_SIZE));
+      this.allocators.push(new OffsetAllocator(MAX_SIZE, MAX_ALLOCATIONS));
 
       bid = this.backend.resources.create_buffer({
-        size: BLOCK_SIZE,
+        size: MAX_SIZE,
         usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
       });
 
@@ -78,7 +78,7 @@ export class InterleavedPool {
       attrib_bid = this.backend.resources.create_attribute({
         buffer: bid,
         byte_offset: 0,
-        byte_size: BLOCK_SIZE,
+        byte_size: MAX_SIZE
       });
 
       this.attributes.push(attrib_bid);

@@ -3,8 +3,9 @@ import { OffsetAllocator } from "../../common/offset_allocator.mjs";
 import { PoolStorage } from "../../common/pool_storage.mjs";
 
 const BITS = 2;
-const MAX_ALLOC = 33554432;
-const BLOCK_SIZE = 128 * 1024 * 1024;
+const MAX_SIZE = 0x8000000; // 128MB
+const MAX_ALLOCATIONS = 0x8000;
+const TOTAL_BLOCKS = 0x2000000;
 const STORAGE_MASK = (1 << BITS) - 1;
 
 const aligned = (x) => (x + STORAGE_MASK) & ~STORAGE_MASK;
@@ -72,9 +73,9 @@ export class AttributePool {
 
     if (heap == undefined) {
       heap = this.allocators.length;
-      this.allocators.push(new OffsetAllocator(MAX_ALLOC));
+      this.allocators.push(new OffsetAllocator(TOTAL_BLOCKS, MAX_ALLOCATIONS));
       this.buffers.push(this.backend.resources.create_buffer({
-          size: BLOCK_SIZE,
+          size: MAX_SIZE,
           usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
         })
       );

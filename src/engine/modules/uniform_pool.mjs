@@ -3,8 +3,8 @@ import { OffsetAllocator } from "../../common/offset_allocator.mjs";
 import { PoolStorage } from "../../common/pool_storage.mjs";
 
 const BITS = 8;
-const MAX_ALLOC = 0x7FFFF;
-const BLOCK_SIZE = 128 * 1024 * 1024;
+const MAX_SIZE = 0x8000000; // 128MB
+const TOTAL_BLOCKS = 0x2000000;
 const STORAGE_MASK = (1 << BITS) - 1;
 
 const aligned = (x) => (x + STORAGE_MASK) & ~STORAGE_MASK;
@@ -61,9 +61,9 @@ export class UniformPool {
 
     if (heap == undefined) {
       heap = this.allocators.length;
-      this.allocators.push(new OffsetAllocator(MAX_ALLOC));
+      this.allocators.push(new OffsetAllocator(TOTAL_BLOCKS));
       this.buffers.push(this.backend.resources.create_buffer({
-          size: BLOCK_SIZE,
+          size: MAX_SIZE,
           usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
         })
       );

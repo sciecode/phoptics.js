@@ -4,8 +4,8 @@ import { OffsetAllocator } from "../../common/offset_allocator.mjs";
 import { PoolStorage } from "../../common/pool_storage.mjs";
 
 const BITS = 2;
-const MAX_ALLOC = 0x7FFFF;
-const BLOCK_SIZE = 128 * 1024 * 1024;
+const MAX_SIZE = 0x8000000; // 128MB
+const MAX_ALLOCATIONS = 0x8000;
 const STORAGE_MASK = (1 << BITS) - 1;
 
 const aligned = (x) => (x + STORAGE_MASK) & ~STORAGE_MASK;
@@ -67,10 +67,10 @@ export class IndexPool {
 
     if (heap == undefined) {
       heap = this.allocators.length;
-      this.allocators.push(new OffsetAllocator(BLOCK_SIZE));
+      this.allocators.push(new OffsetAllocator(MAX_SIZE, MAX_ALLOCATIONS));
 
       bid = this.backend.resources.create_buffer({
-        size: BLOCK_SIZE,
+        size: MAX_SIZE,
         usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
       });
 

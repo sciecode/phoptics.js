@@ -52,7 +52,7 @@ const sm_ffs = (mask, i) => {
 export class OffsetAllocator {
   constructor(size, max_alloc = 512 * 1024) {
     this.size = size;
-    this.max_alloc = Math.min(max_alloc, size);
+    this.max_alloc = Math.min(max_alloc, size) + 2;
 
     this.bins_top = 0;
     this.bins = new Uint8Array(NUM_ROWS);
@@ -87,8 +87,6 @@ export class OffsetAllocator {
   }
 
   malloc(size) {
-    if (!this.free_offset) return { slot: undefined };
-    
     const min_bin = sm_up(size);
     const min_fl = min_bin >>> MANTISSA_BITS;
     const min_sl = min_bin & MANTISSA_MASK;
@@ -107,8 +105,12 @@ export class OffsetAllocator {
     const bin = (fl << MANTISSA_BITS) | sl;
     const node_id = this.indices[bin], c6 = node_id * 6;
 
-    const offset = this.nodes[c6];
     const total_size = this.nodes[c6 + 1] & NODE_UNUSED_MASK;
+    const remainder = total_size - size;
+    
+    if (remainder && !this.free_offset) return { slot: undefined };
+    
+    const offset = this.nodes[c6];
     const bin_next = this.nodes[c6 + 3];
     const neighbor_next = this.nodes[c6 + 5];
 
@@ -123,7 +125,6 @@ export class OffsetAllocator {
       if (this.bins[fl] == 0) this.bins_top &= ~(1 << fl);
     }
     
-    const remainder = total_size - size;
     if (remainder > 0) {
       const new_id = this.insert_node(remainder, offset + size), n6 = new_id * 6;
       if (neighbor_next != UNUSED) this.nodes[neighbor_next * 6 + 4] = new_id;
@@ -181,6 +182,7 @@ export class OffsetAllocator {
     
     this.indices[bin] = node_id;
     this.free_storage += size;
+
 
     return node_id;
   }
