@@ -110,9 +110,7 @@
 
         const query = await fetch('./assets/models/walt.phg');
         const compressed = new Uint8Array( await query.arrayBuffer() );
-        console.time("uncompress");
-        const geo = uncompress(compressed);
-        console.timeEnd("uncompress");
+        const geo = uncompress(compressed).set_static();
 
         scene = [];
         mesh1 = new Mesh(geo, material);

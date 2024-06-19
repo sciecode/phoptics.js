@@ -345,7 +345,7 @@
 
         const model = await fetch('./assets/models/cerberus.phg');
         const compressed = new Uint8Array(await model.arrayBuffer());
-        const geo = uncompress(compressed);
+        const geo = uncompress(compressed).set_static();
 
         scene = new RenderList();
         const mesh = new Mesh(geo, material);

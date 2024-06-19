@@ -26,6 +26,11 @@ export class Geometry {
   get_id() { return this.#id; }
   get_index_offset() { return this.#index_offset + (this.index ? this.draw.offset : 0); }
   get_vertex_offset() { return this.#vertex_offset + (this.index ? 0 : this.draw.offset ); }
+  set_static() { 
+    if (this.index) this.index.free_storage();
+    for (let i = 0, il = this.attributes.length; i < il; i++) this.attributes[i].free_storage();
+    return this;
+  }
   destroy() {
     if (this.index) this.index.destroy();
     for (let i = 0, il = this.attributes.length; i < il; i++) this.attributes[i].destroy();

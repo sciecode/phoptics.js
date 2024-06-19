@@ -1,4 +1,4 @@
-import { BufferData, Geometry } from 'phoptics';
+import { BufferBinding, Geometry } from 'phoptics';
 
 export class SkyboxGeometry extends Geometry {
   constructor() {
@@ -30,8 +30,8 @@ export class SkyboxGeometry extends Geometry {
 
     super({
       draw: { count: 36 },
-      index: new BufferData({ data: index, stride: 2 }),
-      attributes: [new BufferData({ data: positions, stride: 12 })]
+      index: (new BufferBinding({ data: index, stride: 2 })).free_storage(),
+      attributes: [(new BufferBinding({ data: positions, stride: 12 })).free_storage()]
     });
   }
 }
