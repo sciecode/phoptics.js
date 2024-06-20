@@ -54,8 +54,8 @@ export class VertexPool {
     const cache = this.attributes.get(id), update = attrib_obj.has_update();
     if (update) {
       this.backend.write_buffer(
-        cache.bid, cache.offset + attrib_obj.offset,
-        update.data, update.offset, update.size
+        cache.bid, cache.offset + update.buffer_offset,
+        update.data, update.data_offset, update.size
       );
     }
 
@@ -81,8 +81,8 @@ export class VertexPool {
     const cache = this.indices.get(id), update = index_obj.has_update();
     if (update) {
       this.backend.write_buffer(
-        cache.bid, cache.offset + index_obj.offset, 
-        update.data, update.offset, update.size
+        cache.bid, cache.offset + update.buffer_offset,
+        update.data, update.data_offset, update.size
       );
     }
 
@@ -111,8 +111,8 @@ export class VertexPool {
     const cache = this.interleaved.get(id), update = inter_obj.has_update();
     if (update) {
       this.backend.write_buffer(
-        cache.bid, cache.offset + inter_obj.offset,
-        update.data, update.offset, update.size
+        cache.bid, cache.offset + update.buffer_offset,
+        update.data, update.data_offset, update.size
       );
     }
 

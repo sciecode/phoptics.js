@@ -24,7 +24,7 @@
   </head>
   <body>
     <script type="module">
-      import { Engine, Mesh, RenderList, Shader, BufferBinding, Sampler, Geometry, Material, Texture, CanvasTexture,
+      import { Engine, Mesh, RenderList, Shader, Vertex, Sampler, Geometry, Material, Texture, CanvasTexture,
         RenderPass, DynamicLayout, RenderTarget, StructuredBuffer, Format } from 'phoptics';
       import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
       import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
@@ -130,7 +130,7 @@
         const geometry = new Geometry({
           draw: { count: 6 },
           attributes: [
-            new BufferBinding({
+            new Vertex({
               data: new Float32Array([
                 1,  1, 0,
                -1,  1, 0,
