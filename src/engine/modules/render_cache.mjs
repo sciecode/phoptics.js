@@ -103,14 +103,12 @@ export class RenderCache {
     if (id == UNINITIALIZED) {
       cache = {
         index_offset: NULL_HANDLE,
-        index_bid: NULL_HANDLE,
         vertex_offset: 0,
         buffer_bid: NULL_HANDLE,
       };
 
       if (geometry_obj.index) {
         const index_cache = this.get_index(geometry_obj.index);
-        cache.index_bid = index_cache.bid;
         const sid = geometry_obj.index.stride >> 2;
         cache.index_offset = index_cache.index_offset | (sid << 31);
       }

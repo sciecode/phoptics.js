@@ -14,3 +14,5 @@
 ### Utils
   - [ ] Add Lighting manager module
   - [x] Add Geometry optimization / transform module
+  - [x] Add EXR HDR support
+  - [x] Add KTX compressed support (partial)

@@ -1,14 +1,10 @@
 import { UniformPool } from "./uniform_pool.mjs";
-import { AttributePool } from "./attribute_pool.mjs";
-import { InterleavedPool } from "./interleaved_pool.mjs";
-import { IndexPool } from "./index_pool.mjs";
+import { VertexPool } from "./vertex_pool.mjs";
 
 export class BufferManager {
   constructor(backend) {
     this.uniforms = new UniformPool(backend);
-    this.attributes = new AttributePool(backend);
-    this.interleaved = new InterleavedPool(backend);
-    this.indices = new IndexPool(backend);
+    this.vertices = new VertexPool(backend);
   }
 
   get_uniform(uniform_obj) {
@@ -16,14 +12,14 @@ export class BufferManager {
   }
 
   get_attribute(attrib_obj) {
-    return this.attributes.get(attrib_obj);
+    return this.vertices.get_attribute(attrib_obj);
   }
 
   get_interleaved(inter_obj) {
-    return this.interleaved.get(inter_obj);
+    return this.vertices.get_interleaved(inter_obj);
   }
 
   get_index(index_obj) {
-    return this.indices.get(index_obj);
+    return this.vertices.get_index(index_obj);
   }
 }

@@ -54,7 +54,7 @@ export class RenderState {
       const entry = list[i], mesh = entry.mesh;
 
       const geometry_cache = this.cache.get_geometry(mesh.geometry);
-      Keys.set_index(entry, geometry_cache.index_bid);
+      Keys.set_geometry(entry, mesh.geometry);
       Keys.set_buffer(entry, geometry_cache.buffer_bid);
     }
 
