@@ -36,8 +36,8 @@ struct Globals {
   return output;
 }
 
-@group(2) @binding(0) var samp: sampler;
-@group(2) @binding(1) var cubemap: texture_cube<f32>;
+@group(1) @binding(0) var samp: sampler;
+@group(1) @binding(1) var cubemap: texture_cube<f32>;
 
 fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
   let ev10 = (ev2 - 1.) * .301029995;

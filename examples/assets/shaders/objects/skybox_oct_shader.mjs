@@ -42,9 +42,9 @@ struct Mapping {
   mip: f32
 }
 
-@group(2) @binding(0) var samp: sampler;
-@group(2) @binding(1) var envmap: texture_2d<f32>;
-@group(2) @binding(2) var<storage, read> dim : Mapping;
+@group(1) @binding(0) var samp: sampler;
+@group(1) @binding(1) var envmap: texture_2d<f32>;
+@group(1) @binding(2) var<storage, read> dim : Mapping;
 
 fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
   let ev10 = (ev2 - 1.) * .301029995;

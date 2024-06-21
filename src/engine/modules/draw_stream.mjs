@@ -25,13 +25,13 @@ export class DrawStream {
   set_globals(group_handle) {
     this.upload_data(DrawStreamBits.bind_globals, DrawStreamFlags.bind_globals, group_handle);
   }
-
-  set_variant(group_handle) {
-    this.upload_data(DrawStreamBits.bind_variant, DrawStreamFlags.bind_variant, group_handle);
-  }
-
+  
   set_material(group_handle) {
     this.upload_data(DrawStreamBits.bind_material, DrawStreamFlags.bind_material, group_handle);
+  }
+
+  set_geometry(group_handle) {
+    this.upload_data(DrawStreamBits.bind_geometry, DrawStreamFlags.bind_geometry, group_handle);
   }
 
   set_dynamic(group_handle) {

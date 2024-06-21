@@ -30,8 +30,7 @@ export class Engine {
     this.draw_stream.set_globals(global_bid);
     this.state.set_renderlist(list);
     
-    // TODO: temporary while shader variant isn't implemented
-    this.draw_stream.set_variant(0);
+    this.draw_stream.set_geometry(0);
 
     const draw_info = {
       index: NULL_HANDLE,

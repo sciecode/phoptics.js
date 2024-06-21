@@ -148,10 +148,10 @@ fn indirect(frag : ptr<function, RenderInfo>, r : f32) {
   (*frag).Li_spe = (dfg.x * (*frag).f0 + dfg.y) * L * 350; // nits boost because of SDR cubemap
 }
 
-@group(2) @binding(0) var samp: sampler;
-@group(2) @binding(1) var t_albedo: texture_2d<f32>;
-@group(2) @binding(2) var t_metallic: texture_2d<f32>;
-@group(2) @binding(3) var t_normal: texture_2d<f32>;
+@group(1) @binding(0) var samp: sampler;
+@group(1) @binding(1) var t_albedo: texture_2d<f32>;
+@group(1) @binding(2) var t_metallic: texture_2d<f32>;
+@group(1) @binding(3) var t_normal: texture_2d<f32>;
 
 fn tbn_mat(eye : vec3f, norm : vec3f, uv : vec2f) -> mat3x3f {
 	let q0 = dpdx(eye);

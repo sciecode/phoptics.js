@@ -51,8 +51,8 @@ fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
   return Ln;
 }
 
-@group(2) @binding(0) var samp: sampler;
-@group(2) @binding(1) var luminance: texture_2d<f32>;
+@group(1) @binding(0) var samp: sampler;
+@group(1) @binding(1) var luminance: texture_2d<f32>;
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
   var L = textureSample(luminance, samp, in.uv).rgb;

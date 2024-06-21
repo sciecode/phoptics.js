@@ -42,9 +42,9 @@ struct Mapping {
   mip:  f32,
 }
 
-@group(2) @binding(0) var samp: sampler;
-@group(2) @binding(1) var cubemap: texture_cube<f32>;
-@group(2) @binding(2) var<storage, read> dim: Mapping;
+@group(1) @binding(0) var samp: sampler;
+@group(1) @binding(1) var cubemap: texture_cube<f32>;
+@group(1) @binding(2) var<storage, read> dim: Mapping;
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
   var st = oct_border(in.uv);
