@@ -77,6 +77,8 @@ export class GPUBackend {
         draw_count: 0,
         vertex_offset: 0,
         index_offset: -1,
+        instance_count: 1,
+        instance_offset: 0,
       }
     };
 
@@ -160,11 +162,21 @@ export class GPUBackend {
       draw_packet.draw.vertex_offset = stream[draw_packet.offset++];
     }
 
+    // instance count
+    if (metadata & DrawStreamFlags.instance_count) {
+      draw_packet.draw.instance_count = stream[draw_packet.offset++];
+    }
+
+    // instance offset
+    if (metadata & DrawStreamFlags.instance_offset) {
+      draw_packet.draw.instance_offset = stream[draw_packet.offset++];
+    }
+
     const info = draw_packet.draw;
     if (info.index_offset === NULL_HANDLE) {
-      pass.draw(info.draw_count, 1, info.vertex_offset);
+      pass.draw(info.draw_count, info.instance_count, info.vertex_offset, info.instance_offset);
     } else {
-      pass.drawIndexed(info.draw_count, 1, info.index_offset & 0x7fff_ffff, info.vertex_offset);
+      pass.drawIndexed(info.draw_count, info.instance_count, info.index_offset & 0x7fff_ffff, info.vertex_offset, info.instance_offset);
     }
   }
 }

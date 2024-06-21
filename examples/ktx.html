@@ -82,16 +82,16 @@
         render_pass.set_render_target(render_target);
 
         orbit = new Orbit(canvas_texture.canvas);
-        orbit.position.set(0, 0, 2.5);
+        orbit.target.set(0, 1.5, 0);
+        orbit.position.set(0, 1.5, 5);
         orbit.update();
         camera.luma.set(250, 8);
         camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 300);
 
-        const shader = new Shader({ code: luminance_shader });
         const transform_layout = new DynamicLayout([{ name: "world", type: Mat3x4 }]);
 
         const geometry = new Geometry({
-          draw: { count: 6 },
+          draw: { count: 6, instance_count: 2 },
           attributes: [
             new Vertex({
               data: new Float32Array([
@@ -123,7 +123,7 @@
         engine.upload_texture(bc7, textures[0]);
 
         const mat = new Material({
-          shader: shader,
+          shader: new Shader({ code: luminance_shader }),
           dynamic: transform_layout,
           vertex: [
             {

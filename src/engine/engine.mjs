@@ -36,8 +36,10 @@ export class Engine {
     const draw_info = {
       index: NULL_HANDLE,
       draw_count: NULL_HANDLE,
+      instance_count: NULL_HANDLE,
       vertex_offset: NULL_HANDLE,
       index_offset: NULL_HANDLE,
+      instance_offset: NULL_HANDLE,
     };
     
     for (let i = 0, il = list.length; i < il; i++) {
@@ -62,6 +64,8 @@ export class Engine {
       draw_info.draw_count = geometry.draw.count;
       draw_info.index_offset = geometry.get_index_offset();
       draw_info.vertex_offset = geometry.get_vertex_offset();
+      draw_info.instance_count = geometry.draw.instance_count;
+      draw_info.instance_offset = geometry.draw.instance_offset;
       draw_info.index = geometry.index ? geometry.index.buffer.get_bid() : NULL_HANDLE;
 
       let attrib = 0;

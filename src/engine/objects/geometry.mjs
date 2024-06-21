@@ -9,7 +9,9 @@ export class Geometry {
   constructor(options) {
     this.draw = { 
       offset: options.draw?.offset || 0,
-      count: options.draw?.count || 0
+      count: options.draw?.count || 0,
+      instance_count: options.draw?.instance_count || 1,
+      instance_offset: options.draw?.instance_offset || 0,
     };
     this.index = options.index;
     this.attributes = options.attributes || [];
