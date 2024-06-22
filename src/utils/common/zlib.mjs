@@ -164,10 +164,7 @@ export default () => {
       if ((hdr >> 12) > ZLIB_CINFO_32K_WINDOW) throw 'Zlib::Decompress: bad data - info';
       if ((hdr >> 5) & 1) throw 'Zlib::Decompress: bad data - bit';
 
-      // TODO: defaults to no checksum - allow optional validation
-
       return this.#deflate_raw(input, in_next, in_end - in_next, dst);
-
     }
 
     deflate(input, dst) {

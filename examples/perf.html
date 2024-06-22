@@ -92,17 +92,9 @@
           { name: "color", type: Vec4 }
         ]);
 
-        const shader_base = new Shader({ code: forward_shader });
-
         const material = new Material({
-          shader: shader_base,
+          shader: new Shader({ code: forward_shader }),
           dynamic: transform_layout,
-          vertex: [
-            {
-              arrayStride: 8, 
-              attributes: [{ shaderLocation: 0, offset: 0, format: 'uint32x2' }]
-            },
-          ],
         });
 
         const query = await fetch('./assets/models/walt.phg');

@@ -2,7 +2,6 @@ import { PoolStorage } from "../common/pool_storage.mjs";
 import { Texture } from "./resources/texture.mjs";
 import { Pipeline } from "./resources/pipeline.mjs"
 import { BindGroup } from "./resources/bind_group.mjs";
-import { Attribute } from "./resources/attribute.mjs";
 
 export class ResourceManager {
   constructor(device) {
@@ -12,7 +11,6 @@ export class ResourceManager {
     this.buffers = new PoolStorage();
     this.samplers = new PoolStorage();
     this.textures = new PoolStorage();
-    this.attributes = new PoolStorage();
 
     this.empty_layout = device.createBindGroupLayout({entries:[]});
     this.create_bind_group({
@@ -77,18 +75,6 @@ export class ResourceManager {
   destroy_texture(idx) {
     this.textures.get(idx).destroy();
     this.textures.delete(idx);
-  }
-
-  create_attribute(options) {
-    return this.attributes.allocate(new Attribute(options));
-  }
-
-  get_attribute(idx) {
-    return this.attributes.get(idx);
-  }
-
-  destroy_attribute(idx) {
-    this.attributes.delete(idx);
   }
 
   create_pipeline(options) {

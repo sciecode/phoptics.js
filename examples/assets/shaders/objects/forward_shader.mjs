@@ -2,10 +2,6 @@ export default `
 enable f16;
 const PI = 3.14159265359;
 
-struct Attributes {
-  @location(0) packed: vec2u,
-}
-
 struct FragInput {
   @builtin(position) position : vec4f,
   @location(0) w_pos : vec3f,
@@ -27,6 +23,7 @@ struct Uniforms {
 }
 
 @group(0) @binding(0) var<storage, read> globals: Globals;
+@group(2) @binding(0) var<storage, read> attrib: array<u32>;
 @group(3) @binding(0) var<storage, read> uniforms: Uniforms;
 
 fn dec_oct16(data : u32) -> vec3f {
@@ -38,11 +35,12 @@ fn dec_oct16(data : u32) -> vec3f {
   return normalize(nor);
 }
 
-@vertex fn vs(attrib : Attributes) -> FragInput {
+@vertex fn vs(@builtin(vertex_index) vert : u32) -> FragInput {
   var output : FragInput;
 
-  var pos = vec3f(bitcast<vec4h>(attrib.packed).xyz);
-  var norm16 = attrib.packed.y >> 16;
+  let p = vert * 2;
+  var pos = vec3f(bitcast<vec4h>(vec2u(attrib[p], attrib[p + 1])).xyz);
+  var norm16 = attrib[p + 1] >> 16;
 
   var w_pos = vec4f(pos, 1) * uniforms.world_matrix;
   var c_pos = vec4f(vec4f(w_pos, 1) * globals.view_matrix, 1) * globals.projection_matrix;

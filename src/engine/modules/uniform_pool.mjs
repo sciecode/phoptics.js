@@ -3,8 +3,8 @@ import { OffsetAllocator } from "../../common/offset_allocator.mjs";
 import { PoolStorage } from "../../common/pool_storage.mjs";
 
 const BITS = 8;
-const MAX_SIZE = 0x8000000; // 128MB
-const TOTAL_BLOCKS = 0x2000000;
+const MAX_SIZE = 0x800_0000; // 128MB
+const TOTAL_BLOCKS = 0x8_0000;
 const STORAGE_MASK = (1 << BITS) - 1;
 
 const aligned = (x) => (x + STORAGE_MASK) & ~STORAGE_MASK;
@@ -39,7 +39,7 @@ export class UniformPool {
     const cache = this.uniforms.get(id), version = uniform_obj.get_version();
     if (cache.version != version) {
       cache.version = version;
-      // TODO: if we implement arraybuffer allocator, implement offset / size for front-end bufffer
+      // TODO: optimize to single buffer write 
       this.backend.write_buffer(cache.bid, cache.offset, uniform_obj.buffer);
     }
 

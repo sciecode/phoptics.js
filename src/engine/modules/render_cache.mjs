@@ -103,8 +103,9 @@ export class RenderCache {
     if (id == UNINITIALIZED) {
       cache = {
         index_offset: NULL_HANDLE,
-        vertex_offset: 0,
         buffer_bid: NULL_HANDLE,
+        layout: undefined,
+        binding: undefined,
       };
 
       if (geometry_obj.index) {
@@ -115,26 +116,45 @@ export class RenderCache {
 
       let attrib = 0;
       const attributes = geometry_obj.attributes, attrib_count = attributes.length;
-      if (attrib_count == 1) {
-        const inter_cache = this.get_interleaved(attributes[attrib++]);
-        cache.buffer_bid = inter_cache.bid;
-        cache.vertex_offset = inter_cache.vertex_offset;
-      } else if (attrib_count > 1) {
+      const vertices = [];
+      if (attrib_count) {
         const attrib_cache = this.get_attribute(attributes[attrib++]);
+        vertices.push(attrib_cache);
         cache.buffer_bid = attrib_cache.bid;
-        for (; attrib < attrib_count; attrib++) this.get_attribute(attributes[attrib]);
+        for (; attrib < attrib_count; attrib++) vertices.push(this.get_attribute(attributes[attrib]));
+
+        const geometry_layout = this.material_manager.create_layout({
+          entries: vertices.map((_, idx) => {
+            return {
+              binding: idx,
+              visibility: (GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT),
+              buffer: { type: "read-only-storage" },
+            };
+          })
+        });
+  
+        cache.layout = geometry_layout.id;
+        cache.binding = this.backend.resources.create_bind_group({
+          layout: geometry_layout.layout,
+          entries: vertices.map((vertex, idx) => {
+            return {
+              binding: idx,
+              type: GPUResource.BUFFER,
+              offset: vertex.offset,
+              size: vertex.size,
+              resource: vertex.bid,
+            }
+          })
+        });
       }
 
+
       id = this.geometries.allocate(cache);
-      geometry_obj.initialize(id, cache.index_offset, cache.vertex_offset, this.geometry_callback);
+      geometry_obj.initialize(id, cache.index_offset, cache.binding, this.geometry_callback);
     } else {
       if (geometry_obj.index) this.get_index(geometry_obj.index);
       const attributes = geometry_obj.attributes, attrib_count = attributes.length;
-      if (attrib_count == 1) {
-        this.get_interleaved(attributes[0])
-      } else {
-        for (let i = 0; i < attrib_count; i++) this.get_attribute(attributes[i]);
-      }
+      for (let i = 0; i < attrib_count; i++) this.get_attribute(attributes[i]);
 
       cache = this.geometries.get(id);
     }
@@ -143,16 +163,18 @@ export class RenderCache {
   }
 
   free_geometry(id) {
+    // TODO: dispose layout, binding
     this.geometries.delete(id);
   }
 
-  get_pipeline(material_obj, state, dynamic_layout) {
+  get_pipeline(material_obj, state, geometry_layout, dynamic_layout) {
     let id = material_obj.get_id();
 
     if (id == UNINITIALIZED) {
       id = this.material_manager.create_material({
         material: material_obj,
         state: state,
+        geometry_layout: geometry_layout,
         dynamic_layout: dynamic_layout,
         binding: material_obj.bindings ? this.get_binding(material_obj.bindings).layout : undefined
       });
@@ -163,6 +185,7 @@ export class RenderCache {
       this.material_manager.update_material({
         material: material_obj,
         state: state,
+        geometry_layout: geometry_layout,
         dynamic_layout: dynamic_layout,
         binding: material_obj.bindings ? this.get_binding(material_obj.bindings).layout : undefined
       });
@@ -173,37 +196,37 @@ export class RenderCache {
 
   create_bind_group(binding_obj, layout, views) {
     return this.backend.resources.create_bind_group({
-        layout: layout,
-        entries: binding_obj.info.map( entry => {
-          const resource = binding_obj[entry.name];
-          switch (resource.type) {
-            case ResourceType.StructuredBuffer:
-              const buffer_info = this.get_uniform(resource);
-              return {
-                binding: entry.binding,
-                type: GPUResource.BUFFER,
-                offset: buffer_info.offset,
-                size: buffer_info.size,
-                resource: buffer_info.bid,
-              };
-            case ResourceType.TextureView:
-              const view_info = this.get_view(resource);
-              views.push(view_info.version);
-              return {
-                binding: entry.binding,
-                type: GPUResource.TEXTURE,
-                resource: view_info.view,
-              };
-            case ResourceType.Sampler:
-              const sampler = this.get_sampler(resource);
-              return {
-                binding: entry.binding,
-                type: GPUResource.SAMPLER,
-                resource: sampler,
-              };
-          }
-        })
-      });
+      layout: layout,
+      entries: binding_obj.info.map( (entry, idx) => {
+        const resource = binding_obj[entry.name];
+        switch (resource.type) {
+          case ResourceType.StructuredBuffer:
+            const buffer_info = this.get_uniform(resource);
+            return {
+              binding: entry.binding,
+              type: GPUResource.BUFFER,
+              offset: buffer_info.offset,
+              size: buffer_info.size,
+              resource: buffer_info.bid,
+            };
+          case ResourceType.TextureView:
+            const view_info = this.get_view(resource);
+            views.push(view_info.version);
+            return {
+              binding: entry.binding,
+              type: GPUResource.TEXTURE,
+              resource: view_info.view,
+            };
+          case ResourceType.Sampler:
+            const sampler = this.get_sampler(resource);
+            return {
+              binding: entry.binding,
+              type: GPUResource.SAMPLER,
+              resource: sampler,
+            };
+        }
+      })
+    });
   }
 
   get_binding(binding_obj) {

@@ -125,12 +125,6 @@
         const mat = new Material({
           shader: new Shader({ code: luminance_shader }),
           dynamic: transform_layout,
-          vertex: [
-            {
-              arrayStride: 12,
-              attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x2' }]
-            }
-          ],
           bindings: [
             {
               binding: 0, name: "sampler", resource: new Sampler({

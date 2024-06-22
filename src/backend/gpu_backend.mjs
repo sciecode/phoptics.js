@@ -123,20 +123,6 @@ export class GPUBackend {
       pass.setBindGroup(3, group, bind_group.dynamic_entries ? draw_packet.draw.dynamic_offset : draw_packet.draw.empty);
     }
 
-    // vertex attributes
-    for (let i = 0; i < 4; i++) {
-      if (metadata & (DrawStreamFlags.attribute0 << i)) {
-        const attrib_handle = stream[draw_packet.offset++];
-        if (attrib_handle != NULL_HANDLE) {
-          const attrib = this.resources.get_attribute(attrib_handle);
-          const buffer = this.resources.get_buffer(attrib.buffer);
-          pass.setVertexBuffer(i, buffer, attrib.byte_offset, attrib.byte_size);
-        } else {
-          pass.setVertexBuffer(i, null);
-        }
-      }
-    }
-
     // index offset
     if (metadata & DrawStreamFlags.index_offset) {
       draw_packet.draw.index_offset = stream[draw_packet.offset++];

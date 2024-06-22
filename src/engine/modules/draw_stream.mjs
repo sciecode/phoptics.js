@@ -42,11 +42,6 @@ export class DrawStream {
     this.upload_data(DrawStreamBits.dynamic_offset, DrawStreamFlags.dynamic_offset, offset);
   }
 
-  set_attribute(idx, attrib_handle) {
-    const bits = DrawStreamBits.attribute0 + idx;
-    this.upload_data(bits, 1 << bits, attrib_handle);
-  }
-
   upload_data(bit, flag, data) {
     if (this.state[bit] != data) {
       this.metadata |= flag;

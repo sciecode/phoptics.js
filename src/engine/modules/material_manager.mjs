@@ -61,7 +61,7 @@ export class MaterialManager {
           bindings: [
             (info.state.global_layout != undefined) ? this.get_layout(info.state.global_layout) : undefined,
             info.binding ? this.get_layout(info.binding) : undefined,
-            undefined,
+            info.geometry_layout ? this.get_layout(info.geometry_layout) : undefined,
           ],
           dynamic: info.dynamic_layout,
         },

@@ -4,10 +4,6 @@ struct FragInput {
   @location(0) dir : vec3f,
 }
 
-struct Attributes {
-  @location(0) pos: vec3f,
-}
-
 struct Globals {
   projection_matrix : mat4x4f,
   view_matrix : mat3x4f,
@@ -18,8 +14,9 @@ struct Globals {
 }
 
 @group(0) @binding(0) var<storage, read> globals: Globals;
+@group(2) @binding(0) var<storage, read> attrib: array<f32>;
 
-@vertex fn vs(attrib : Attributes) -> FragInput {
+@vertex fn vs(@builtin(vertex_index) vert: u32) -> FragInput {
   var output : FragInput;
 
   var view = globals.view_matrix;
@@ -27,14 +24,17 @@ struct Globals {
   view[1].w = 0;
   view[2].w = 0;
 
-  var c_pos = vec4f(vec4f(attrib.pos, 1) * view, 1) * globals.projection_matrix;
+  let p = vert * 3;
+  var pos = vec3f(attrib[p], attrib[p+1], attrib[p+2]);
+  var c_pos = vec4f(vec4f(pos, 1) * view, 1) * globals.projection_matrix;
   c_pos.z = 0.00000001;
 
   output.position = c_pos;
-  output.dir = attrib.pos;
+  output.dir = pos;
   
   return output;
 }
+
 
 @group(1) @binding(0) var samp: sampler;
 @group(1) @binding(1) var cubemap: texture_cube<f32>;

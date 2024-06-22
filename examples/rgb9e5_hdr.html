@@ -147,12 +147,6 @@
         const mat0 = new Material({
           shader: shader,
           dynamic: transform_layout,
-          vertex: [
-            {
-              arrayStride: 12, 
-              attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x2' }]
-            }
-          ],
           bindings: [
             { binding: 0, name: "sampler", resource: new Sampler({
               filtering: { mag: "linear", min: "linear" },
@@ -164,12 +158,6 @@
         const mat1 = new Material({
           shader: shader,
           dynamic: transform_layout,
-          vertex: [
-            {
-              arrayStride: 12, 
-              attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x2' }]
-            }
-          ],
           bindings: [
             { binding: 0, name: "sampler", resource: new Sampler({
               filtering: { mag: "linear", min: "linear" },

@@ -3,10 +3,6 @@ enable f16;
 const PI = 3.14159265359;
 const R_PI = 0.3183098861837907;
 
-struct Attributes {
-  @location(0) packed: vec3u,
-}
-
 struct FragInput {
   @builtin(position) position : vec4f,
   @location(0) w_pos : vec3f,
@@ -31,7 +27,7 @@ struct Uniforms {
 @group(0) @binding(1) var gsamp: sampler;
 @group(0) @binding(2) var lut: texture_2d<f32>;
 @group(0) @binding(3) var cubemap: texture_cube<f32>;
-
+@group(2) @binding(0) var<storage, read> attrib: array<u32>;
 @group(3) @binding(0) var<storage, read> uniforms: Uniforms;
 
 fn dec_oct16(data : u32) -> vec3f {
@@ -48,12 +44,13 @@ fn normal_rg(v : vec2f) -> vec3f {
 	return normalize(vec3f(v, z));
 }
 
-@vertex fn vs(attrib : Attributes) -> FragInput {
+@vertex fn vs(@builtin(vertex_index) vert: u32) -> FragInput {
   var output : FragInput;
 
-  var pos = vec3f(bitcast<vec4h>(attrib.packed.xy).xyz);
-  var norm16 = attrib.packed.y >> 16;
-  var uv = vec2f(bitcast<vec2h>(attrib.packed.z));
+  let p = vert * 3;
+  var pos = vec3f(bitcast<vec4h>(vec2u(attrib[p], attrib[p + 1])).xyz);
+  var norm16 = attrib[p + 1] >> 16;
+  var uv = vec2f(bitcast<vec2h>(attrib[p + 2]));
 
   var w_pos = vec4f(pos, 1) * uniforms.world_matrix;
   var c_pos = vec4f(vec4f(w_pos, 1) * globals.view_matrix, 1) * globals.projection_matrix;

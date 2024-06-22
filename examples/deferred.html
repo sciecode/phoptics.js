@@ -108,12 +108,6 @@
         const gbuffer_material = new Material({
           shader: new Shader({ code: gbuffer_shader }),
           dynamic: transform_layout,
-          vertex: [
-            { 
-              arrayStride: 8, 
-              attributes: [{ shaderLocation: 0, offset: 0, format: 'uint32x2' }]
-            },
-          ],
         });
 
         const query = await fetch('./assets/models/walt.phg');

@@ -229,9 +229,6 @@
           new Material({
             shader: new Shader({ code: skybox_oct_shader }),
             graphics: { depth: { write: false } },
-            vertex: [
-              { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }] }
-            ],
             bindings: [
               { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
               { binding: 1, name: "cubemap", resource: oct_envmap.create_view() },

@@ -333,14 +333,6 @@
             { binding: 2, name: "metallic", resource: metallic.create_view() },
             { binding: 3, name: "normal", resource: normal.create_view() },
           ],
-          vertex: [
-            {
-              arrayStride: 12,
-              attributes: [
-                { shaderLocation: 0, offset: 0, format: 'uint32x3' },
-              ]
-            },
-          ],
         });
 
         const model = await fetch('./assets/models/cerberus.phg');
@@ -360,9 +352,6 @@
           new Material({
             shader: new Shader({ code: skybox_shader }),
             graphics: { depth: { write: false } },
-            vertex: [
-              { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }] }
-            ],
             bindings: [
               { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
               { binding: 1, name: "cubemap", resource: original.create_view({ dimension: "cube" }) },

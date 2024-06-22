@@ -30,8 +30,6 @@ export class Engine {
     this.draw_stream.set_globals(global_bid);
     this.state.set_renderlist(list);
     
-    this.draw_stream.set_geometry(0);
-
     const draw_info = {
       index: NULL_HANDLE,
       draw_count: NULL_HANDLE,
@@ -46,6 +44,7 @@ export class Engine {
       this.draw_stream.set_pipeline(Keys.get_pipeline(entry));
       
       const mesh = entry.mesh, material = mesh.material;
+      // TODO: save material binding id on initialization
       const material_bid = material.bindings ? this.cache.get_binding(material.bindings).bid : 0;
       this.draw_stream.set_material(material_bid);
 
@@ -60,19 +59,14 @@ export class Engine {
       }
 
       const geometry = mesh.geometry;
+      this.draw_stream.set_geometry(geometry.get_vertices() || 0);
+
+      draw_info.index = geometry.index ? geometry.index.buffer.get_bid() : NULL_HANDLE;
       draw_info.draw_count = geometry.draw.count;
       draw_info.index_offset = geometry.get_index_offset();
       draw_info.vertex_offset = geometry.get_vertex_offset();
       draw_info.instance_count = geometry.draw.instance_count;
       draw_info.instance_offset = geometry.draw.instance_offset;
-      draw_info.index = geometry.index ? geometry.index.buffer.get_bid() : NULL_HANDLE;
-
-      let attrib = 0;
-      const attributes = geometry.attributes;
-      for (const al = attributes.length; attrib < al; attrib++)
-        this.draw_stream.set_attribute(attrib, attributes[attrib].buffer.get_bid());
-      for (; attrib < 4; attrib++)
-        this.draw_stream.set_attribute(attrib, NULL_HANDLE);
 
       this.draw_stream.draw(draw_info);
     }

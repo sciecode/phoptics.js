@@ -45,17 +45,13 @@ export class RenderState {
       // needs to be before pipeline update
       const material = mesh.material;
       const dynamic_layout = this.set_dynamic(material);
-      
-      const pipeline_cache = this.cache.get_pipeline(material, this.state, dynamic_layout);
-      Keys.set_pipeline(entry, pipeline_cache.bid);
-    }
 
-    for (let i = 0, il = list.length; i < il; i++) {
-      const entry = list[i], mesh = entry.mesh;
-
-      const geometry_cache = this.cache.get_geometry(mesh.geometry);
       Keys.set_geometry(entry, mesh.geometry);
+      const geometry_cache = this.cache.get_geometry(mesh.geometry);
       Keys.set_buffer(entry, geometry_cache.buffer_bid);
+      
+      const pipeline_cache = this.cache.get_pipeline(material, this.state, geometry_cache.layout, dynamic_layout);
+      Keys.set_pipeline(entry, pipeline_cache.bid);
     }
 
     Keys.sort(list);
@@ -64,7 +60,7 @@ export class RenderState {
   preload(pass, mesh) {
     this.set_pass(pass);
     const dynamic_layout = this.set_dynamic(mesh.material);
-    this.cache.get_pipeline(mesh.material, this.state, dynamic_layout);
-    this.cache.get_geometry(mesh.geometry);
+    const geometry_cache = this.cache.get_geometry(mesh.geometry);
+    this.cache.get_pipeline(mesh.material, this.state, geometry_cache.layout, dynamic_layout);
   }
 }
