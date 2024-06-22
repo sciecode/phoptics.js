@@ -1,7 +1,6 @@
 ### Priority
   - [ ] Add scene management - renderlist filtering - frustum culling
-  - [ ] Improve pipeline vertex-format material interface
-  - [ ] Implement storage-buffer based geometry vertices
+  - [x] Implement storage-buffer based geometry vertices
   - [x] Add support for texture arrays
   - [x] Add support for texture cubemaps
   - [x] Add support to blended Materials

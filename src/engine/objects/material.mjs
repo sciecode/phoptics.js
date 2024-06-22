@@ -5,6 +5,7 @@ export class Material {
   #id = UNINITIALIZED;
   #transparent = false;
   #version = 0;
+  #binding = 0;
   #free = () => {}
 
   constructor(options) {
@@ -23,13 +24,14 @@ export class Material {
     };
 
     this.dynamic = options.dynamic;
-    this.vertex = options.vertex;
     this.bindings = options.bindings ? new Bindings(options.bindings) : undefined;
   }
   
   get_id() { return this.#id; }
   get_version() { return this.#version; }
   get_transparent() { return this.#transparent; }
+  get_binding() { return this.#binding; }
+  set_binding(bid) { this.#binding = bid; }
   initialize(id, free) { if (this.#id == UNINITIALIZED) { this.#id = id; this.#free = free; } }
   destroy() {
     this.shader.destroy();

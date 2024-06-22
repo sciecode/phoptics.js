@@ -34,9 +34,11 @@ export class Geometry {
     for (let i = 0, il = this.attributes.length; i < il; i++) this.attributes[i].free_storage();
     return this;
   }
-  destroy() {
-    if (this.index) this.index.destroy();
-    for (let i = 0, il = this.attributes.length; i < il; i++) this.attributes[i].destroy();
+  destroy(destroy_buffers = false) {
+    if (destroy_buffers) {
+      if (this.index) this.index.destroy();
+      for (let i = 0, il = this.attributes.length; i < il; i++) this.attributes[i].destroy();
+    }
     this.#free(this.#id);
     this.#id = -1;
   }

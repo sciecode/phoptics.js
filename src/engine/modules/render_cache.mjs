@@ -105,7 +105,7 @@ export class RenderCache {
         index_offset: NULL_HANDLE,
         buffer_bid: NULL_HANDLE,
         layout: undefined,
-        binding: undefined,
+        binding: 0,
       };
 
       if (geometry_obj.index) {
@@ -148,7 +148,6 @@ export class RenderCache {
         });
       }
 
-
       id = this.geometries.allocate(cache);
       geometry_obj.initialize(id, cache.index_offset, cache.binding, this.geometry_callback);
     } else {
@@ -163,12 +162,18 @@ export class RenderCache {
   }
 
   free_geometry(id) {
-    // TODO: dispose layout, binding
+    const cache = this.geometries.get(id);
+    if (cache.layout) {
+      this.material_manager.free_layout(cache.layout);
+      this.backend.resources.destroy_bind_group(cache.binding);
+    }
     this.geometries.delete(id);
   }
 
   get_pipeline(material_obj, state, geometry_layout, dynamic_layout) {
     let id = material_obj.get_id();
+
+    let bindings = material_obj.bindings ? this.get_binding(material_obj.bindings) : undefined;
 
     if (id == UNINITIALIZED) {
       id = this.material_manager.create_material({
@@ -176,7 +181,7 @@ export class RenderCache {
         state: state,
         geometry_layout: geometry_layout,
         dynamic_layout: dynamic_layout,
-        binding: material_obj.bindings ? this.get_binding(material_obj.bindings).layout : undefined
+        binding: bindings
       });
     }
 
@@ -187,9 +192,12 @@ export class RenderCache {
         state: state,
         geometry_layout: geometry_layout,
         dynamic_layout: dynamic_layout,
-        binding: material_obj.bindings ? this.get_binding(material_obj.bindings).layout : undefined
+        binding: bindings
       });
     }
+
+    if (material_obj.bindings && material_obj.get_binding() != bindings.bid)
+      material_obj.set_binding(bindings.bid);
 
     return this.material_manager.get_pipeline(cache.pipeline);
   }

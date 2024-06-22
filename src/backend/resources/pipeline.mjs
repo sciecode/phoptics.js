@@ -30,7 +30,6 @@ export class Pipeline {
         module: module,
         constants: options.constants,
         entryPoint: options.shader.vertex || 'vs',
-        buffers: options.vertex,
       },
       fragment: {
         module: module,

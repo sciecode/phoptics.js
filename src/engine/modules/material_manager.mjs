@@ -38,8 +38,7 @@ export class MaterialManager {
   create_pipeline(info) {
     const hash = JSON.stringify({
       shader: this.get_shader(info.material.shader).get_id(),
-      binding: info.binding,
-      vertex: info.material.vertex,
+      binding: info.binding?.layout,
       graphics: info.material.graphics,
       ...info.state,
       ...info.material.graphics,
@@ -60,12 +59,11 @@ export class MaterialManager {
         layouts: {
           bindings: [
             (info.state.global_layout != undefined) ? this.get_layout(info.state.global_layout) : undefined,
-            info.binding ? this.get_layout(info.binding) : undefined,
+            info.binding ? this.get_layout(info.binding.layout) : undefined,
             info.geometry_layout ? this.get_layout(info.geometry_layout) : undefined,
           ],
           dynamic: info.dynamic_layout,
         },
-        vertex: info.material.vertex,
       });
       id = this.pipelines.set(hash, { count: 1, bid: pipeline, hash: hash, info: { render: undefined, key: undefined } });
     }
