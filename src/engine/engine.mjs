@@ -29,6 +29,9 @@ export class Engine {
     const global_bid = this.state.set_pass(pass);
     this.draw_stream.set_globals(global_bid);
     this.state.set_renderlist(list);
+
+    // dispatch buffer updates
+    this.cache.buffer_manager.upload();
     
     const draw_info = {
       index: NULL_HANDLE,

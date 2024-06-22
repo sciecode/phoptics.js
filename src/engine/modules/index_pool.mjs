@@ -16,6 +16,7 @@ export class IndexPool {
 
     this.allocators = [];
     this.buffers = [];
+    this.backing = [];
     
     this.indices = new PoolStorage();
     this.index_callback = this.free_index.bind(this);
@@ -39,12 +40,7 @@ export class IndexPool {
     }
 
     const cache = this.indices.get(id), update = index_obj.has_update();
-    if (update) {
-      this.backend.write_buffer(
-        cache.bid, cache.offset + update.buffer_offset,
-        update.data, update.data_offset, update.size
-      );
-    }
+    if (update) this.write(cache, update);
 
     return cache;
   }
@@ -73,6 +69,7 @@ export class IndexPool {
       });
 
       this.buffers.push(bid);
+      this.backing.push({ u8: new Uint8Array(MAX_SIZE), start: MAX_SIZE, end: 0 });
 
       const info = this.allocators[heap].malloc(aligned_bytes);
       offset = info.offset << BITS;
@@ -80,6 +77,34 @@ export class IndexPool {
     }
 
     return { heap, slot, offset, bid };
+  }
+
+  write(cache, update) {
+    const data_buffer = ArrayBuffer.isView(update.data) ? update.data.buffer : update.data;
+    const stride = ArrayBuffer.isView(update.data) ? update.data.BYTES_PER_ELEMENT : 1;
+    const byte_size = update.size * stride;
+    const offset = cache.offset + update.buffer_offset * stride;
+    const src = new Uint8Array(data_buffer, update.data.byteOffset + update.data_offset * stride, byte_size);
+
+    const backing = this.backing[cache.heap];
+    backing.u8.set(src, offset);
+
+    backing.start = Math.min(backing.start, offset);
+    backing.end = Math.max(backing.end, offset + byte_size);
+  }
+
+  upload(staging) {
+    for (let i = 0, il = this.backing.length; i < il; i++) {
+      const backing = this.backing[i];
+      if (backing.end) {
+        staging.stage({
+          bid: this.buffers[i],
+          backing: backing.u8.subarray(backing.start, backing.end),
+          offset: backing.start,
+        });
+        backing.start = MAX_SIZE, backing.end = 0;
+      }
+    }
   }
 
   free_index(index_id) {

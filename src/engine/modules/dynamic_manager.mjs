@@ -25,7 +25,7 @@ export class DynamicManager {
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
     });
 
-    this.data = new Uint8Array(BUFFER_SIZE);
+    this.data = new Uint8Array(BUFFER_SIZE); // TODO: handle new heap allocation
 
     this.group_callback = this.free_group.bind(this);
   }
