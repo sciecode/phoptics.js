@@ -31,7 +31,7 @@ export class Engine {
     this.state.set_renderlist(list);
 
     // dispatch buffer updates
-    this.cache.buffer_manager.upload();
+    this.cache.buffer_manager.dispatch();
     
     const draw_info = {
       index: NULL_HANDLE,
@@ -158,7 +158,6 @@ const FEATURE_LIST = [
   "float32-filterable",
   "texture-compression-bc",
   "texture-compression-astc",
-  "texture-compression-etc2",
   "shader-f16",
 ]
 

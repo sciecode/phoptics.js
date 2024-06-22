@@ -15,6 +15,7 @@ export class UniformPool {
 
     this.allocators = [];
     this.buffers = [];
+    this.backing = [];
     this.uniforms = new PoolStorage();
 
     this.free_callback = this.free.bind(this);
@@ -39,8 +40,7 @@ export class UniformPool {
     const cache = this.uniforms.get(id), version = uniform_obj.get_version();
     if (cache.version != version) {
       cache.version = version;
-      // TODO: optimize to single buffer write 
-      this.backend.write_buffer(cache.bid, cache.offset, uniform_obj.buffer);
+      this.write(cache, uniform_obj.bytes);
     }
 
     return cache;
@@ -62,11 +62,14 @@ export class UniformPool {
     if (heap == undefined) {
       heap = this.allocators.length;
       this.allocators.push(new OffsetAllocator(TOTAL_BLOCKS));
+
       this.buffers.push(this.backend.resources.create_buffer({
           size: MAX_SIZE,
           usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
         })
       );
+      this.backing.push({ u8: new Uint8Array(MAX_SIZE), start: MAX_SIZE, end: 0 });
+
       const info = this.allocators[heap].malloc(aligned_bytes);
       offset = info.offset << BITS;
       slot = info.slot;
@@ -75,6 +78,30 @@ export class UniformPool {
     const bid = this.buffers[heap];
 
     return { heap, slot, offset, bid };
+  }
+
+  write(cache, bytes) {
+    const byte_size = bytes.byteLength, offset = cache.offset;
+
+    const backing = this.backing[cache.heap];
+    backing.u8.set(bytes, offset);
+
+    backing.start = Math.min(backing.start, offset);
+    backing.end = Math.max(backing.end, offset + byte_size);
+  }
+
+  stage(staging) {
+    for (let i = 0, il = this.backing.length; i < il; i++) {
+      const backing = this.backing[i];
+      if (backing.end) {
+        staging.stage({
+          bid: this.buffers[i],
+          backing: backing.u8.subarray(backing.start, backing.end),
+          offset: backing.start,
+        });
+        backing.start = MAX_SIZE, backing.end = 0;
+      }
+    }
   }
 
   free(uniform_id) {

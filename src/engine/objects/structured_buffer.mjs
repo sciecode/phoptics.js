@@ -10,11 +10,11 @@ export class StructuredBuffer {
     
     const arr = [];
     this.total_bytes = parse_struct(this, arr, options);
-    this.buffer = new ArrayBuffer(this.total_bytes);
+    this.bytes = new Uint8Array(this.total_bytes);
 
     let current_offset = 0;
     for (let entry of arr) {
-      entry.parent[entry.name] = new entry.type(this.buffer, current_offset);
+      entry.parent[entry.name] = new entry.type(this.bytes.buffer, current_offset);
       current_offset += entry.size;
     }
   }

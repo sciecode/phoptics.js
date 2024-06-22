@@ -93,7 +93,7 @@ export class IndexPool {
     backing.end = Math.max(backing.end, offset + byte_size);
   }
 
-  upload(staging) {
+  stage(staging) {
     for (let i = 0, il = this.backing.length; i < il; i++) {
       const backing = this.backing[i];
       if (backing.end) {
