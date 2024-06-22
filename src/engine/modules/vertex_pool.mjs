@@ -21,10 +21,10 @@ export class VertexPool {
   }
 
   get_attribute(attrib_obj) {
-    let id = attrib_obj.buffer.get_id();
+    let id = attrib_obj.get_id();
 
     if (id == UNINITIALIZED) {
-      const size = attrib_obj.buffer.size;
+      const size = attrib_obj.size;
       const { heap, slot, offset, bid, buffer_size } = this.create(size);
 
       id = this.attributes.allocate({
@@ -34,7 +34,7 @@ export class VertexPool {
         size: buffer_size,
         offset: offset,
       });
-      attrib_obj.buffer.initialize(id, bid, this.attribute_callback);
+      attrib_obj.initialize(id, bid, this.attribute_callback);
     }
 
     const cache = this.attributes.get(id), update = attrib_obj.has_update();

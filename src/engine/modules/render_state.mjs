@@ -43,11 +43,11 @@ export class RenderState {
       entry.key = 0;
       
       // needs to be before pipeline update
-      const material = mesh.material;
+      const material = mesh.material, geometry = mesh.geometry;
       const dynamic_layout = this.set_dynamic(material);
 
-      Keys.set_geometry(entry, mesh.geometry);
-      const geometry_cache = this.cache.get_geometry(mesh.geometry);
+      Keys.set_geometry(entry, geometry);
+      const geometry_cache = this.cache.get_geometry(geometry);
       Keys.set_buffer(entry, geometry_cache.buffer_bid);
       
       const pipeline_cache = this.cache.get_pipeline(material, this.state, geometry_cache.layout, dynamic_layout);

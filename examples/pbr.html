@@ -122,7 +122,7 @@
           }
         }
 
-        quad.geometry.destroy();
+        quad.geometry.destroy(true);
         quad.material.destroy();
 
         return cubemap;
@@ -180,7 +180,7 @@
           }
         }
 
-        quad.geometry.destroy();
+        quad.geometry.destroy(true);
         quad.material.destroy();
 
         return pmlm;
@@ -219,7 +219,7 @@
         globals.update();
         engine.render(render_pass, scene);
 
-        quad.geometry.destroy();
+        quad.geometry.destroy(true);
         quad.material.destroy();
 
         return lut;

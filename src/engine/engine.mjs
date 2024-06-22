@@ -59,7 +59,7 @@ export class Engine {
       const geometry = mesh.geometry;
       this.draw_stream.set_geometry(geometry.get_vertices());
 
-      draw_info.index = geometry.index?.buffer.get_bid() || NULL_HANDLE;
+      draw_info.index = geometry.index?.get_bid() || NULL_HANDLE;
       draw_info.draw_count = geometry.draw.count;
       draw_info.index_offset = geometry.get_index_offset();
       draw_info.vertex_offset = geometry.get_vertex_offset();

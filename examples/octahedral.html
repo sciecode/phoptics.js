@@ -101,8 +101,8 @@
         }
 
         globals.destroy();
-        quad.geometry.destroy();
-        quad.geometry.destroy();
+        quad.geometry.destroy(true);
+        quad.material.destroy();
         cubemap.destroy();
 
         return pmlm;
@@ -153,8 +153,8 @@
         }
 
         dim.destroy();
-        quad.geometry.destroy();
-        quad.geometry.destroy();
+        quad.geometry.destroy(true);
+        quad.material.destroy();
         pmlm.destroy();
 
         return { tex: oct_envmap, info: { outset, scale } };

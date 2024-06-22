@@ -1,11 +1,14 @@
-import { Buffer } from './buffer.mjs';
+import { UNINITIALIZED } from "../constants.mjs";
 
 class GeometryBinding {
+  #id = UNINITIALIZED;
+  #bid = UNINITIALIZED;
   #update = undefined;
+  #free = () => {}
   constructor(options) {
     this.data = options.data;
     this.stride = options.stride || 4;
-    this.buffer = new Buffer(options.size || this.data.byteLength);
+    this.size = options.size || this.data.byteLength;
     if (this.data) this.update();
   }
   update(options = {}) {
@@ -26,7 +29,10 @@ class GeometryBinding {
     this.#update = undefined;
     return cur;
   }
-  destroy() { this.buffer.destroy(); }
+  get_id() { return this.#id; }
+  get_bid() { return this.#bid }
+  initialize(id, bid, free) { if (this.#id == UNINITIALIZED) { this.#id = id; this.#bid = bid; this.#free = free; } }
+  destroy() { this.#free(this.#id); this.#id = -1 }
 }
 
 export class Index extends GeometryBinding {}
