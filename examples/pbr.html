@@ -25,7 +25,7 @@
   <body>
     <script type="module">
       import { Engine, Mesh, RenderList, Shader, Sampler, Material, Geometry, Texture, CanvasTexture,
-        RenderPass, RenderTarget, StructuredBuffer, DynamicLayout, Format } from 'phoptics';
+        RenderPass, RenderTarget, StructuredBuffer, Format } from 'phoptics';
       import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
       import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
       import { SkyboxGeometry } from 'phoptics/utils/objects/skybox.mjs';
@@ -296,9 +296,7 @@
         camera.info.set(250, 1);
         camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, .1, 99);
 
-        const transform_layout = new DynamicLayout([
-          { name: "world", type: Mat3x4 },
-        ]);
+        const transform_layout = [{ name: "world", type: Mat3x4 }];
 
         const loader = new KTXLoader();
         const { textures: a_tex, header: a_header } = await loader.load("./assets/textures/cerberus/albedo.ktx2");

@@ -8,7 +8,7 @@
   - [x] Add distance-based renderlist sorting
   - [x] Render transparent objects after opaque
   - [x] Implement range-based HybridSort
-
+  - [x] Dynamic uniforms perf/mem optimization - shader access
 
 ### Utils
   - [ ] Add Lighting manager module

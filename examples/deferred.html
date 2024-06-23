@@ -24,8 +24,8 @@
   </head>
   <body>
     <script type="module">
-      import { Engine, Mesh, RenderList, Buffer, Shader, Sampler, Geometry, Material, Texture, CanvasTexture,
-        RenderPass, RenderTarget, StructuredBuffer, DynamicLayout, Format } from 'phoptics';
+      import { Engine, Mesh, RenderList, Shader, Sampler, Geometry, Material, Texture, CanvasTexture,
+        RenderPass, RenderTarget, StructuredBuffer, Format } from 'phoptics';
       import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
       import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
 
@@ -101,9 +101,7 @@
         });
         render_pass.set_render_target(render_target);
 
-        const transform_layout = new DynamicLayout([
-          { name: "world", type: Mat3x4 }
-        ]);
+        const transform_layout = [{ name: "world", type: Mat3x4 }];
 
         const gbuffer_material = new Material({
           shader: new Shader({ code: gbuffer_shader }),

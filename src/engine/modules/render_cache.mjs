@@ -149,7 +149,7 @@ export class RenderCache {
       }
 
       id = this.geometries.allocate(cache);
-      geometry_obj.initialize(id, cache.index_offset, cache.binding, this.geometry_callback);
+      geometry_obj.initialize(id, cache.index_offset, cache.binding, cache.layout, this.geometry_callback);
     } else {
       if (geometry_obj.index) this.get_index(geometry_obj.index);
       const attributes = geometry_obj.attributes, attrib_count = attributes.length;

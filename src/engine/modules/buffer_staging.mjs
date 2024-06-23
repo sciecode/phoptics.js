@@ -10,7 +10,7 @@ export class BufferStaging {
   }
 
   stage(info) {
-    this.ring[this.heap].set(info.backing, this.current); // TODO: handle new heap allocations
+    this.ring[this.heap].set(info.backing, this.current);
 
     const size = info.backing.byteLength;
 

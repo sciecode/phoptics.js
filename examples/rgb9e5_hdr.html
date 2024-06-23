@@ -25,7 +25,7 @@
   <body>
     <script type="module">
       import { Engine, Mesh, RenderList, Shader, Vertex, Sampler, Geometry, Material, Texture, CanvasTexture,
-        RenderPass, DynamicLayout, RenderTarget, StructuredBuffer, Format } from 'phoptics';
+        RenderPass, RenderTarget, StructuredBuffer, Format } from 'phoptics';
       import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
       import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
       import { encode_rgb9e5 } from 'phoptics/utils/data/encoder.mjs';
@@ -123,7 +123,7 @@
         camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 300);
 
         const shader = new Shader({ code: luminance_shader });
-        const transform_layout = new DynamicLayout([{ name: "world", type: Mat3x4 }]);
+        const transform_layout = [{ name: "world", type: Mat3x4 }];
 
         const {hdr, rgb9e5} = create_luminance_map(engine)
 

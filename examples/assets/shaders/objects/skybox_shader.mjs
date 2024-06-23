@@ -13,8 +13,21 @@ struct Globals {
   exposure : f32,
 }
 
+struct Attributes {
+  pos: vec3f,
+}
+
 @group(0) @binding(0) var<storage, read> globals: Globals;
-@group(2) @binding(0) var<storage, read> attrib: array<f32>;
+
+@group(2) @binding(0) var<storage, read> attributes: array<f32>;
+
+fn read_attribute(vert : u32) -> Attributes {
+  var attrib : Attributes;
+
+  let p = vert * 3;
+  attrib.pos = vec3f(attributes[p], attributes[p+1], attributes[p+2]);
+  return attrib;
+}
 
 @vertex fn vs(@builtin(vertex_index) vert: u32) -> FragInput {
   var output : FragInput;
@@ -24,13 +37,12 @@ struct Globals {
   view[1].w = 0;
   view[2].w = 0;
 
-  let p = vert * 3;
-  var pos = vec3f(attrib[p], attrib[p+1], attrib[p+2]);
-  var c_pos = vec4f(vec4f(pos, 1) * view, 1) * globals.projection_matrix;
+  var attrib = read_attribute(vert);
+  var c_pos = vec4f(vec4f(attrib.pos, 1) * view, 1) * globals.projection_matrix;
   c_pos.z = 0.00000001;
 
   output.position = c_pos;
-  output.dir = pos;
+  output.dir = attrib.pos;
   
   return output;
 }

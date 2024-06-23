@@ -29,7 +29,7 @@ export class RenderState {
 
   set_dynamic(material) {
     if (material.dynamic) {
-      this.state.dynamic_id = this.dynamic.get_group(material.dynamic);
+      this.state.dynamic_id = this.dynamic.group;
       return this.dynamic.layout;
     } else {
       this.state.dynamic_id = undefined;
@@ -39,20 +39,31 @@ export class RenderState {
 
   set_renderlist(list) { 
     for (let i = 0, il = list.length; i < il; i++) {
+      const entry = list[i]; entry.key = 0;
+
+      const mesh = entry.mesh, geometry = mesh.geometry;
+      const geometry_cache = this.cache.get_geometry(geometry);
+      Keys.set_buffer(entry, geometry_cache.buffer_bid);
+      Keys.set_geometry(entry, geometry);
+      Keys.set_dynamic(entry, mesh.dynamic);
+    }
+
+    // dispatch geometry buffer updates
+    this.cache.buffer_manager.dispatch();
+
+    for (let i = 0, il = list.length; i < il; i++) {
       const entry = list[i], mesh = entry.mesh;
-      entry.key = 0;
       
       // needs to be before pipeline update
       const material = mesh.material, geometry = mesh.geometry;
       const dynamic_layout = this.set_dynamic(material);
-
-      Keys.set_geometry(entry, geometry);
-      const geometry_cache = this.cache.get_geometry(geometry);
-      Keys.set_buffer(entry, geometry_cache.buffer_bid);
       
-      const pipeline_cache = this.cache.get_pipeline(material, this.state, geometry_cache.layout, dynamic_layout);
+      const pipeline_cache = this.cache.get_pipeline(material, this.state, geometry.get_layout(), dynamic_layout);
       Keys.set_pipeline(entry, pipeline_cache.bid);
     }
+
+    // dispatch uniforms buffer updates
+    this.cache.buffer_manager.dispatch();
 
     Keys.sort(list);
   }

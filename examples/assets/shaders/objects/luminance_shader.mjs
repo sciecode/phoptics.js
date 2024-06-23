@@ -21,20 +21,44 @@ struct Uniforms {
   world_matrix: mat3x4f,
 }
 
+struct Attributes {
+  pos : vec3f,
+}
+
 @group(0) @binding(0) var<storage, read> globals: Globals;
-@group(2) @binding(0) var<storage, read> attrib: array<f32>;
-@group(3) @binding(0) var<storage, read> uniforms: Uniforms;
+
+@group(2) @binding(0) var<storage, read> attributes: array<f32>;
+@group(3) @binding(0) var<storage, read> dynamic: array<f32>;
+
+fn read_uniform(inst : u32) -> Uniforms {
+  var uniform : Uniforms;
+
+  var p = inst;
+  uniform.world_matrix = mat3x4f(
+    dynamic[p], dynamic[p+1], dynamic[p+2], dynamic[p+3],
+    dynamic[p+4], dynamic[p+5], dynamic[p+6], dynamic[p+7],
+    dynamic[p+8], dynamic[p+9], dynamic[p+10], dynamic[p+11],
+  );
+  return uniform;
+}
+
+fn read_attributes(vert : u32) -> Attributes {
+  var attrib : Attributes;
+
+  let p = vert * 3;
+  attrib.pos = vec3f(attributes[p], attributes[p+1], attributes[p+2]);
+  return attrib;
+}
 
 @vertex fn vs(@builtin(vertex_index) vert: u32, @builtin(instance_index) inst: u32) -> FragInput {
   var output : FragInput;
 
-  let p = vert * 3;
-  var pos = vec3f(attrib[p], attrib[p+1], attrib[p+2]);
-  var w_pos = vec4f(pos + vec3f(0, 3, 0) * f32(inst), 1) * uniforms.world_matrix;
+  var attrib = read_attributes(vert);
+  var w_pos = vec4f(attrib.pos, 1) * read_uniform(inst).world_matrix;
   var c_pos = vec4f(vec4f(w_pos, 1) * globals.view_matrix, 1) * globals.projection_matrix;
 
   output.position = c_pos;
-  output.uv = vec2f(pos.x, -pos.y) * .5 + .5;
+  output.uv = vec2f(attrib.pos.x, -attrib.pos.y) * .5 + .5;
 
   return output;
 }

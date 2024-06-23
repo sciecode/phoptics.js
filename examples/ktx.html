@@ -26,7 +26,7 @@
     <script type="module">
       import {
         Engine, Mesh, RenderList, Shader, Vertex, Sampler, Geometry, Material, Texture, CanvasTexture,
-        RenderPass, DynamicLayout, RenderTarget, StructuredBuffer, Format
+        RenderPass, RenderTarget, StructuredBuffer, Format
       } from 'phoptics';
       import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
       import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
@@ -82,16 +82,15 @@
         render_pass.set_render_target(render_target);
 
         orbit = new Orbit(canvas_texture.canvas);
-        orbit.target.set(0, 1.5, 0);
-        orbit.position.set(0, 1.5, 5);
+        orbit.position.set(0, 0, 5);
         orbit.update();
         camera.luma.set(250, 8);
         camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 300);
 
-        const transform_layout = new DynamicLayout([{ name: "world", type: Mat3x4 }]);
+        const transform_layout = [{ name: "world", type: Mat3x4 }];
 
         const geometry = new Geometry({
-          draw: { count: 6, instance_count: 2 },
+          draw: { count: 6 },
           attributes: [
             new Vertex({
               data: new Float32Array([

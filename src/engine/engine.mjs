@@ -29,9 +29,6 @@ export class Engine {
     const global_bid = this.state.set_pass(pass);
     this.draw_stream.set_globals(global_bid);
     this.state.set_renderlist(list);
-
-    // dispatch buffer updates
-    this.cache.buffer_manager.dispatch();
     
     const draw_info = {
       index: NULL_HANDLE,
@@ -50,11 +47,7 @@ export class Engine {
       this.draw_stream.set_material(material.get_binding());
 
       if (material.dynamic !== undefined) {
-        const dynamic_id = material.dynamic.get_id();
-        const { group, offset } = this.dynamic.allocate(dynamic_id);
-        this.draw_stream.set_dynamic(group);
-        this.draw_stream.set_dynamic_offset(offset);
-        this.dynamic.data.set(mesh.dynamic.data, offset);
+        this.draw_stream.set_dynamic(this.dynamic.allocate(mesh));
       } else {
         this.draw_stream.set_dynamic(0);
       }
@@ -79,9 +72,7 @@ export class Engine {
     this.backend.render(descriptor, this.draw_stream);
   }
 
-  preload(pass, mesh) {
-    this.state.preload(pass, mesh);
-  }
+  preload(pass, mesh) { this.state.preload(pass, mesh); }
 
   upload_texture(texture_obj, source, options = {}) {
     const bid = this.cache.get_texture(texture_obj).bid;

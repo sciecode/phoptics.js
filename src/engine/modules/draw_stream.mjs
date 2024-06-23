@@ -34,12 +34,9 @@ export class DrawStream {
     this.upload_data(DrawStreamBits.bind_geometry, DrawStreamFlags.bind_geometry, group_handle);
   }
 
-  set_dynamic(group_handle) {
-    this.upload_data(DrawStreamBits.dynamic_group, DrawStreamFlags.dynamic_group, group_handle);
-  }
-
-  set_dynamic_offset(offset) {
-    this.upload_data(DrawStreamBits.dynamic_offset, DrawStreamFlags.dynamic_offset, offset);
+  set_dynamic(info) {
+    this.upload_data(DrawStreamBits.dynamic_group, DrawStreamFlags.dynamic_group, info.group);
+    this.upload_data(DrawStreamBits.dynamic_offset, DrawStreamFlags.dynamic_offset, info.offset);
   }
 
   upload_data(bit, flag, data) {

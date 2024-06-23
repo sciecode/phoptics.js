@@ -11,7 +11,6 @@ import { RenderPass } from "./objects/render_pass.mjs";
 import { TextureView } from "./objects/texture_view.mjs";
 import { RenderTarget } from "./objects/render_target.mjs";
 import { CanvasTexture } from "./objects/canvas_texture.mjs";
-import { DynamicLayout } from "./objects/dynamic_layout.mjs";
 import { StructuredBuffer } from "./objects/structured_buffer.mjs";
 import { StructuredDynamic } from "./objects/structured_dynamic.mjs";
 import { Format } from "../common/constants.mjs";
@@ -21,6 +20,6 @@ import { Engine } from "./engine.mjs";
 export {
   Format, ResourceType,
   Engine, Mesh, RenderList, Shader, Sampler, Texture, Material, Geometry, Bindings,
-  Vertex, Index, RenderPass, TextureView, RenderTarget, CanvasTexture, DynamicLayout, 
+  Vertex, Index, RenderPass, TextureView, RenderTarget, CanvasTexture, 
   StructuredBuffer, StructuredDynamic,
 };

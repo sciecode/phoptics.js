@@ -110,19 +110,6 @@ export class GPUBackend {
       }
     }
 
-    // dynamic
-    if (metadata & 0x30) {
-      let group_handle = draw_packet.draw.dynamic_group = metadata & DrawStreamFlags.dynamic_group ?
-        stream[draw_packet.offset++] : draw_packet.draw.dynamic_group;
-      const bind_group = this.resources.get_bind_group(group_handle);
-      const group = bind_group.group;
-
-      if (metadata & (DrawStreamFlags.dynamic_offset))
-        draw_packet.draw.dynamic_offset[0] = stream[draw_packet.offset++];
-
-      pass.setBindGroup(3, group, bind_group.dynamic_entries ? draw_packet.draw.dynamic_offset : draw_packet.draw.empty);
-    }
-
     // index offset
     if (metadata & DrawStreamFlags.index_offset) {
       draw_packet.draw.index_offset = stream[draw_packet.offset++];
@@ -156,6 +143,18 @@ export class GPUBackend {
     // instance offset
     if (metadata & DrawStreamFlags.instance_offset) {
       draw_packet.draw.instance_offset = stream[draw_packet.offset++];
+    }
+
+    // dynamic
+    if (metadata & DrawStreamFlags.dynamic_group) {
+      draw_packet.draw.dynamic_group = stream[draw_packet.offset++];
+      const bind_group = this.resources.get_bind_group(draw_packet.draw.dynamic_group);
+      pass.setBindGroup(3, bind_group.group);
+    }
+
+    if (metadata & DrawStreamFlags.dynamic_offset) {
+      if (draw_packet.draw.dynamic_group)
+        draw_packet.draw.instance_offset = stream[draw_packet.offset++] / 4;
     }
 
     const info = draw_packet.draw;

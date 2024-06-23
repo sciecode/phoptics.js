@@ -25,7 +25,7 @@
   <body>
     <script type="module">
       import { Engine, Mesh, RenderList, Shader, Material, Texture, CanvasTexture,
-        RenderPass, RenderTarget, StructuredBuffer, DynamicLayout, Format } from 'phoptics';
+        RenderPass, RenderTarget, StructuredBuffer, Format } from 'phoptics';
       import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
       import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
       import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
@@ -90,10 +90,10 @@
         camera.luma.set(250, 1);
         camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 300);
 
-        const transform_layout = new DynamicLayout([
+        const transform_layout = [
           { name: "world", type: Mat3x4 },
           { name: "color", type: Vec4 }
-        ]);
+        ];
 
         const shader_base = new Shader({ code: forward_shader });
 

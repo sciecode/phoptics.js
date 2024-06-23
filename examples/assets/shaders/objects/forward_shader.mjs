@@ -6,6 +6,7 @@ struct FragInput {
   @builtin(position) position : vec4f,
   @location(0) w_pos : vec3f,
   @location(1) w_normal : vec3f,
+  @location(2) @interpolate(flat) inst: u32,
 }
 
 struct Globals {
@@ -22,9 +23,15 @@ struct Uniforms {
   color: vec4f,
 }
 
+struct Attributes {
+  pos: vec3f,
+  normal: vec3f,
+}
+
 @group(0) @binding(0) var<storage, read> globals: Globals;
-@group(2) @binding(0) var<storage, read> attrib: array<u32>;
-@group(3) @binding(0) var<storage, read> uniforms: Uniforms;
+
+@group(2) @binding(0) var<storage, read> attributes: array<u32>;
+@group(3) @binding(0) var<storage, read> dynamic: array<f32>;
 
 fn dec_oct16(data : u32) -> vec3f {
   let v = vec2f(vec2u(data, data >> 8) & vec2u(255)) / 127.5 - 1.0;
@@ -35,21 +42,44 @@ fn dec_oct16(data : u32) -> vec3f {
   return normalize(nor);
 }
 
-@vertex fn vs(@builtin(vertex_index) vert : u32) -> FragInput {
-  var output : FragInput;
+fn read_uniform(inst : u32) -> Uniforms {
+  var uniform : Uniforms;
+
+  var p = inst;
+  uniform.world_matrix = mat3x4f(
+    dynamic[p], dynamic[p+1], dynamic[p+2], dynamic[p+3],
+    dynamic[p+4], dynamic[p+5], dynamic[p+6], dynamic[p+7],
+    dynamic[p+8], dynamic[p+9], dynamic[p+10], dynamic[p+11],
+  );
+
+  uniform.color = vec4f(dynamic[p+12], dynamic[p+13], dynamic[p+14], dynamic[p+15]);
+  return uniform;
+}
+
+fn read_attribute(vert : u32) -> Attributes {
+  var attrib : Attributes;
 
   let p = vert * 2;
-  var pos = vec3f(bitcast<vec4h>(vec2u(attrib[p], attrib[p + 1])).xyz);
-  var norm16 = attrib[p + 1] >> 16;
+  attrib.pos = vec3f(bitcast<vec4h>(vec2u(attributes[p], attributes[p+1])).xyz);
+  attrib.normal = dec_oct16(attributes[p+1] >> 16);
+  return attrib;
+}
 
-  var w_pos = vec4f(pos, 1) * uniforms.world_matrix;
+@vertex fn vs(@builtin(vertex_index) vert : u32, @builtin(instance_index) inst : u32) -> FragInput {
+  var output : FragInput;
+
+  let uniform = read_uniform(inst);
+  let attrib = read_attribute(vert);
+
+  var w_pos = vec4f(attrib.pos, 1) * uniform.world_matrix;
   var c_pos = vec4f(vec4f(w_pos, 1) * globals.view_matrix, 1) * globals.projection_matrix;
 
-  var normal_matrix = mat3x3f(uniforms.world_matrix[0].xyz, uniforms.world_matrix[1].xyz, uniforms.world_matrix[2].xyz);
+  var normal_matrix = mat3x3f(uniform.world_matrix[0].xyz, uniform.world_matrix[1].xyz, uniform.world_matrix[2].xyz);
 
   output.position = c_pos;
   output.w_pos = w_pos;
-  output.w_normal = dec_oct16(norm16) * normal_matrix;
+  output.w_normal = attrib.normal * normal_matrix;
+  output.inst = inst;
 
   return output;
 }
@@ -116,8 +146,9 @@ fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
     vec3f(1, .3, .2),     // color
     800.                  // intensity
   );
-  
-  let albedo = uniforms.color.rgb;
+
+  let uniform = read_uniform(in.inst);
+  let albedo = uniform.color.rgb;
   let L = albedo * frag.Ld_dif;
 
   let Ln = phoptics_tonemap(L, globals.exposure, globals.nits);

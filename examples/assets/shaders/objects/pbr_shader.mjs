@@ -23,12 +23,41 @@ struct Uniforms {
   world_matrix: mat3x4f,
 }
 
+struct Attributes {
+  pos : vec3f,
+  normal : vec3f,
+  uv : vec2f,
+}
+
 @group(0) @binding(0) var<storage, read> globals: Globals;
 @group(0) @binding(1) var gsamp: sampler;
 @group(0) @binding(2) var lut: texture_2d<f32>;
 @group(0) @binding(3) var cubemap: texture_cube<f32>;
-@group(2) @binding(0) var<storage, read> attrib: array<u32>;
-@group(3) @binding(0) var<storage, read> uniforms: Uniforms;
+
+@group(2) @binding(0) var<storage, read> attributes: array<u32>;
+@group(3) @binding(0) var<storage, read> dynamic: array<f32>;
+
+fn read_uniform(inst : u32) -> Uniforms {
+  var uniform : Uniforms;
+
+  var p = inst;
+  uniform.world_matrix = mat3x4f(
+    dynamic[p], dynamic[p+1], dynamic[p+2], dynamic[p+3],
+    dynamic[p+4], dynamic[p+5], dynamic[p+6], dynamic[p+7],
+    dynamic[p+8], dynamic[p+9], dynamic[p+10], dynamic[p+11],
+  );
+  return uniform;
+}
+
+fn read_attribute(vert : u32) -> Attributes {
+  var attrib : Attributes;
+
+  let p = vert * 3;
+  attrib.pos = vec3f(bitcast<vec4h>(vec2u(attributes[p], attributes[p+1])).xyz);
+  attrib.normal = dec_oct16(attributes[p+1] >> 16);
+  attrib.uv = vec2f(bitcast<vec2h>(attributes[p+2]));
+  return attrib;
+}
 
 fn dec_oct16(data : u32) -> vec3f {
   let v = vec2f(vec2u(data, data >> 8) & vec2u(255)) / 127.5 - 1.0;
@@ -44,23 +73,21 @@ fn normal_rg(v : vec2f) -> vec3f {
 	return normalize(vec3f(v, z));
 }
 
-@vertex fn vs(@builtin(vertex_index) vert: u32) -> FragInput {
+@vertex fn vs(@builtin(vertex_index) vert: u32, @builtin(instance_index) inst: u32) -> FragInput {
   var output : FragInput;
 
-  let p = vert * 3;
-  var pos = vec3f(bitcast<vec4h>(vec2u(attrib[p], attrib[p + 1])).xyz);
-  var norm16 = attrib[p + 1] >> 16;
-  var uv = vec2f(bitcast<vec2h>(attrib[p + 2]));
+  let attrib = read_attribute(vert);
+  let uniform = read_uniform(inst);
 
-  var w_pos = vec4f(pos, 1) * uniforms.world_matrix;
+  var w_pos = vec4f(attrib.pos, 1) * uniform.world_matrix;
   var c_pos = vec4f(vec4f(w_pos, 1) * globals.view_matrix, 1) * globals.projection_matrix;
 
-  var normal_matrix = mat3x3f(uniforms.world_matrix[0].xyz, uniforms.world_matrix[1].xyz, uniforms.world_matrix[2].xyz);
+  var normal_matrix = mat3x3f(uniform.world_matrix[0].xyz, uniform.world_matrix[1].xyz, uniform.world_matrix[2].xyz);
 
   output.position = c_pos;
   output.w_pos = w_pos;
-  output.w_normal = dec_oct16(norm16) * normal_matrix;
-  output.uv = uv;
+  output.w_normal = attrib.normal * normal_matrix;
+  output.uv = attrib.uv;
 
   return output;
 }

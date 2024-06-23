@@ -3,6 +3,7 @@ import { UNINITIALIZED } from "../constants.mjs";
 export class Geometry {
   #id = UNINITIALIZED;
   #index_offset = 0;
+  #layout = 0;
   #vertices_bid = 0;
   #free = null;
 
@@ -17,11 +18,12 @@ export class Geometry {
     this.attributes = options.attributes || [];
   }
 
-  initialize(id, index, vertex, free) { 
+  initialize(id, index, vertex, layout, free) { 
     if (this.#id == UNINITIALIZED) { 
       this.#id = id; 
       this.#index_offset = index;
       this.#vertices_bid = vertex;
+      this.#layout = layout;
       this.#free = free;
     }
   }
@@ -29,6 +31,7 @@ export class Geometry {
   get_index_offset() { return this.#index_offset + (this.index ? this.draw.offset : 0); }
   get_vertex_offset() { return this.index ? 0 : this.draw.offset; }
   get_vertices() { return this.#vertices_bid; }
+  get_layout() { return this.#layout; }
   set_static() { 
     if (this.index) this.index.free_storage();
     for (let i = 0, il = this.attributes.length; i < il; i++) this.attributes[i].free_storage();
