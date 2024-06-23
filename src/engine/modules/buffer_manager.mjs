@@ -1,11 +1,11 @@
 import { IndexPool } from "./index_pool.mjs";
 import { VertexPool } from "./vertex_pool.mjs";
 import { UniformPool } from "./uniform_pool.mjs";
-import { BufferStaging } from "./buffer_staging.mjs";
+// import { BufferStaging } from "./buffer_staging.mjs";
 
 export class BufferManager {
   constructor(backend) {
-    this.staging = new BufferStaging(backend);
+    // this.staging = new BufferStaging(backend);
     this.uniforms = new UniformPool(backend);
     this.vertices = new VertexPool(backend);
     this.indices = new IndexPool(backend);
@@ -15,9 +15,9 @@ export class BufferManager {
   get_attribute(attrib_obj) { return this.vertices.get_attribute(attrib_obj); }
   get_index(index_obj) { return this.indices.get_index(index_obj); }
   dispatch() { 
-    this.vertices.stage(this.staging);
-    this.indices.stage(this.staging);
-    this.uniforms.stage(this.staging);
-    this.staging.upload(); 
+    this.vertices.dispatch();
+    this.indices.dispatch();
+    this.uniforms.dispatch();
+    // this.staging.upload(); 
   }
 }

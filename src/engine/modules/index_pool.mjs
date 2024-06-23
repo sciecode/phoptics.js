@@ -93,15 +93,12 @@ export class IndexPool {
     backing.end = Math.max(backing.end, offset + byte_size);
   }
 
-  stage(staging) {
+  dispatch() {
     for (let i = 0, il = this.backing.length; i < il; i++) {
       const backing = this.backing[i];
       if (backing.end) {
-        staging.stage({
-          bid: this.buffers[i],
-          backing: backing.u8.subarray(backing.start, backing.end),
-          offset: backing.start,
-        });
+        const st = backing.start, size = backing.end - st;
+        this.backend.write_buffer(this.buffers[i], backing.start, backing.u8, backing.start, size);
         backing.start = MAX_SIZE, backing.end = 0;
       }
     }
