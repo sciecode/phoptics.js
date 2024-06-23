@@ -24,17 +24,17 @@
   </head>
   <body>
     <script type="module">
-      import { Engine, Mesh, RenderList, Shader, Material, Texture, CanvasTexture,
+      import { Engine, Mesh, Vertex, RenderList, Shader, Material, Texture, CanvasTexture,
         RenderPass, RenderTarget, StructuredBuffer, Format } from 'phoptics';
       import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
       import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
 
-      import forward_shader from "./assets/shaders/objects/forward_shader.mjs";
+      import instancing_shader from "./assets/shaders/objects/instancing_shader.mjs";
 
       const dpr = window.devicePixelRatio;
       let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
       let engine, canvas_texture, render_pass, render_target, scene, camera;
-      let target = new Vec3(), q = new Quat();
+      let target = new Vec3();
 
       const renderlist = new RenderList();
 
@@ -87,35 +87,29 @@
         camera.view.translate(camera.position).look_at(target).view_inverse();
         camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 600);
 
-        const transform_layout = [
-          { name: "world", type: Mat3x4 },
-          { name: "color", type: Vec4 }
-        ];
-
         const material = new Material({
-          shader: new Shader({ code: forward_shader }),
-          dynamic: transform_layout,
+          shader: new Shader({ code: instancing_shader }),
         });
 
         const query = await fetch('./assets/models/walt.phg');
         const compressed = new Uint8Array( await query.arrayBuffer() );
-        const geo = uncompress(compressed).set_static();
+        const geo = uncompress(compressed);
 
-        // scene = [];
-        const count = 3000;
-        for (let i = 0; i < count; i++) {
-          const mesh = new Mesh(geo, material);
-          mesh.dynamic.color.set(Math.random(), Math.random(), Math.random());
-          mesh.position = new Vec3();
-          mesh.position.set(Math.random(), Math.random(), Math.random()).sub_f32(.5).mul_f32(100);
-          mesh.rotation = (Math.random() - .5) * Math.PI / 2;
-
-          q.set().rot_y(mesh.rotation);
-          mesh.dynamic.world.rigid(mesh.position, q);
-          renderlist.add(mesh);
-          // scene.push(mesh);
-
+        const count = 300;
+        const mat = new Mat3x4(), vec = new Vec4(), q = new Quat();
+        let instanced_dynamic = new Float32Array(count * 16);
+        for (let i = 0; i < instanced_dynamic.length; i += 16) {
+          vec.set(Math.random(), Math.random(), Math.random()).sub_f32(.5).mul_f32(100);
+          q.set().rot_y((Math.random() - .5) * Math.PI / 2);
+          mat.rigid(vec, q).to(instanced_dynamic, i);
+          vec.set(Math.random(), Math.random(), Math.random()).to(instanced_dynamic, i + 12);
         }
+
+        geo.attributes.push(new Vertex({ data: instanced_dynamic }));
+        geo.draw.instance_count = count;
+
+        const mesh = new Mesh(geo, material);
+        renderlist.add(mesh);
 
         animate();
       })();
@@ -139,19 +133,8 @@
 
         auto_resize();
         
-        // {
-        //   renderlist.reset();
-        //   const nr = performance.now() / 2000;
-        //   for (let i = 0, il = scene.length; i < il; i++) {
-        //     const mesh = scene[i];
-        //     q.set().rot_y(mesh.rotation * nr * 4);
-        //     mesh.dynamic.world.rigid(mesh.position, q);
-        //     renderlist.add(mesh);
-        //   }
-        // }
-
         engine.render(render_pass, renderlist);
-}
+      }
     </script>
   </body>
 </html>

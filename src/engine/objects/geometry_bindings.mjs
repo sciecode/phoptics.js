@@ -1,5 +1,8 @@
 import { UNINITIALIZED } from "../constants.mjs";
 
+// TODO: remove stride from vertex
+// TODO: try to infer index stride from incoming data
+
 class GeometryBinding {
   #id = UNINITIALIZED;
   #bid = UNINITIALIZED;

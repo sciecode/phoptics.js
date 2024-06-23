@@ -47,5 +47,8 @@ export class DynamicManager {
   }
 
   reset() { this.offset = 0; }
-  commit() { this.backend.write_buffer(this.buffer, 0, this.data, 0, this.offset); }
+  commit() {
+    if (this.offset)
+      this.backend.write_buffer(this.buffer, 0, this.data, 0, this.offset);
+  }
 }

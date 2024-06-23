@@ -89,6 +89,7 @@ export class GPUBackend {
  
     const commandBuffer = encoder.finish();
     this.device.queue.submit([commandBuffer]);
+    // console.log(draw_stream, draw_stream.count);
   }
 
   render_packet(draw_packet) {
