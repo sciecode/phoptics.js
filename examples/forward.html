@@ -60,7 +60,7 @@
             color: [canvas_texture.format],
             depth: Format.DEPTH32,
           },
-          bindings: [{ binding: 0,  name: "camera", resource: camera }]
+          bindings: [{ name: "camera", resource: camera }]
         });
 
         const multisampled_texture = new Texture({ 

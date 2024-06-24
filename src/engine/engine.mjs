@@ -146,10 +146,11 @@ export class Engine {
 }
 
 const FEATURE_LIST = [
+  "shader-f16",
+  "timestamp-query",
   "float32-filterable",
   "texture-compression-bc",
   "texture-compression-astc",
-  "shader-f16",
 ]
 
 const make_pass_descriptor = (target, cache) => {

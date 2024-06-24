@@ -58,7 +58,7 @@
             color: [canvas_texture.format],
             depth: Format.DEPTH32,
           },
-          bindings: [{ binding: 0, name: "camera", resource: camera }]
+          bindings: [{ name: "camera", resource: camera }]
         });
 
         const multisampled_texture = new Texture({
@@ -126,11 +126,11 @@
           dynamic: transform_layout,
           bindings: [
             {
-              binding: 0, name: "sampler", resource: new Sampler({
+              name: "sampler", resource: new Sampler({
                 filtering: { mag: "linear", min: "linear" },
               })
             },
-            { binding: 1, name: "luminance", resource: bc7.create_view({ dimension: "2d", baseArrayLayer: 0 }) },
+            { name: "luminance", resource: bc7.create_view({ dimension: "2d", baseArrayLayer: 0 }) },
           ],
         });
 

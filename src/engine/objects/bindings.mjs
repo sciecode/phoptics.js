@@ -36,5 +36,5 @@ export class Bindings {
 
 const bind_resource = (obj, entry, resource, ownership) => {
   obj[entry.name] = resource;
-  obj.info.push({ binding: entry.binding, name: entry.name, visibility: entry.visibility, ownership: ownership });
+  obj.info.push({ name: entry.name, visibility: entry.visibility, ownership: ownership });
 }

@@ -59,7 +59,7 @@
             color: [Format.RGBA32_FLOAT, Format.RGBA32_FLOAT],
             depth: Format.DEPTH32,
           },
-          bindings: [{ binding: 0,  name: "camera", resource: camera }]
+          bindings: [{ name: "camera", resource: camera }]
         });
 
         const gbuffer_pos = new Texture({ size: viewport, format: Format.RGBA32_FLOAT, renderable: true });
@@ -85,10 +85,10 @@
             color: [canvas_texture.format],
           },
           bindings: [
-            { binding: 0, name: "camera", resource: camera },
-            { binding: 1, name: "sampler", resource: new Sampler() },
-            { binding: 2, name: "t_pos", resource: gbuffer_pos.create_view() },
-            { binding: 3, name: "t_normal", resource: gbuffer_normal.create_view() },
+            { name: "camera", resource: camera },
+            { name: "sampler", resource: new Sampler() },
+            { name: "t_pos", resource: gbuffer_pos.create_view() },
+            { name: "t_normal", resource: gbuffer_normal.create_view() },
           ]
         });
 

@@ -65,9 +65,9 @@
         const render_pass = new RenderPass({
           formats: { color: [original.format] },
           bindings: [
-            { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear" } }) },
-            { binding: 1, name: "cube", resource: original.create_view({ dimension: "cube" }) },
-            { binding: 2, name: "globals", resource: globals }
+            { name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear" } }) },
+            { name: "cube", resource: original.create_view({ dimension: "cube" }) },
+            { name: "globals", resource: globals }
           ]
         });
 
@@ -124,6 +124,7 @@
 
         quad.geometry.destroy(true);
         quad.material.destroy();
+        render_pass.destroy();
 
         return cubemap;
       }
@@ -140,9 +141,9 @@
         const render_pass = new RenderPass({
           formats: { color: [cubemap.format] },
           bindings: [
-            { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
-            { binding: 1, name: "cube", resource: cubemap.create_view() },
-            { binding: 2, name: "globals", resource: globals }
+            { name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
+            { name: "cube", resource: cubemap.create_view() },
+            { name: "globals", resource: globals }
           ]
         });
 
@@ -182,6 +183,7 @@
 
         quad.geometry.destroy(true);
         quad.material.destroy();
+        render_pass.destroy();
 
         return pmlm;
       }
@@ -197,7 +199,7 @@
         const render_pass = new RenderPass({
           formats: { color: [lut.format] },
           bindings: [
-            { binding: 0, name: "globals", resource: globals }
+            { name: "globals", resource: globals }
           ]
         });
 
@@ -221,6 +223,7 @@
 
         quad.geometry.destroy(true);
         quad.material.destroy();
+        render_pass.destroy();
 
         return lut;
       }
@@ -261,10 +264,10 @@
             depth: Format.DEPTH32,
           },
           bindings: [
-            { binding: 0, name: "camera", resource: camera },
-            { binding: 1, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
-            { binding: 2, name: "lut", resource: ggx_lut.create_view() },
-            { binding: 3, name: "cubemap", resource: pmlm.create_view({ dimension: "cube" }) },
+            { name: "camera", resource: camera },
+            { name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
+            { name: "lut", resource: ggx_lut.create_view() },
+            { name: "cubemap", resource: pmlm.create_view({ dimension: "cube" }) },
           ]
         });
 
@@ -324,12 +327,12 @@
           shader: new Shader({ code: pbr_shader }),
           dynamic: transform_layout,
           bindings: [
-            { binding: 0, name: "sampler", resource: new Sampler({
+            { name: "sampler", resource: new Sampler({
               filtering: { mag: "linear", min: "linear" },
             }) },
-            { binding: 1, name: "albedo", resource: albedo.create_view() },
-            { binding: 2, name: "metallic", resource: metallic.create_view() },
-            { binding: 3, name: "normal", resource: normal.create_view() },
+            { name: "albedo", resource: albedo.create_view() },
+            { name: "metallic", resource: metallic.create_view() },
+            { name: "normal", resource: normal.create_view() },
           ],
         });
 
@@ -351,14 +354,14 @@
             shader: new Shader({ code: skybox_shader }),
             graphics: { depth: { write: false } },
             bindings: [
-              { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
-              { binding: 1, name: "cubemap", resource: original.create_view({ dimension: "cube" }) },
+              { name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
+              { name: "cubemap", resource: original.create_view({ dimension: "cube" }) },
             ]
           })
         );
         scene.add(skybox);
 
-        animate();
+        requestAnimationFrame(animate);
       })();
 
       const auto_resize = () => {

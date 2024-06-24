@@ -58,7 +58,7 @@
             color: [canvas_texture.format],
             depth: Format.DEPTH32,
           },
-          bindings: [{ binding: 0,  name: "camera", resource: camera }]
+          bindings: [{ name: "camera", resource: camera }]
         });
 
         const multisampled_texture = new Texture({
@@ -95,7 +95,7 @@
         const compressed = new Uint8Array( await query.arrayBuffer() );
         const geo = uncompress(compressed);
 
-        const count = 300;
+        const count = 4000;
         const mat = new Mat3x4(), vec = new Vec4(), q = new Quat();
         let instanced_dynamic = new Float32Array(count * 16);
         for (let i = 0; i < instanced_dynamic.length; i += 16) {
@@ -111,7 +111,7 @@
         const mesh = new Mesh(geo, material);
         renderlist.add(mesh);
 
-        animate();
+        requestAnimationFrame(animate);
       })();
 
       const auto_resize = () => {
@@ -130,7 +130,7 @@
 
       const animate = () => {
         requestAnimationFrame(animate);
-
+        
         auto_resize();
         
         engine.render(render_pass, renderlist);

@@ -49,7 +49,7 @@ export class RenderCache {
         });
         canvas_texture.initialize(0);
       }
-      return { view: canvas_texture.get_current_view() };
+      return;
     }
   
     let id = view_obj.get_id(), cache;
@@ -127,7 +127,7 @@ export class RenderCache {
           entries: vertices.map((_, idx) => {
             return {
               binding: idx,
-              visibility: (GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT),
+              visibility: GPUShaderStage.VERTEX,
               buffer: { type: "read-only-storage" },
             };
           })
@@ -211,7 +211,7 @@ export class RenderCache {
           case ResourceType.StructuredBuffer:
             const buffer_info = this.get_uniform(resource);
             return {
-              binding: entry.binding,
+              binding: idx,
               type: GPUResource.BUFFER,
               offset: buffer_info.offset,
               size: buffer_info.size,
@@ -221,14 +221,14 @@ export class RenderCache {
             const view_info = this.get_view(resource);
             views.push(view_info.version);
             return {
-              binding: entry.binding,
+              binding: idx,
               type: GPUResource.TEXTURE,
               resource: view_info.view,
             };
           case ResourceType.Sampler:
             const sampler = this.get_sampler(resource);
             return {
-              binding: entry.binding,
+              binding: idx,
               type: GPUResource.SAMPLER,
               resource: sampler,
             };
@@ -242,9 +242,9 @@ export class RenderCache {
 
     if (id == UNINITIALIZED) {
       const layout_cache = this.material_manager.create_layout({
-        entries: binding_obj.info.map( entry => {
+        entries: binding_obj.info.map( (entry, idx) => {
           const resource = {
-            binding: entry.binding,
+            binding: idx,
             visibility: entry.visibility || (GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT),
           };
           const binding = binding_obj[entry.name];

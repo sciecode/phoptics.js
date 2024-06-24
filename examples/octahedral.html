@@ -65,9 +65,9 @@
         const render_pass = new RenderPass({
           formats: { color: [cubemap.format] },
           bindings: [
-            { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
-            { binding: 1, name: "cube", resource: cubemap.create_view({ dimension: "cube"}) },
-            { binding: 2, name: "globals", resource: globals }
+            { name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
+            { name: "cube", resource: cubemap.create_view({ dimension: "cube" }) },
+            { name: "globals", resource: globals }
           ]
         });
 
@@ -130,9 +130,9 @@
           new Material({ 
             shader: new Shader({ code: octahedral_encode_shader }),
             bindings: [
-              { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
-              { binding: 1, name: "cube", resource: pmlm.create_view({ dimension: "cube" }) },
-              { binding: 2, name: "dim", resource: dim }
+              { name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
+              { name: "cube", resource: pmlm.create_view({ dimension: "cube" }) },
+              { name: "dim", resource: dim }
             ]
           })
         );
@@ -180,7 +180,7 @@
             color: [canvas_texture.format],
             depth: Format.DEPTH32,
           },
-          bindings: [{ binding: 0, name: "camera", resource: camera }]
+          bindings: [{ name: "camera", resource: camera }]
         });
 
         const multisampled_texture = new Texture({
@@ -230,9 +230,9 @@
             shader: new Shader({ code: skybox_oct_shader }),
             graphics: { depth: { write: false } },
             bindings: [
-              { binding: 0, name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
-              { binding: 1, name: "cubemap", resource: oct_envmap.create_view() },
-              { binding: 2, name: "dim", resource: dim }
+              { name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
+              { name: "cubemap", resource: oct_envmap.create_view() },
+              { name: "dim", resource: dim }
             ]
           })
         );

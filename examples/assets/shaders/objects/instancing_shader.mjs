@@ -6,7 +6,7 @@ struct FragInput {
   @builtin(position) position : vec4f,
   @location(0) w_pos : vec3f,
   @location(1) w_normal : vec3f,
-  @location(2) @interpolate(flat) inst: u32,
+  @location(2) @interpolate(flat) color: vec3f,
 }
 
 struct Globals {
@@ -79,7 +79,7 @@ fn read_attribute(vert : u32) -> Attributes {
   output.position = c_pos;
   output.w_pos = w_pos;
   output.w_normal = attrib.normal * normal_matrix;
-  output.inst = inst;
+  output.color = uniform.color.rgb;
 
   return output;
 }
@@ -147,8 +147,7 @@ fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
     800.                  // intensity
   );
 
-  let uniform = read_uniform(in.inst);
-  let albedo = uniform.color.rgb;
+  let albedo = in.color.rgb;
   let L = albedo * frag.Ld_dif;
 
   let Ln = phoptics_tonemap(L, globals.exposure, globals.nits);
