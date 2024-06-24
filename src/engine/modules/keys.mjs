@@ -5,6 +5,8 @@ const GEOMETRY_OFFSET = 10, GEOMETRY_MASK = 1;
 const DYNAMIC_OFFSET = 11, DYNAMIC_MASK = 1;
 const PIPELINE_OFFSET = 12, PIPELINE_MASK = (1 << 10) - 1;
 
+// TODO: zigzag internal keys so that less states need to update between boundaries?
+
 export default class Keys {
   static set_pipeline(entry, bid) {
     entry.key |= (bid & PIPELINE_MASK) << PIPELINE_OFFSET;

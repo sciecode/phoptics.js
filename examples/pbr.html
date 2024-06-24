@@ -198,9 +198,7 @@
 
         const render_pass = new RenderPass({
           formats: { color: [lut.format] },
-          bindings: [
-            { name: "globals", resource: globals }
-          ]
+          bindings: [ { name: "globals", resource: globals } ]
         });
 
         const render_target = new RenderTarget({
@@ -341,12 +339,18 @@
         const geo = uncompress(compressed).set_static();
 
         scene = new RenderList();
-        const mesh = new Mesh(geo, material);
         const quat = new Quat(), pos = new Vec3();
+        const mesh = new Mesh(geo, material);
         pos.set(.5, 0, 0);
         quat.rot_y(Math.PI / 2);
         mesh.dynamic.world.rigid(pos, quat);
         scene.add(mesh);
+
+        const mesh2 = new Mesh(geo, material);
+        pos.set(-.5, .6, 0);
+        quat.rot_y(- Math.PI);
+        mesh2.dynamic.world.rigid(pos, quat);
+        scene.add(mesh2);
 
         const skybox = new Mesh(
           new SkyboxGeometry(),

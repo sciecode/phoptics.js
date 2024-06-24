@@ -68,7 +68,7 @@ export class UniformPool {
           usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
         })
       );
-      this.backing.push({ u8: new Uint8Array(MAX_SIZE), start: MAX_SIZE, end: 0 });
+      this.backing.push({ u8: new Uint8Array(MAX_SIZE), ranges: [], min: -1, max: -1 });
 
       const info = this.allocators[heap].malloc(aligned_bytes);
       offset = info.offset << BITS;
@@ -86,17 +86,61 @@ export class UniformPool {
     const backing = this.backing[cache.heap];
     backing.u8.set(bytes, offset);
 
-    backing.start = Math.min(backing.start, offset);
-    backing.end = Math.max(backing.end, offset + byte_size);
+    this.insert_range(backing, { st: offset, end: offset + byte_size });
+  }
+
+  insert_range(backing, range) {
+    if (backing.min < 0) {
+      backing.min = backing.max = 0;
+    } else {
+      let idx = backing.ranges.length;
+      if (range.st < backing.ranges[backing.min].st) backing.min = idx;
+      if (range.end > backing.ranges[backing.max].end) backing.max = idx;
+    }
+    backing.ranges.push(range);
+  }
+
+  coalesce(backing) {
+    let tmp = backing.ranges[0];
+    backing.ranges[0] = backing.ranges[backing.min];
+    backing.ranges[backing.min] = tmp;
+    if (backing.min == backing.max) {
+      backing.ranges.length = 1;
+    } else {
+      tmp = backing.ranges[1];
+      backing.ranges[1] = backing.ranges[backing.max];
+      backing.ranges[backing.max] = tmp;
+
+      // coalesce internals
+      let min = backing.ranges[0], max = backing.ranges[1];
+      for (let i = 2, il = backing.ranges.length; i < il; i++) {
+        const cur = backing.ranges[i];
+        const a = cur.st - min.end, b = max.st - cur.end;
+        if (a < b) min.end = Math.max(min.end, cur.end);
+        else max.st = Math.min(max.st, cur.st);
+      }
+
+      // coalesce ends
+      const sum = min.end - min.st + max.end - max.st;
+      if (max.st - min.end < sum * .25) {
+        min.end = max.end;
+        backing.ranges.length = 1;
+      } else {
+        backing.ranges.length = 2;
+      }
+    }
+    backing.min = backing.max = -1;
+    return;
   }
 
   dispatch() {
     for (let i = 0, il = this.backing.length; i < il; i++) {
       const backing = this.backing[i];
-      if (backing.end) {
-        const st = backing.start, size = backing.end - st;
-        this.backend.write_buffer(this.buffers[i], backing.start, backing.u8, backing.start, size);
-        backing.start = MAX_SIZE, backing.end = 0;
+      if (backing.ranges.length) {
+        this.coalesce(backing);
+        for (let range of backing.ranges) 
+          this.backend.write_buffer(this.buffers[i], range.st, backing.u8, range.st, range.end - range.st);
+        backing.ranges.length = 0;
       }
     }
   }
