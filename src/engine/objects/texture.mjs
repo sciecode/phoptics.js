@@ -25,9 +25,9 @@ export class Texture {
 
   set_size(size) {
     this.size = {
-      width: options.size.width || 1,
-      height: options.size.height || 1,
-      depth: options.size.depth || 1
+      width: size.width || 1,
+      height: size.height || 1,
+      depth: size.depth || 1
     };
     this.#update();
     return this;

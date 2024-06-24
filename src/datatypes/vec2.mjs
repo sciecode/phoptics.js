@@ -20,6 +20,12 @@ export class Vec2 extends Float32Array {
   get height() { return this[1]; }
   set height(v) { this[1] = v; }
 
+  get theta() { return this[0]; }
+  set theta(v) { this[0] = v; }
+
+  get phi() { return this[1]; }
+  set phi(v) { this[1] = v; }
+
   set(x = 0, y = 0) {
     this[0] = x; this[1] = y; 
     return this;

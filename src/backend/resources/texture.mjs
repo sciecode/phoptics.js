@@ -21,7 +21,11 @@ export class Texture {
     const current = this.texture;
     this.texture = device.createTexture({
       format: current.format,
-      size: size,
+      size: {
+        width: size.width, 
+        height: size.height,
+        depthOrArrayLayers: size.depth,
+      },
       usage: current.usage,
       sampleCount: current.sampleCount,
       dimensions: current.dimensions,

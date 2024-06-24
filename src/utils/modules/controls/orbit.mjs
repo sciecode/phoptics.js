@@ -1,24 +1,21 @@
-import { Vec3, Mat3x4 } from 'phoptics/math';
-// TODO: use vec2
+import { Vec2, Vec3, Mat3x4 } from 'phoptics/math';
 
 export class Orbit {
   constructor(node) {
     this.node = node;
     this.view = new Mat3x4();
     this.target = new Vec3();
-    this.position = new Vec3();
-    this.position.set(0, 0, 10);
-
+    this.position = new Vec3().set(0, 0, 10);
+    
     // rotation
-    this.start = new Vec3();
-    this.delta = new Vec3();
-    this.tmp = new Vec3();
-    this.sphr = new Vec3();
-    this.sphr_delta = new Vec3();
+    this.start = new Vec2();
+    this.delta = new Vec2();
+    this.sphr = new Vec2();
+    this.sphr_delta = new Vec2();
 
     // zoom
     this.zoom = 1;
-    this.zoom_limit = (new Vec3()).set(0, Infinity);
+    this.zoom_limit = new Vec2().set(0, Infinity);
 
     this.dn_cb = this.dn.bind(this);
     this.mv_cb = this.mv.bind(this);
@@ -33,25 +30,25 @@ export class Orbit {
 
   update() {
     // update rotation
-    this.tmp.copy(this.position).sub(this.target);
-    let radius = this.tmp.length();
-    this.sphr.x = Math.atan2(this.tmp.x, this.tmp.z);
-		this.sphr.y = Math.acos(Math.min( Math.max(this.tmp.y / radius, - 1), 1));
+    this.position.sub(this.target);
+    let radius = this.position.length();
+    this.sphr.theta = Math.atan2(this.position.x, this.position.z);
+		this.sphr.phi = Math.acos(Math.min(Math.max(this.position.y / radius, -1), 1));
     this.sphr.add(this.sphr_delta);
-    this.sphr.y = Math.max(EPS, Math.min( Math.PI - EPS, this.sphr.y ));
+    this.sphr.phi = Math.max(EPS, Math.min(Math.PI - EPS, this.sphr.phi));
     this.sphr_delta.set();
 
     
     // update offset
-    radius = Math.min( Math.max(radius * this.zoom, this.zoom_limit.x), this.zoom_limit.y);
-    const alp = Math.sin(this.sphr.y) * radius;
-		this.tmp.x = alp * Math.sin(this.sphr.x);
-		this.tmp.y = Math.cos(this.sphr.y) * radius;
-		this.tmp.z = alp * Math.cos(this.sphr.x);
+    radius = Math.min(Math.max(radius * this.zoom, this.zoom_limit.x), this.zoom_limit.y);
+    const alp = Math.sin(this.sphr.phi) * radius;
+		this.position.y = Math.cos(this.sphr.phi) * radius;
+		this.position.x = alp * Math.sin(this.sphr.theta);
+		this.position.z = alp * Math.cos(this.sphr.theta);
     this.zoom = 1;
 
     // update position
-    this.position.copy(this.target).add(this.tmp);
+    this.position.add(this.target);
     this.view.translate(this.position).look_at(this.target).view_inverse();
   }
 
@@ -69,13 +66,11 @@ export class Orbit {
   }
 
   mv(e) {
-    this.delta.set(e.clientX, e.clientY);
-    this.tmp.copy(this.delta);
-    this.delta.sub(this.start);
-    this.start.copy(this.tmp);
+    this.delta.set(e.clientX, e.clientY).sub(this.start);
+    this.start.set(e.clientX, e.clientY);
 
-    this.sphr_delta.x -= 2 * Math.PI * this.delta.x / this.node.clientHeight;
-	  this.sphr_delta.y -= 2 * Math.PI * this.delta.y / this.node.clientHeight;
+    this.sphr_delta.theta -= 2 * Math.PI * this.delta.x / this.node.clientHeight;
+	  this.sphr_delta.phi -= 2 * Math.PI * this.delta.y / this.node.clientHeight;
 
     this.update();
   }
