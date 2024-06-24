@@ -10,7 +10,11 @@ export class Texture {
 
   constructor(options) {
     this.type = ResourceType.Texture;
-    this.size = { ...options.size };
+    this.size = {
+      width: options.size.width || 1,
+      height: options.size.height || 1,
+      depth: options.size.depth || 1
+    };
     this.mip_levels = options.mip_levels || 1;
     this.format = options.format;
     this.usage = GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING;
@@ -20,7 +24,11 @@ export class Texture {
   }
 
   set_size(size) {
-    this.size = { ...size };
+    this.size = {
+      width: options.size.width || 1,
+      height: options.size.height || 1,
+      depth: options.size.depth || 1
+    };
     this.#update();
     return this;
   }
