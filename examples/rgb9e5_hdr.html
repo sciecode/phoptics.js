@@ -122,9 +122,6 @@
         camera.luma.set(250, 1);
         camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 300);
 
-        const shader = new Shader({ code: luminance_shader });
-        const transform_layout = [{ name: "world", type: Mat3x4 }];
-
         const {hdr, rgb9e5} = create_luminance_map(engine)
 
         const geometry = new Geometry({
@@ -143,6 +140,9 @@
             })
           ]
         });
+
+        const shader = new Shader({ code: luminance_shader });
+        const transform_layout = [{ name: "world", type: Mat3x4 }];
 
         const mat0 = new Material({
           shader: shader,

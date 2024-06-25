@@ -38,7 +38,6 @@ export class Orbit {
     this.sphr.phi = Math.max(EPS, Math.min(Math.PI - EPS, this.sphr.phi));
     this.sphr_delta.set();
 
-    
     // update offset
     radius = Math.min(Math.max(radius * this.zoom, this.zoom_limit.x), this.zoom_limit.y);
     const alp = Math.sin(this.sphr.phi) * radius;

@@ -17,9 +17,11 @@ export class MaterialManager {
   get_shader(shader_obj) {
     let id = shader_obj.get_id();
 
+    // TODO: create_shader resource on backend (getting duplicated)
     if (id == UNINITIALIZED) {
       const hash = JSON.stringify(shader_obj);
-      if (id = this.shaders.has(hash)) {
+      id = this.shaders.has(hash);
+      if (id !== undefined) {
         this.shaders.get(id).count++;
       } else {
         id = this.shaders.set(hash, { count: 1, hash: hash });
@@ -46,7 +48,7 @@ export class MaterialManager {
 
     let id = this.pipelines.has(hash);
 
-    if (id) {
+    if (id !== undefined) {
       this.pipelines.get(id).count++;
     } else {
       const pipeline = this.backend.resources.create_pipeline({
@@ -113,8 +115,8 @@ export class MaterialManager {
 
   create_layout(layout_info) {
     const hash = JSON.stringify(layout_info);
-    let id, layout;
-    if (id = this.layouts.has(hash)) {
+    let id = this.layouts.has(hash), layout;
+    if (id !== undefined) {
       const cache = this.layouts.get(id);
       cache.count++;
       layout = cache.layout;
