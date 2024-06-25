@@ -9,6 +9,7 @@ export class RenderState {
       formats: null,
       multisampled: false,
       global_layout: undefined,
+      material_layout: undefined,
       geometry_layout: undefined,
       dynamic_layout: undefined,
     };
@@ -29,8 +30,9 @@ export class RenderState {
   }
 
   set_layouts(mesh) {
-    this.state.dynamic_layout = mesh.dynamic ? this.dynamic.layout : undefined;
+    this.state.material_layout = this.cache.query_material_layout(mesh.material);
     this.state.geometry_layout = mesh.geometry.get_layout();
+    this.state.dynamic_layout = mesh.dynamic ? this.dynamic.layout : undefined;
   }
 
   set_renderlist(list) { 
@@ -43,8 +45,14 @@ export class RenderState {
       Keys.set_geometry(entry, geometry);
       Keys.set_dynamic(entry, mesh.dynamic);
     }
-
+    
     // dispatch geometry buffer updates
+    this.cache.buffer_manager.dispatch();
+    
+    for (let entry of list)
+      this.cache.get_material_binding(entry.mesh.material);
+
+    // dispatch uniforms buffer updates
     this.cache.buffer_manager.dispatch();
 
     for (let entry of list) {
@@ -52,13 +60,9 @@ export class RenderState {
 
       // needs to be before pipeline update
       this.set_layouts(mesh);
-
       const pipeline_cache = this.cache.get_pipeline(material, this.state);
       Keys.set_pipeline(entry, pipeline_cache.bid);
     }
-
-    // dispatch uniforms buffer updates
-    this.cache.buffer_manager.dispatch();
 
     Keys.sort(list);
   }

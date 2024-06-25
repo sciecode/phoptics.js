@@ -50,7 +50,9 @@ export class MaterialManager {
     if (id !== undefined) {
       this.pipeline_layouts.get(id).count++;
     } else {
-      const bid = this.backend.resources.create_pipeline_layout(desc.map(e => (e !== undefined) ? this.get_layout(e) : undefined));
+      const bid = this.backend.resources.create_pipeline_layout(
+        desc.map(e => (e !== undefined) ? this.get_layout(e) : undefined)
+      );
       id = this.pipeline_layouts.set(hash, { bid: bid, count: 1, hash: hash });
     }
 
@@ -70,7 +72,6 @@ export class MaterialManager {
     const shader_bid = this.get_shader(info.material.shader);
     const hash = JSON.stringify({
       shader: info.material.shader.get_id(),
-      binding: info.binding?.layout,
       graphics: info.material.graphics,
       ...info.state,
     });
@@ -81,7 +82,8 @@ export class MaterialManager {
       this.pipelines.get(id).count++;
     } else {
       const layout = this.get_pipeline_layout([
-        info.state.global_layout, info.binding?.layout, info.state.geometry_layout, info.state.dynamic_layout
+        info.state.global_layout, info.state.material_layout, 
+        info.state.geometry_layout, info.state.dynamic_layout
       ]);
       const pipeline = this.backend.resources.create_pipeline({
         shader: shader_bid,

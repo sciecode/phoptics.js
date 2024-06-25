@@ -170,16 +170,24 @@ export class RenderCache {
     this.geometries.delete(id);
   }
 
+  get_material_binding(material_obj) {
+    if (material_obj.bindings) {
+      const cache = this.get_binding(material_obj.bindings);
+      if (material_obj.get_binding() != cache.bid) material_obj.set_binding(cache.bid);
+    }
+  }
+
+  query_material_layout(material_obj) {
+    return material_obj.bindings ? this.bindings.get(material_obj.bindings.get_id()).layout : undefined;
+  }
+
   get_pipeline(material_obj, state) {
     let id = material_obj.get_id();
-
-    let bindings = material_obj.bindings ? this.get_binding(material_obj.bindings) : undefined;
 
     if (id == UNINITIALIZED) {
       id = this.material_manager.create_material({
         material: material_obj,
         state: state,
-        binding: bindings
       });
     }
 
@@ -188,12 +196,8 @@ export class RenderCache {
       this.material_manager.update_material({
         material: material_obj,
         state: state,
-        binding: bindings
       });
     }
-
-    if (material_obj.bindings && material_obj.get_binding() != bindings.bid)
-      material_obj.set_binding(bindings.bid);
 
     return this.material_manager.get_pipeline(cache.pipeline);
   }
