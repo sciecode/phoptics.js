@@ -39,18 +39,12 @@ export class Engine {
       instance_offset: NULL_HANDLE,
     };
     
-    for (let i = 0, il = list.length; i < il; i++) {
-      const entry = list[i];
+    for (let entry of list) {
       this.draw_stream.set_pipeline(Keys.get_pipeline(entry));
       
       const mesh = entry.mesh, material = mesh.material;
       this.draw_stream.set_material(material.get_binding());
-
-      if (material.dynamic !== undefined) {
-        this.draw_stream.set_dynamic(this.dynamic.allocate(mesh));
-      } else {
-        this.draw_stream.set_dynamic(0);
-      }
+      this.draw_stream.set_dynamic(mesh.dynamic ? this.dynamic.allocate(mesh) : 0);
 
       const geometry = mesh.geometry;
       this.draw_stream.set_geometry(geometry.get_vertices());

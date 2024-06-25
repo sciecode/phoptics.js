@@ -38,11 +38,11 @@ export class RenderState {
   }
 
   set_renderlist(list) { 
-    for (let i = 0, il = list.length; i < il; i++) {
-      const entry = list[i]; entry.key = 0;
-
+    for (let entry of list) {
       const mesh = entry.mesh, geometry = mesh.geometry;
       const geometry_cache = this.cache.get_geometry(geometry);
+
+      entry.key = 0;
       Keys.set_buffer(entry, geometry_cache.buffer_bid);
       Keys.set_geometry(entry, geometry);
       Keys.set_dynamic(entry, mesh.dynamic);
@@ -51,13 +51,12 @@ export class RenderState {
     // dispatch geometry buffer updates
     this.cache.buffer_manager.dispatch();
 
-    for (let i = 0, il = list.length; i < il; i++) {
-      const entry = list[i], mesh = entry.mesh;
-      
-      // needs to be before pipeline update
+    for (let entry of list) {
+      const mesh = entry.mesh;
       const material = mesh.material, geometry = mesh.geometry;
+
+      // needs to be before pipeline update
       const dynamic_layout = this.set_dynamic(material);
-      
       const pipeline_cache = this.cache.get_pipeline(material, this.state, geometry.get_layout(), dynamic_layout);
       Keys.set_pipeline(entry, pipeline_cache.bid);
     }

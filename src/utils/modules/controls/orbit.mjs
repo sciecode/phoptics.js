@@ -57,22 +57,22 @@ export class Orbit {
     this.zoom = e.deltaY > 0 ? this.zoom / scl : this.zoom * scl;
     this.update();
   }
+  
+  mv(e) {
+    this.delta.set(e.clientX, e.clientY).sub(this.start);
+    this.start.set(e.clientX, e.clientY);
+
+    this.sphr_delta.theta -= 2 * Math.PI * this.delta.x / this.node.clientHeight;
+    this.sphr_delta.phi -= 2 * Math.PI * this.delta.y / this.node.clientHeight;
+
+    this.update();
+  }
 
   dn(e) { 
     this.start.set(e.clientX, e.clientY);
 
     this.node.addEventListener('pointermove', this.mv_cb);
     this.node.addEventListener('pointerup', this.up_cb);
-  }
-
-  mv(e) {
-    this.delta.set(e.clientX, e.clientY).sub(this.start);
-    this.start.set(e.clientX, e.clientY);
-
-    this.sphr_delta.theta -= 2 * Math.PI * this.delta.x / this.node.clientHeight;
-	  this.sphr_delta.phi -= 2 * Math.PI * this.delta.y / this.node.clientHeight;
-
-    this.update();
   }
 
   up() {
