@@ -5,7 +5,10 @@ import { UNINITIALIZED } from "../constants.mjs";
 export class MaterialManager {
   constructor(backend) {
     this.backend = backend;
+ 
     this.layouts = new SparseSet();
+    this.pipeline_layouts = new SparseSet();
+    
     this.shaders = new SparseSet();
     this.pipelines = new SparseSet();
     this.materials = new PoolStorage();
@@ -17,33 +20,59 @@ export class MaterialManager {
   get_shader(shader_obj) {
     let id = shader_obj.get_id();
 
-    // TODO: create_shader resource on backend (getting duplicated)
     if (id == UNINITIALIZED) {
       const hash = JSON.stringify(shader_obj);
       id = this.shaders.has(hash);
       if (id !== undefined) {
         this.shaders.get(id).count++;
       } else {
-        id = this.shaders.set(hash, { count: 1, hash: hash });
+        const bid = this.backend.resources.create_shader(shader_obj);
+        id = this.shaders.set(hash, { bid: bid, count: 1, hash: hash });
       }
       shader_obj.initialize(id, this.shader_callback);
     }
 
-    return shader_obj;
+    const cache = this.shaders.get(id);
+    return cache.bid;
   }
 
   free_shader(shader_id) {
     const cache = this.shaders.get(shader_id);
-    if (!--cache.count) this.shaders.delete(shader_id, cache.key);
+    if (!--cache.count) {
+      this.backend.resources.destroy_shader(cache.bid);
+      this.shaders.delete(shader_id, cache.hash);
+    }
+  }
+
+  get_pipeline_layout(desc) {
+    const hash = JSON.stringify(desc);
+    let id = this.pipeline_layouts.has(hash);
+    if (id !== undefined) {
+      this.pipeline_layouts.get(id).count++;
+    } else {
+      const bid = this.backend.resources.create_pipeline_layout(desc.map(e => (e !== undefined) ? this.get_layout(e) : undefined));
+      id = this.pipeline_layouts.set(hash, { bid: bid, count: 1, hash: hash });
+    }
+
+    const cache = this.pipeline_layouts.get(id);
+    return { id: id, bid: cache.bid };
+  }
+
+  free_pipeline_layout(id) {
+    const cache = this.pipeline_layouts.get(id);
+    if (!--cache.count) {
+      this.backend.resources.destroy_pipeline_layout(cache.bid);
+      this.pipeline_layouts.delete(id, cache.hash);
+    }
   }
 
   create_pipeline(info) {
+    const shader_bid = this.get_shader(info.material.shader);
     const hash = JSON.stringify({
-      shader: this.get_shader(info.material.shader).get_id(),
+      shader: info.material.shader.get_id(),
       binding: info.binding?.layout,
       graphics: info.material.graphics,
       ...info.state,
-      ...info.material.graphics,
     });
 
     let id = this.pipelines.has(hash);
@@ -51,23 +80,20 @@ export class MaterialManager {
     if (id !== undefined) {
       this.pipelines.get(id).count++;
     } else {
+      const layout = this.get_pipeline_layout([
+        info.state.global_layout, info.binding?.layout, info.state.geometry_layout, info.state.dynamic_layout
+      ]);
       const pipeline = this.backend.resources.create_pipeline({
-        shader: info.material.shader,
+        shader: shader_bid,
         graphics: {
           multisampled: info.state.multisampled,
           formats: info.state.formats,
           ...info.material.graphics,
         },
-        layouts: {
-          bindings: [
-            (info.state.global_layout != undefined) ? this.get_layout(info.state.global_layout) : undefined,
-            info.binding ? this.get_layout(info.binding.layout) : undefined,
-            info.geometry_layout ? this.get_layout(info.geometry_layout) : undefined,
-          ],
-          dynamic: info.dynamic_layout,
-        },
+        layouts: layout.bid,
       });
-      id = this.pipelines.set(hash, { count: 1, bid: pipeline, hash: hash, info: { render: undefined, key: undefined } });
+
+      id = this.pipelines.set(hash, { count: 1, bid: pipeline, hash: hash, layout: layout.id });
     }
 
     return id;
@@ -80,6 +106,7 @@ export class MaterialManager {
   free_pipeline(pipeline_id) {
     const cache = this.pipelines.get(pipeline_id);
     if (!--cache.count) {
+      this.free_pipeline_layout(cache.layout);
       this.backend.resources.destroy_pipeline(cache.bid);
       this.pipelines.delete(pipeline_id, cache.hash);
     }

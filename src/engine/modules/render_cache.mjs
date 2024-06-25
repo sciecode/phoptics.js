@@ -170,7 +170,7 @@ export class RenderCache {
     this.geometries.delete(id);
   }
 
-  get_pipeline(material_obj, state, geometry_layout, dynamic_layout) {
+  get_pipeline(material_obj, state) {
     let id = material_obj.get_id();
 
     let bindings = material_obj.bindings ? this.get_binding(material_obj.bindings) : undefined;
@@ -179,8 +179,6 @@ export class RenderCache {
       id = this.material_manager.create_material({
         material: material_obj,
         state: state,
-        geometry_layout: geometry_layout,
-        dynamic_layout: dynamic_layout,
         binding: bindings
       });
     }
@@ -190,8 +188,6 @@ export class RenderCache {
       this.material_manager.update_material({
         material: material_obj,
         state: state,
-        geometry_layout: geometry_layout,
-        dynamic_layout: dynamic_layout,
         binding: bindings
       });
     }

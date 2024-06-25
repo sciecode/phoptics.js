@@ -6,7 +6,11 @@ import { BindGroup } from "./resources/bind_group.mjs";
 export class ResourceManager {
   constructor(device) {
     this.device = device;
+
+    this.shaders = new PoolStorage();
     this.pipelines = new PoolStorage();
+    this.pipeline_layouts = new PoolStorage();
+    
     this.groups = new PoolStorage();
     this.buffers = new PoolStorage();
     this.samplers = new PoolStorage();
@@ -75,6 +79,34 @@ export class ResourceManager {
   destroy_texture(idx) {
     this.textures.get(idx).destroy();
     this.textures.delete(idx);
+  }
+
+  create_shader(options) {
+    return this.shaders.allocate(this.device.createShaderModule(options));
+  }
+
+  get_shader(idx) {
+    return this.shaders.get(idx);
+  }
+
+  destroy_shader(idx) {
+    return this.shaders.delete(idx);
+  }
+
+  create_pipeline_layout(options) {
+    return this.pipeline_layouts.allocate(
+      this.device.createPipelineLayout({
+        bindGroupLayouts: options.map(e => e || this.empty_layout),
+      })
+    );
+  }
+
+  get_pipeline_layout(idx) {
+    return this.pipeline_layouts.get(idx);
+  }
+
+  destroy_pipeline_layout(idx) {
+    return this.pipeline_layouts.delete(idx);
   }
 
   create_pipeline(options) {

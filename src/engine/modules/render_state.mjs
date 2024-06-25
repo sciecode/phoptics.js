@@ -9,7 +9,8 @@ export class RenderState {
       formats: null,
       multisampled: false,
       global_layout: undefined,
-      dynamic_id: undefined,
+      geometry_layout: undefined,
+      dynamic_layout: undefined,
     };
   }
 
@@ -27,14 +28,9 @@ export class RenderState {
     }
   }
 
-  set_dynamic(material) {
-    if (material.dynamic) {
-      this.state.dynamic_id = this.dynamic.group;
-      return this.dynamic.layout;
-    } else {
-      this.state.dynamic_id = undefined;
-      return undefined;
-    }
+  set_layouts(mesh) {
+    this.state.dynamic_layout = mesh.dynamic ? this.dynamic.layout : undefined;
+    this.state.geometry_layout = mesh.geometry.get_layout();
   }
 
   set_renderlist(list) { 
@@ -52,12 +48,12 @@ export class RenderState {
     this.cache.buffer_manager.dispatch();
 
     for (let entry of list) {
-      const mesh = entry.mesh;
-      const material = mesh.material, geometry = mesh.geometry;
+      const mesh = entry.mesh, material = mesh.material;
 
       // needs to be before pipeline update
-      const dynamic_layout = this.set_dynamic(material);
-      const pipeline_cache = this.cache.get_pipeline(material, this.state, geometry.get_layout(), dynamic_layout);
+      this.set_layouts(mesh);
+
+      const pipeline_cache = this.cache.get_pipeline(material, this.state);
       Keys.set_pipeline(entry, pipeline_cache.bid);
     }
 
@@ -69,8 +65,8 @@ export class RenderState {
 
   preload(pass, mesh) {
     this.set_pass(pass);
-    const dynamic_layout = this.set_dynamic(mesh.material);
-    const geometry_cache = this.cache.get_geometry(mesh.geometry);
-    this.cache.get_pipeline(mesh.material, this.state, geometry_cache.layout, dynamic_layout);
+    this.cache.get_geometry(mesh.geometry);
+    this.set_layouts(mesh);
+    this.cache.get_pipeline(mesh.material, this.state);
   }
 }

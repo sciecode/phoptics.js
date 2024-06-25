@@ -3,7 +3,7 @@ import { GPUResource } from "../../backend/constants.mjs";
 const MAX_SIZE = 0x800_0000; // 128MB
 
 export class DynamicManager {
-  constructor(backend) {
+  constructor(backend, cache) {
     this.backend = backend;
 
     this.buffer = this.backend.resources.create_buffer({
@@ -11,7 +11,7 @@ export class DynamicManager {
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
     });
 
-    this.layout = backend.resources.create_group_layout({
+    const layout_cache = cache.material_manager.create_layout({
       entries: [{
         binding: 0,
         visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
@@ -19,8 +19,10 @@ export class DynamicManager {
       }]
     });
 
+    this.layout = layout_cache.id;
+
     this.group = this.backend.resources.create_bind_group({
-      layout: this.layout,
+      layout: layout_cache.layout,
       entries: [{
         binding: 0,
         type: GPUResource.BUFFER,

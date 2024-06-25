@@ -5,23 +5,8 @@ export class Pipeline {
       
     const graphics = options.graphics;
     const depth = graphics.depth || {}
-    const layouts = options.layouts || { bindings: [] };
-    const groups = new Array(4);
-    for (let i = 0; i < 3; i++)
-      groups[i] = layouts.bindings[i] || resources.empty_layout;
-    groups[3] = layouts.dynamic || resources.empty_layout;
-   
-    // TODO: should prevent creating same layout?
-    // I don't want to force a hash map look-up just to prevent duplication
-    // if not absolutely necessary - check spec.
-    const layout = device.createPipelineLayout({
-      bindGroupLayouts: groups,
-    });
-    
-    // TODO: create_shader resource on backend (getting duplicated)
-    const module = device.createShaderModule({
-      code: options.shader.code,
-    });
+    const layout = resources.get_pipeline_layout(options.layouts);
+    const module = resources.get_shader(options.shader);
 
     const blend = graphics.blend === false ? undefined : {
       color: parse_blend(graphics.blend.color),

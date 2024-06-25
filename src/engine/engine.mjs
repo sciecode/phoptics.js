@@ -16,7 +16,7 @@ export class Engine {
       this.features[feat] = true;
 
     this.cache = new RenderCache(this.backend);
-    this.dynamic = new DynamicManager(this.backend);
+    this.dynamic = new DynamicManager(this.backend, this.cache);
     
     this.state = new RenderState(this.cache, this.dynamic);
     this.draw_stream = new DrawStream();
