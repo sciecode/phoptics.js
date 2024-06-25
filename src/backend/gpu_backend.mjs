@@ -58,7 +58,6 @@ export class GPUBackend {
     );
 
     this.device.queue.submit([encoder.finish()]);
-
     return buffer;
   }
 

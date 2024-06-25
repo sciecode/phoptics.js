@@ -23,7 +23,7 @@ struct Attributes {
 @group(0) @binding(0) var<storage, read> globals: Globals;
 
 @group(2) @binding(0) var<storage, read> attributes: array<u32>;
-@group(3) @binding(0) var<storage, read> dynamic: array<f32>;
+@group(3) @binding(0) var<storage, read> dynamic: array<vec4f>;
 
 fn dec_oct16(data : u32) -> vec3f {
   let v = vec2f(vec2u(data, data >> 8) & vec2u(255)) / 127.5 - 1.0;
@@ -37,12 +37,8 @@ fn dec_oct16(data : u32) -> vec3f {
 fn read_uniform(inst : u32) -> mat3x4f {
   var uniform : mat3x4f;
 
-  var p = inst;
-  uniform = mat3x4f(
-    dynamic[p], dynamic[p+1], dynamic[p+2], dynamic[p+3],
-    dynamic[p+4], dynamic[p+5], dynamic[p+6], dynamic[p+7],
-    dynamic[p+8], dynamic[p+9], dynamic[p+10], dynamic[p+11],
-  );
+  var p = inst >> 2;
+  uniform = mat3x4f(dynamic[p], dynamic[p+1], dynamic[p+2]);
   return uniform;
 }
 
