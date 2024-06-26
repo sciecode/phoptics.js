@@ -4,9 +4,11 @@ export const ResourceType = {
   Texture:            1,
   TextureView:        2,
   Sampler:            3,
-  Buffer:             4,
-  StructuredBuffer:   5,
-  StructuredDynamic:  6,
+  Index:              4,
+  Vertex:             5,
+  Instance:           6,
+  StructuredBuffer:   7,
+  StructuredDynamic:  8,
 };
 
 export const UNINITIALIZED = 0x3FFFFFFF;
