@@ -11,7 +11,7 @@ export class VertexHeaps {
     this.backend = backend;
     this.cache = cache;
 
-    this.slots = new PoolStorage(); // hid, slot, offset
+    this.slots = new PoolStorage(); // hid, slot, offset, binding_id
     this.heaps = new PoolStorage(); // buffer, allocator, backing
     this.formats = new SparseSet(); // heaps, offsets
 
@@ -25,7 +25,7 @@ export class VertexHeaps {
       const { vertices, instanced } = this.format_hash(attributes);
 
       let binding_hash = 0;
-      let info = { vertices: null, instanced: null };
+      let info = { vertices: null, instanced: null, binding: null };
       let format_offset = { vertices: null, instanced: null };
 
       if (vertices.hash) {
@@ -49,9 +49,9 @@ export class VertexHeaps {
       }
 
       let binding_cache;
-      let binding_id = this.bindings.has(binding_hash);
+      info.binding = this.bindings.has(binding_hash);
 
-      if (binding_id === undefined) {
+      if (info.binding === undefined) {
         const layout_cache = this.cache.material_manager.create_layout({
           entries: attributes.entries.map( (e, i) => {
             return {
@@ -99,17 +99,21 @@ export class VertexHeaps {
           }
         }
 
-        const binding = this.backend.resources.create_bind_group(binding_desc);
         const layout = layout_cache.id;
+        const binding = this.backend.resources.create_bind_group(binding_desc);
+
         binding_cache = { binding, layout, count: 1, hash: binding_hash };
-        binding_id = this.bindings.set(binding_hash, binding_cache);
+        info.binding = this.bindings.set(binding_hash, binding_cache);
       } else {
-        binding_cache = this.bindings.get(binding_id);
+        binding_cache = this.bindings.get(info.binding);
         binding_cache.count++;
       }
 
       bid = this.slots.allocate(info);
-      attributes.initialize(bid, binding, layout, info.vertices?.offset || 0, info.instanced?.offset || 0); // TODO: impl free logic
+      attributes.initialize(bid, 
+        binding_cache.binding, binding_cache.layout, 
+        info.vertices?.offset || 0, info.instanced?.offset || 0
+      ); // TODO: impl free logic
     }
 
       // check for updates
