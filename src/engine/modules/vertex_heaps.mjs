@@ -141,8 +141,8 @@ export class VertexHeaps {
   }
 
   get_heap(format_info, count) {
-    for (let heap_id of format_info.format.heaps) {
-      const allocation = this.heaps.get(heap_id).allocator.malloc(count);
+    for (let hid of format_info.format.heaps) {
+      const allocation = this.heaps.get(hid).allocator.malloc(count);
       if (allocation) return { hid, slot: allocation.slot, offset: allocation.offset };
     }
 
@@ -160,6 +160,8 @@ export class VertexHeaps {
       offsets: format_info.format.offsets,
       fid: format_info.fid,
     });
+
+    format_info.format.heaps.push(hid);
     let { slot, offset } = allocator.malloc(count);
     return { hid, slot, offset };
   }

@@ -36,30 +36,25 @@ export class RenderState {
   }
 
   set_renderlist(list) { 
+    for (let entry of list)
+      this.cache.get_geometry(entry.mesh.geometry);
+    this.cache.buffer_manager.dispatch(); // TODO: separate dispatch types
+    
+    for (let entry of list)
+      this.cache.get_material_binding(entry.mesh.material);
+    this.cache.buffer_manager.dispatch(); // TODO: separate dispatch types
+
     for (let entry of list) {
-      const mesh = entry.mesh, geometry = mesh.geometry;
-      this.cache.get_geometry(geometry);
+      const mesh = entry.mesh;
+      const geometry = mesh.geometry, material = mesh.material;
+
+      this.set_layouts(mesh);
+      const pipeline_cache = this.cache.get_pipeline(material, this.state);
 
       entry.key = 0;
       Keys.set_attributes(entry, geometry.get_attributes());
       Keys.set_index(entry, geometry.index);
       Keys.set_dynamic(entry, mesh.dynamic); // TODO: should allocate dynamic earlier?
-    }
-    
-    // dispatch geometry buffer updates
-    this.cache.buffer_manager.dispatch(); // TODO: separate dispatch types
-    
-    for (let entry of list)
-      this.cache.get_material_binding(entry.mesh.material);
-
-    // dispatch uniforms buffer updates
-    this.cache.buffer_manager.dispatch(); // TODO: separate dispatch types
-
-    for (let entry of list) {
-      const mesh = entry.mesh, material = mesh.material;
-
-      this.set_layouts(mesh);
-      const pipeline_cache = this.cache.get_pipeline(material, this.state);
       Keys.set_pipeline(entry, pipeline_cache.bid);
     }
 
