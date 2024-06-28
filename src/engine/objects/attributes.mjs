@@ -9,8 +9,9 @@ export class Attributes {
   #instance_offset = 0;
   #free = () => {}
 
-  constructor(entries) {
-    this.entries = entries;
+  constructor(vertices, instances) {
+    this.vertices = vertices;
+    this.instances = instances;
   }
   
   get_bid() { return this.#bid; }

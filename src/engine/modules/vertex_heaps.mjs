@@ -1,4 +1,4 @@
-import { ResourceType, UNINITIALIZED } from "../constants.mjs";
+import { UNINITIALIZED } from "../constants.mjs";
 import { OffsetAllocator } from "../../common/offset_allocator.mjs";
 import { PoolStorage } from "../../common/pool_storage.mjs";
 import { SparseSet } from "../../common/sparse_set.mjs";
@@ -23,85 +23,38 @@ export class VertexHeaps {
     let bid = attributes.get_bid();
 
     if (bid == UNINITIALIZED) {
-      const { vertices, instanced } = this.format_hash(attributes);
+      const { vertices, instances } = this.format_hash(attributes);
 
-      let binding_hash = 0;
-      let info = { vertices: null, instanced: null, binding: null };
-      let format_offset = { vertices: null, instanced: null };
+      let binding_cache, binding_hash = 0;
+      let info = { vertices: null, instances: null, binding: null };
 
       if (vertices.hash) {
-        const format_info = this.get_format(vertices.hash);
-        format_offset.vertices = format_info.format.offsets;
-
-        const attrib0 = vertices.entries[0];
-        const count = attrib0.size / attrib0.stride;
-        info.vertices = this.get_heap(format_info, count);
+        info.vertices = this.find_cache(vertices);
         binding_hash |= info.vertices.hid;
       }
 
-      if (instanced.hash) {
-        const format_info = this.get_format(instanced.hash);
-        format_offset.instanced = format_info.format.offsets;
-
-        const attrib0 = instanced.entries[0];
-        const count = attrib0.size / attrib0.stride;
-        info.instanced = this.get_heap(format_info, count);
-        binding_hash |= info.instanced.hid << 16;
+      if (instances.hash) {
+        info.instances = this.find_cache(vertices);
+        binding_hash |= info.vertices.hid << 16;
       }
 
-      let binding_cache;
       info.binding = this.bindings.has(binding_hash);
 
       if (info.binding === undefined) {
+
+        const layout_entries = [], group_entries = [];
+        if (vertices.hash) this.create_binding_descriptor(layout_entries, group_entries, info.vertices);
+        if (instances.hash) this.create_binding_descriptor(layout_entries, group_entries, info.instances);
+
         const layout_cache = this.cache.material_manager.create_layout({
-          entries: attributes.entries.map( (e, i) => {
-            return {
-              binding: i,
-              visibility: GPUShaderStage.VERTEX,
-              buffer: { type: "read-only-storage" }
-            }
-          })
+          entries: layout_entries
         });
 
-        const binding_desc = {
-          layout: layout_cache.layout,
-          entries: [],
-        };
-
-        if (vertices.hash) {
-          let offsets = format_offset.vertices;
-          let bid = this.heaps.get(info.vertices.hid).bid;
-          for (let i = 0; i < offsets.length; i++) {
-            const offset = offsets[i];
-            const size = ((i + 1) == offsets.length ? MAX_SIZE : offsets[i + 1]) - offset;
-            binding_desc.entries.push({
-              binding: binding_desc.entries.length,
-              type: GPUResource.BUFFER,
-              resource: bid,
-              offset: offset,
-              size: size,
-            });
-          }
-        }
-
-        if (instanced.hash) {
-          let offsets = format_offset.indices;
-          let bid = this.heaps.get(info.instanced.hid).bid;
-          for (let i = 0; i < offsets.length; i++) {
-            const offset = offsets[i];
-            const size = ((i + 1) == offsets.length ? MAX_SIZE : offsets[i + 1]) - offset;
-            binding_desc.entries.push({
-              binding: binding_desc.entries.length,
-              type: GPUResource.BUFFER,
-              resource: bid,
-              offset: offset,
-              size: size,
-            });
-          }
-        }
-
         const layout = layout_cache.id;
-        const binding = this.backend.resources.create_bind_group(binding_desc);
+        const binding = this.backend.resources.create_bind_group({
+          layout: layout_cache.layout,
+          entries: group_entries,
+        });
 
         binding_cache = { binding, layout, count: 1, hash: binding_hash };
         info.binding = this.bindings.set(binding_hash, binding_cache);
@@ -113,13 +66,20 @@ export class VertexHeaps {
       bid = this.slots.allocate(info);
       attributes.initialize(bid, 
         binding_cache.binding, binding_cache.layout, 
-        info.vertices?.offset || 0, info.instanced?.offset || 0,
+        info.vertices?.offset || 0, info.instances?.offset || 0,
         this.free
       );
     }
 
     // check for updates
     // for each heap update backing, store range
+  }
+
+  find_cache(block) {
+    const attrib0 = block.entries[0];
+    const count = attrib0.size / attrib0.stride;
+    const format_info = this.get_format(block.hash);
+    return this.get_heap(format_info, count);
   }
 
   get_heap(format_info, count) {
@@ -136,7 +96,11 @@ export class VertexHeaps {
     const allocator = new OffsetAllocator(format_info.format.elements);
     const backing = { u8: new Uint8Array(MAX_SIZE), ranges: [], min: -1, max: -1 };
     
-    let hid = this.heaps.allocate({ bid, backing, allocator, fid: format_info.fid });
+    let hid = this.heaps.allocate({ 
+      bid, backing, allocator, 
+      offsets: format_info.format.offsets,
+      fid: format_info.fid,
+    });
     let { slot, offset } = allocator.malloc(count);
     return { hid, slot, offset };
   }
@@ -158,6 +122,27 @@ export class VertexHeaps {
     return { fid, format };
   }
 
+  create_binding_descriptor(layout, group, info) {
+    let heap = this.heaps.get(info.hid);
+    let bid = heap.bid, offsets = heap.offsets;
+    for (let i = 0; i < offsets.length; i++) {
+      const offset = offsets[i];
+      const size = ((i + 1) == offsets.length ? MAX_SIZE : offsets[i + 1]) - offset;
+      layout.push({
+        binding: layout.length,
+        visibility: GPUShaderStage.VERTEX,
+        buffer: { type: "read-only-storage" }
+      });
+      group.push({
+        binding: group.length,
+        type: GPUResource.BUFFER,
+        resource: bid,
+        offset: offset,
+        size: size,
+      });
+    }
+  }
+
   free_attributes(bid) {
     const slot = this.slots.get(bid);
     this.slots.delete(bid);
@@ -170,7 +155,7 @@ export class VertexHeaps {
     }
 
     if (slot.vertices) this.free_allocation(slot.vertices);
-    if (slot.instanced) this.free_allocation(slot.instanced);
+    if (slot.instances) this.free_allocation(slot.instances);
   }
 
   free_allocation(info) {
@@ -190,21 +175,19 @@ export class VertexHeaps {
   }
 
   format_hash(attributes) {
+    let vertices = { entries: attributes.vertices, hash: 0, size: 0, format: null };
+    let instances = { entries: attributes.instances, hash: 0, size: 0, format: null };
+    
     let vert_id = 0, inst_id = 0;
-    let vertices = { entries: [], hash: 0, size: 0, format: null };
-    let instanced = { entries: [], hash: 0, size: 0, format: null };
-    for (let attrib of attributes.entries) {
-      if (attrib.type == ResourceType.Vertex) {
-        vertices.size += attrib.stride;
-        vertices.hash |= attrib.stride << (vert_id++ << 3);
-        vertices.entries.push(attrib);
-      } else {
-        instanced.size += attrib.stride;
-        instanced.hash |= attrib.stride << (inst_id++ << 3);
-        instanced.entries.push(attrib);
-      }
+    for (let vert of attributes.vertices) {
+      vertices.size += vert.stride;
+      vertices.hash |= vert.stride << (vert_id++ << 3);
+    }
+    for (let inst of attributes.instances) {
+      instances.size += inst.stride;
+      instances.hash |= inst.stride << (inst_id++ << 3);
     }
 
-    return { vertices, instanced };
+    return { vertices, instances };
   }
 }
