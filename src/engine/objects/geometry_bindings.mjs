@@ -1,8 +1,5 @@
 import { UNINITIALIZED } from "../constants.mjs";
 
-// TODO: remove stride from vertex
-// TODO: try to infer index stride from incoming data
-
 class GeometryBinding {
   #id = UNINITIALIZED;
   #bid = UNINITIALIZED;
@@ -20,7 +17,7 @@ class GeometryBinding {
     const data_offset = options.data_offset || 0;
     const elements = ArrayBuffer.isView(data) ? data.length : data.byteLength;
     const size = options.size || (elements - data_offset);
-    this.#update = { data_offset, buffer_offset, size, data: data };
+    this.#update = { data_offset, buffer_offset, size, data };
     return this;
   }
   free_storage() {
@@ -40,3 +37,4 @@ class GeometryBinding {
 
 export class Index extends GeometryBinding {}
 export class Vertex extends GeometryBinding {}
+export class Instance extends GeometryBinding {}

@@ -16,11 +16,11 @@ const EMPTY32 = 0xffff_ffff;
 export const opt_fetch = (geometry) => {
   const indices = geometry.index.data;
   const index_count = (indices.length / 3 | 0) * 3;
-  const attrib = geometry.attributes[0];
+  const attrib = geometry.attributes.vertices[0];
   const vertex_count = attrib.total_bytes / attrib.stride;
-  const buffer_count = geometry.attributes.length;
+  const buffer_count = geometry.attributes.vertices.length;
 
-  const buffers = geometry.attributes.map(vertex => {
+  const buffers = geometry.attributes.vertices.map(vertex => {
     return { output: null, input: vertex.data, stride: vertex.stride }
   });
   
@@ -31,7 +31,7 @@ export const opt_fetch = (geometry) => {
   Memory.allocate_layout(mem);
 
   for (let i = 0; i < buffer_count; ++i)
-    geometry.attributes[i].data = buffers[i].output = mem[i];
+    geometry.attributes.vertices[i].data = buffers[i].output = mem[i];
   
   let next_vertex = 0;
   const table = mem[buffer_count].fill(EMPTY32);

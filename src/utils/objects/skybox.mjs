@@ -31,7 +31,7 @@ export class SkyboxGeometry extends Geometry {
     super({
       draw: { count: 36 },
       index: (new Index({ data: index, stride: 2 })).free_storage(),
-      attributes: [(new Vertex({ data: positions, stride: 12 })).free_storage()]
+      vertices: [(new Vertex({ data: positions, stride: 12 })).free_storage()]
     });
   }
 }

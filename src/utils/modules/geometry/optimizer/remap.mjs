@@ -21,7 +21,7 @@ const calculate_bucket_count = (count) => 1 << Math.ceil(Math.log2(count * 1.25)
 class Remapper {
   constructor(geometry) {
     let get_index, index_count, next_vertex = 0;
-    const attrib = geometry.attributes[0];
+    const attrib = geometry.attributes.vertices[0];
     const index = geometry.index;
     const vertex_count = attrib.total_bytes / attrib.stride;
     const bucket_count = calculate_bucket_count(vertex_count);
@@ -47,7 +47,7 @@ class Remapper {
     this.table = mem.table.fill(EMPTY32);
     this.buckets = mem.buckets.fill(EMPTY32);
     
-    this.buffers = geometry.attributes.map(vertex => {
+    this.buffers = geometry.attributes.vertices.map(vertex => {
       let data;
       if (ArrayBuffer.isView(vertex.data)) {
         data = (vertex.data instanceof Uint8Array) ? 
@@ -137,7 +137,7 @@ class Remapper {
         if (this.table[i] == EMPTY32) continue;
         memcpy(new_buffer, this.table[i] * stride, buffer, i * stride, stride);
       }
-      const attrib = geometry.attributes[k];
+      const attrib = geometry.attributes.vertices[k];
       attrib.data = new_buffer;
       attrib.total_bytes = new_buffer.byteLength;
       attrib.offset = 0;

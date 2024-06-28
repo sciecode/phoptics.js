@@ -47,15 +47,14 @@ export class Engine {
       this.draw_stream.set_dynamic(mesh.dynamic ? this.dynamic.allocate(mesh) : 0);
 
       const geometry = mesh.geometry;
-      this.draw_stream.set_geometry(geometry.get_vertices());
+      this.draw_stream.set_geometry(geometry.get_attributes());
 
       draw_info.index = geometry.index?.get_bid() || NULL_HANDLE;
       draw_info.draw_count = geometry.draw.count;
+      draw_info.instance_count = geometry.draw.instance_count;
       draw_info.index_offset = geometry.get_index_offset();
       draw_info.vertex_offset = geometry.get_vertex_offset();
-      draw_info.instance_count = geometry.draw.instance_count;
-      draw_info.instance_offset = geometry.draw.instance_offset;
-
+      draw_info.instance_offset = geometry.get_instance_offset();
       this.draw_stream.draw(draw_info);
     }
 

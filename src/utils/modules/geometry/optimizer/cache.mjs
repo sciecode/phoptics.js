@@ -25,7 +25,7 @@ const opt_cache_group = (geometry, output) => {
   const indices = geometry.index.data;
   const index_count = indices.length;
   const triangle_count = index_count / 3;
-  const attrib = geometry.attributes[0];
+  const attrib = geometry.attributes.vertices[0];
   const vertex_count = attrib.total_bytes / attrib.stride;
 
   const mem = {

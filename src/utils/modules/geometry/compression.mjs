@@ -26,7 +26,7 @@ import { compress_indices, uncompress_indices } from './compression/index.mjs';
 const FORMAT_ID = 0xAA289;
 
 const calculate_buffer_size = (geometry, indices, vertices) => {
-  const V = geometry.attributes.length;
+  const V = geometry.attributes.vertices.length;
   const fixed_header = 17;
   const variable_header = V * 5;
   const compressed_index_size = indices.size;
@@ -41,7 +41,7 @@ const calculate_buffer_size = (geometry, indices, vertices) => {
 const populate = (output, geometry, indices, vertices) => {
   let offset = 0;
   const dv = new DataView(output.buffer);
-  const attrib = geometry.attributes[0];
+  const attrib = geometry.attributes.vertices[0];
   const vertex_count = attrib.total_bytes / attrib.stride;
 
   // = FIXED HEADER =
@@ -165,7 +165,7 @@ export const uncompress = (buffer) => {
   const geometry = new Geometry({
     draw: { count: indices.length },
     index: new Index({ data: indices, stride: indices.BYTES_PER_ELEMENT }),
-    attributes: info.vertices.map(vert => {
+    vertices: info.vertices.map(vert => {
       return new Vertex({ data: vert.output, stride: vert.vertex_size }); 
     }),
   });

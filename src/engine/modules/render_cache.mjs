@@ -11,20 +11,18 @@ export class RenderCache {
   constructor(backend) {
     this.backend = backend;
 
-    this.buffer_manager = new BufferManager(backend);
     this.material_manager = new MaterialManager(backend);
+    this.buffer_manager = new BufferManager(backend, this.material_manager);
 
     this.samplers = new SparseSet();
     this.sampler_table = new SamplerTable(backend.device.features);
     
     this.views = new PoolStorage();
     this.bindings = new PoolStorage();
-    this.geometries = new PoolStorage();
     this.textures = new PoolStorage();
     
     this.texture_callback = this.free_texture.bind(this);
     this.bindings_callback = this.free_binding.bind(this);
-    this.geometry_callback = this.free_geometry.bind(this);
   }
 
   get_target(target_obj) {
@@ -98,76 +96,22 @@ export class RenderCache {
   }
 
   get_geometry(geometry_obj) {
-    let id = geometry_obj.get_id(), cache;
-
+    let id = geometry_obj.get_id();
     if (id == UNINITIALIZED) {
-      cache = {
-        index_offset: NULL_HANDLE,
-        buffer_bid: NULL_HANDLE,
-        layout: undefined,
-        binding: 0,
-      };
+      let index_offset = NULL_HANDLE;
 
       if (geometry_obj.index) {
         const index_cache = this.get_index(geometry_obj.index);
         const sid = geometry_obj.index.stride >> 2;
-        cache.index_offset = index_cache.index_offset | (sid << 31);
+        index_offset = index_cache.index_offset | (sid << 31);
       }
 
-      let attrib = 0;
-      const attributes = geometry_obj.attributes, attrib_count = attributes.length;
-      const vertices = [];
-      if (attrib_count) {
-        const attrib_cache = this.get_attribute(attributes[attrib++]);
-        vertices.push(attrib_cache);
-        cache.buffer_bid = attrib_cache.bid;
-        for (; attrib < attrib_count; attrib++) vertices.push(this.get_attribute(attributes[attrib]));
-
-        const geometry_layout = this.material_manager.create_layout({
-          entries: vertices.map((_, idx) => {
-            return {
-              binding: idx,
-              visibility: GPUShaderStage.VERTEX,
-              buffer: { type: "read-only-storage" },
-            };
-          })
-        });
-  
-        cache.layout = geometry_layout.id;
-        cache.binding = this.backend.resources.create_bind_group({
-          layout: geometry_layout.layout,
-          entries: vertices.map((vertex, idx) => {
-            return {
-              binding: idx,
-              type: GPUResource.BUFFER,
-              offset: vertex.offset,
-              size: vertex.size,
-              resource: vertex.bid,
-            }
-          })
-        });
-      }
-
-      id = this.geometries.allocate(cache);
-      geometry_obj.initialize(id, cache.index_offset, cache.binding, cache.layout, this.geometry_callback);
+      this.get_attributes(geometry_obj.attributes);
+      geometry_obj.initialize(0, index_offset);
     } else {
       if (geometry_obj.index) this.get_index(geometry_obj.index);
-      const attributes = geometry_obj.attributes, attrib_count = attributes.length;
-      for (let i = 0; i < attrib_count; i++) this.get_attribute(attributes[i]);
-
-      cache = this.geometries.get(id);
+      this.get_attributes(geometry_obj.attributes);
     }
-
-    return cache;
-  }
-
-  free_geometry(id) {
-    const cache = this.geometries.get(id);
-    if (cache.layout) {
-      this.material_manager.free_layout(cache.layout);
-      this.backend.resources.destroy_bind_group(cache.binding);
-    }
-    this.geometries.delete(id);
   }
 
   get_material_binding(material_obj) {
@@ -183,7 +127,7 @@ export class RenderCache {
 
   get_pipeline(material_obj, state) {
     let id = material_obj.get_id();
-
+    
     if (id == UNINITIALIZED) {
       id = this.material_manager.create_material({
         material: material_obj,
@@ -364,11 +308,7 @@ export class RenderCache {
     return this.buffer_manager.get_index(index_obj);
   }
 
-  get_interleaved(inter_obj) {
-    return this.buffer_manager.get_interleaved(inter_obj);
-  }
-
-  get_attribute(attrib_obj) {
-    return this.buffer_manager.get_attribute(attrib_obj);
+  get_attributes(attrib_obj) {
+    return this.buffer_manager.get_attributes(attrib_obj);
   }
 }

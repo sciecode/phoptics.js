@@ -21,6 +21,10 @@ export class PoolStorage {
     return idx;
   }
 
+  size() {
+    return this.count - this.freelist.length;
+  }
+
   grow () {
     this.data.length *= 2;
   }

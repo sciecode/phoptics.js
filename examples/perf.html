@@ -24,7 +24,7 @@
   </head>
   <body>
     <script type="module">
-      import { Engine, Mesh, Vertex, RenderList, Shader, Material, Texture, CanvasTexture,
+      import { Engine, Mesh, Vertex, Instance, RenderList, Shader, Material, Texture, CanvasTexture,
         RenderPass, RenderTarget, StructuredBuffer, Format } from 'phoptics';
       import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
       import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
@@ -105,7 +105,7 @@
           vec.set(Math.random(), Math.random(), Math.random()).to(instanced_dynamic, i + 12);
         }
 
-        geo.attributes.push(new Vertex({ data: instanced_dynamic }));
+        geo.attributes.instances.push(new Instance({ data: instanced_dynamic, stride: 16 }));
         geo.draw.instance_count = count;
 
         const mesh = new Mesh(geo, material);

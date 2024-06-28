@@ -242,7 +242,7 @@ export const encode_indices = (output, indices, index_count) => {
 
 export const compress_indices = (geometry) => {
   const index_count = (geometry.index.data.length / 3 | 0) * 3;
-  const attrib = geometry.attributes[0];
+  const attrib = geometry.attributes.vertices[0];
   const vertex_count = attrib.total_bytes / attrib.stride;
 
   const output = {
