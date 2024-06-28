@@ -14,8 +14,9 @@ export class VertexHeaps {
     this.slots = new PoolStorage(); // hid, slot, offset, binding_id
     this.heaps = new PoolStorage(); // buffer, allocator, backing
     this.formats = new SparseSet(); // heaps, offsets
-
     this.bindings = new SparseSet(); // groups, layouts
+
+    this.free = this.free_attributes.bind(this);
   }
 
   get_attributes(attributes) {
@@ -29,22 +30,22 @@ export class VertexHeaps {
       let format_offset = { vertices: null, instanced: null };
 
       if (vertices.hash) {
-        const format_info = this.find_format(vertices.hash);
+        const format_info = this.get_format(vertices.hash);
         format_offset.vertices = format_info.format.offsets;
 
         const attrib0 = vertices.entries[0];
         const count = attrib0.size / attrib0.stride;
-        info.vertices = this.find_heap(format_info, count);
+        info.vertices = this.get_heap(format_info, count);
         binding_hash |= info.vertices.hid;
       }
 
       if (instanced.hash) {
-        const format_info = this.find_format(instanced.hash);
+        const format_info = this.get_format(instanced.hash);
         format_offset.instanced = format_info.format.offsets;
 
         const attrib0 = instanced.entries[0];
         const count = attrib0.size / attrib0.stride;
-        info.instanced = this.find_heap(format_info, count);
+        info.instanced = this.get_heap(format_info, count);
         binding_hash |= info.instanced.hid << 16;
       }
 
@@ -68,7 +69,7 @@ export class VertexHeaps {
         };
 
         if (vertices.hash) {
-          let offsets = info.vertices.format.offsets;
+          let offsets = format_offset.vertices;
           let bid = this.heaps.get(info.vertices.hid).bid;
           for (let i = 0; i < offsets.length; i++) {
             const offset = offsets[i];
@@ -84,7 +85,7 @@ export class VertexHeaps {
         }
 
         if (instanced.hash) {
-          let offsets = info.instanced.format.offsets;
+          let offsets = format_offset.indices;
           let bid = this.heaps.get(info.instanced.hid).bid;
           for (let i = 0; i < offsets.length; i++) {
             const offset = offsets[i];
@@ -112,15 +113,16 @@ export class VertexHeaps {
       bid = this.slots.allocate(info);
       attributes.initialize(bid, 
         binding_cache.binding, binding_cache.layout, 
-        info.vertices?.offset || 0, info.instanced?.offset || 0
-      ); // TODO: impl free logic
+        info.vertices?.offset || 0, info.instanced?.offset || 0,
+        this.free
+      );
     }
 
-      // check for updates
-      // for each heap update backing, store range
+    // check for updates
+    // for each heap update backing, store range
   }
 
-  find_heap(format_info, count) {
+  get_heap(format_info, count) {
     for (let heap_id of format_info.format.heaps) {
       const allocation = this.heaps.get(heap_id).allocator.malloc(count);
       if (allocation) return { hid, slot: allocation.slot, offset: allocation.offset };
@@ -139,7 +141,7 @@ export class VertexHeaps {
     return { hid, slot, offset };
   }
 
-  find_format(heap_info) {
+  get_format(heap_info) {
     let hash = heap_info.hash;
     let fid = this.formats.has(hash);
     if (fid != undefined) return { fid, format: this.formats.get(cid) };
@@ -154,6 +156,37 @@ export class VertexHeaps {
     fid = this.formats.set(hash, format);
 
     return { fid, format };
+  }
+
+  free_attributes(bid) {
+    const slot = this.slots.get(bid);
+    this.slots.delete(bid);
+
+    const binding_cache = this.bindings.get(slot.binding);
+    if (!--binding_cache.count) {
+      this.backend.resources.destroy_bind_group(binding_cache.binding);
+      this.cache.material_manager.free_layout(binding_cache.layout);
+      this.bindings.delete(slot.binding, binding_cache.hash);
+    }
+
+    if (slot.vertices) this.free_allocation(slot.vertices);
+    if (slot.instanced) this.free_allocation(slot.instanced);
+  }
+
+  free_allocation(info) {
+    const hid = info.hid, heap = this.heaps.get(hid);
+    heap.allocator.free(info.slot);
+
+    const format = this.formats.get(heap.fid);
+    if (heap.allocator.free_storage == format.elements) {
+      this.backend.resources.destroy_buffer(heap.buffer);
+      heap.allocator = heap.backing = null;
+      this.heaps.delete(hip);
+
+      format.heaps.splice(format.heaps.findIndex(hip), 1);
+      if (!format.heaps.length) 
+        this.formats.delete(heap.fid, format.hash);
+    }
   }
 
   format_hash(attributes) {

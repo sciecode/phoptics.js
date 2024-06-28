@@ -9,22 +9,22 @@ export class Attributes {
   #instance_offset = 0;
   #free = () => {}
 
-  constructor(options) {
+  constructor(entries) {
+    this.entries = entries;
   }
   
   get_bid() { return this.#bid; }
-  initialize(bid, binding, layout, vert_offset, inst_offset) { 
+  initialize(bid, binding, layout, vert_offset, inst_offset, free) { 
     if (this.#bid == UNINITIALIZED) {
       this.#bid = bid;
       this.#binding = binding;
       this.#layout = layout;
       this.#vertex_offset = vert_offset;
       this.#instance_offset = inst_offset;
-      // this.#free = free;
+      this.#free = free;
     }
   }
   destroy() {
-    for (let entry of this.info) entry.ownership && this[entry.name].destroy();
     this.#free(this.#bid);
     this.#bid = -1;
   }
