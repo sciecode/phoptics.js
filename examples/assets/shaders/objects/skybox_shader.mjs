@@ -18,7 +18,7 @@ struct Attributes {
 }
 
 @group(0) @binding(0) var<storage, read> globals: Globals;
-@group(2) @binding(0) var<storage, read> attributes: array<f32>;
+@group(3) @binding(0) var<storage, read> attributes: array<f32>;
 
 fn read_attribute(vert : u32) -> Attributes {
   var attrib : Attributes;

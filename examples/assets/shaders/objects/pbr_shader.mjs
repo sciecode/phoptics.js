@@ -33,9 +33,8 @@ struct Attributes {
 @group(0) @binding(1) var gsamp: sampler;
 @group(0) @binding(2) var lut: texture_2d<f32>;
 @group(0) @binding(3) var cubemap: texture_cube<f32>;
-
-@group(2) @binding(0) var<storage, read> attributes: array<u32>;
-@group(3) @binding(0) var<storage, read> dynamic: array<vec4f>;
+@group(2) @binding(0) var<storage, read> dynamic: array<vec4f>;
+@group(3) @binding(0) var<storage, read> attributes: array<u32>;
 
 fn read_uniform(inst : u32) -> Uniforms {
   var uniform : Uniforms;

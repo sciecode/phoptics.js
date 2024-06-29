@@ -47,7 +47,7 @@ export class Engine {
       this.draw_stream.set_dynamic(mesh.dynamic ? this.dynamic.allocate(mesh) : 0);
 
       const geometry = mesh.geometry;
-      this.draw_stream.set_geometry(geometry.get_attributes());
+      this.draw_stream.set_attributes(geometry.get_attributes());
 
       draw_info.index = geometry.index?.get_bid() || NULL_HANDLE;
       draw_info.draw_count = geometry.draw.count;

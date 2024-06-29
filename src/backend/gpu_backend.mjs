@@ -100,13 +100,32 @@ export class GPUBackend {
       pass.setPipeline(pipeline);
     }
 
-    // bind groups
-    for (let i = 0; i < 3; i++) {
-      if (metadata & (DrawStreamFlags.bind_globals << i)) {
-        const group_handle = stream[draw_packet.offset++];
-        const group = this.resources.get_bind_group(group_handle).group;
-        pass.setBindGroup(i, group);
-      }
+    // global bind
+    if (metadata & DrawStreamFlags.bind_globals) {
+      const group_handle = stream[draw_packet.offset++];
+      const group = this.resources.get_bind_group(group_handle).group;
+      pass.setBindGroup(0, group);
+    }
+
+    // material bind
+    if (metadata & DrawStreamFlags.bind_material) {
+      const group_handle = stream[draw_packet.offset++];
+      const group = this.resources.get_bind_group(group_handle).group;
+      pass.setBindGroup(1, group);
+    }
+
+    // dynamic bind
+    if (metadata & DrawStreamFlags.bind_dynamic) {
+      draw_packet.draw.dynamic_group = stream[draw_packet.offset++];
+      const bind_group = this.resources.get_bind_group(draw_packet.draw.dynamic_group);
+      pass.setBindGroup(2, bind_group.group);
+    }
+
+    // attributes bind
+    if (metadata & DrawStreamFlags.bind_attributes) {
+      const group_handle = stream[draw_packet.offset++];
+      const group = this.resources.get_bind_group(group_handle).group;
+      pass.setBindGroup(3, group);
     }
 
     // index offset
@@ -144,13 +163,7 @@ export class GPUBackend {
       draw_packet.draw.instance_offset = stream[draw_packet.offset++];
     }
 
-    // dynamic
-    if (metadata & DrawStreamFlags.dynamic_group) {
-      draw_packet.draw.dynamic_group = stream[draw_packet.offset++];
-      const bind_group = this.resources.get_bind_group(draw_packet.draw.dynamic_group);
-      pass.setBindGroup(3, bind_group.group);
-    }
-
+    // dynamic offset
     if (metadata & DrawStreamFlags.dynamic_offset) {
       if (draw_packet.draw.dynamic_group)
         draw_packet.draw.instance_offset = stream[draw_packet.offset++] / 4;

@@ -30,12 +30,12 @@ export class DrawStream {
     this.upload_data(DrawStreamBits.bind_material, DrawStreamFlags.bind_material, group_handle);
   }
 
-  set_geometry(group_handle) {
-    this.upload_data(DrawStreamBits.bind_geometry, DrawStreamFlags.bind_geometry, group_handle);
+  set_attributes(group_handle) {
+    this.upload_data(DrawStreamBits.bind_attributes, DrawStreamFlags.bind_attributes, group_handle);
   }
 
   set_dynamic(info) {
-    this.upload_data(DrawStreamBits.dynamic_group, DrawStreamFlags.dynamic_group, info.group);
+    this.upload_data(DrawStreamBits.bind_dynamic, DrawStreamFlags.bind_dynamic, info.group);
     this.upload_data(DrawStreamBits.dynamic_offset, DrawStreamFlags.dynamic_offset, info.offset);
   }
 

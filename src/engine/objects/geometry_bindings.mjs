@@ -1,5 +1,7 @@
 import { UNINITIALIZED } from "../constants.mjs";
 
+// TODO: separate classes
+
 class GeometryBinding {
   #id = UNINITIALIZED;
   #bid = UNINITIALIZED;

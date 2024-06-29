@@ -83,16 +83,16 @@ export class MaterialManager {
     } else {
       const layout = this.get_pipeline_layout([
         info.state.global_layout, info.state.material_layout, 
-        info.state.geometry_layout, info.state.dynamic_layout
+        info.state.dynamic_layout, info.state.geometry_layout
       ]);
       const pipeline = this.backend.resources.create_pipeline({
         shader: shader_bid,
+        layouts: layout.bid,
         graphics: {
           multisampled: info.state.multisampled,
           formats: info.state.formats,
           ...info.material.graphics,
         },
-        layouts: layout.bid,
       });
 
       id = this.pipelines.set(hash, { count: 1, bid: pipeline, hash: hash, layout: layout.id });

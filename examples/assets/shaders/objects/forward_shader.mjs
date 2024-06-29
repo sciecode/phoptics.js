@@ -29,9 +29,8 @@ struct Attributes {
 }
 
 @group(0) @binding(0) var<storage, read> globals: Globals;
-
-@group(2) @binding(0) var<storage, read> attributes: array<u32>;
-@group(3) @binding(0) var<storage, read> dynamic: array<vec4f>;
+@group(2) @binding(0) var<storage, read> dynamic: array<vec4f>;
+@group(3) @binding(0) var<storage, read> attributes: array<u32>;
 
 fn dec_oct16(data : u32) -> vec3f {
   let v = vec2f(vec2u(data, data >> 8) & vec2u(255)) / 127.5 - 1.0;
