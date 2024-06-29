@@ -88,11 +88,11 @@ export class RenderCache {
           minFilter: sampler_obj.filtering.min,
           mipmapFilter: sampler_obj.filtering.mip,
         });
-        id = this.samplers.set(hash, bid);
+        id = this.samplers.set(hash, { bid });
       }
     }
 
-    return this.samplers.get(id);
+    return this.samplers.get(id).bid;
   }
 
   get_index(index_obj) {

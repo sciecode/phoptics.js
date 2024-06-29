@@ -57,7 +57,7 @@ export class VertexHeaps {
           entries: group_entries,
         });
 
-        binding_cache = { binding, layout, count: 1, hash: binding_hash };
+        binding_cache = { binding, layout, count: 1 };
         info.binding = this.bindings.set(binding_hash, binding_cache);
       } else {
         binding_cache = this.bindings.get(info.binding);
@@ -177,7 +177,7 @@ export class VertexHeaps {
     for (let attrib of heap_info.entries)
       offsets.push(offset), offset = align_storage(offset + elements * attrib.stride);
 
-    let format = { hash, offsets, heaps, elements };
+    let format = { offsets, heaps, elements };
     fid = this.formats.set(hash, format);
 
     return { fid, format };
@@ -212,7 +212,7 @@ export class VertexHeaps {
     if (!--binding_cache.count) {
       this.backend.resources.destroy_bind_group(binding_cache.binding);
       this.manager.free_layout(binding_cache.layout);
-      this.bindings.delete(slot.binding, binding_cache.hash);
+      this.bindings.delete(slot.binding);
     }
 
     if (slot.vertices) this.free_allocation(slot.vertices);
@@ -231,7 +231,7 @@ export class VertexHeaps {
 
       format.heaps.splice(format.heaps.findIndex(hip), 1);
       if (!format.heaps.length)
-        this.formats.delete(heap.fid, format.hash);
+        this.formats.delete(heap.fid);
     }
   }
 

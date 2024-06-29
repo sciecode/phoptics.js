@@ -27,7 +27,7 @@ export class MaterialManager {
         this.shaders.get(id).count++;
       } else {
         const bid = this.backend.resources.create_shader(shader_obj);
-        id = this.shaders.set(hash, { bid: bid, count: 1, hash: hash });
+        id = this.shaders.set(hash, { bid: bid, count: 1 });
       }
       shader_obj.initialize(id, this.shader_callback);
     }
@@ -40,7 +40,7 @@ export class MaterialManager {
     const cache = this.shaders.get(shader_id);
     if (!--cache.count) {
       this.backend.resources.destroy_shader(cache.bid);
-      this.shaders.delete(shader_id, cache.hash);
+      this.shaders.delete(shader_id);
     }
   }
 
@@ -53,7 +53,7 @@ export class MaterialManager {
       const bid = this.backend.resources.create_pipeline_layout(
         desc.map(e => (e !== undefined) ? this.get_layout(e) : undefined)
       );
-      id = this.pipeline_layouts.set(hash, { bid: bid, count: 1, hash: hash });
+      id = this.pipeline_layouts.set(hash, { bid: bid, count: 1 });
     }
 
     const cache = this.pipeline_layouts.get(id);
@@ -64,7 +64,7 @@ export class MaterialManager {
     const cache = this.pipeline_layouts.get(id);
     if (!--cache.count) {
       this.backend.resources.destroy_pipeline_layout(cache.bid);
-      this.pipeline_layouts.delete(id, cache.hash);
+      this.pipeline_layouts.delete(id);
     }
   }
 
@@ -95,7 +95,7 @@ export class MaterialManager {
         },
       });
 
-      id = this.pipelines.set(hash, { count: 1, bid: pipeline, hash: hash, layout: layout.id });
+      id = this.pipelines.set(hash, { count: 1, bid: pipeline, layout: layout.id });
     }
 
     return id;
@@ -110,7 +110,7 @@ export class MaterialManager {
     if (!--cache.count) {
       this.free_pipeline_layout(cache.layout);
       this.backend.resources.destroy_pipeline(cache.bid);
-      this.pipelines.delete(pipeline_id, cache.hash);
+      this.pipelines.delete(pipeline_id);
     }
   }
 
@@ -151,7 +151,7 @@ export class MaterialManager {
       layout = cache.layout;
     } else {
       layout = this.backend.resources.create_group_layout(layout_info);
-      id = this.layouts.set(hash, { count: 1, layout: layout, hash: hash });
+      id = this.layouts.set(hash, { count: 1, layout: layout });
     }
     return { id: id, layout: layout };
   }
@@ -162,6 +162,6 @@ export class MaterialManager {
 
   free_layout(layout_id) {
     const cache = this.layouts.get(layout_id);
-    if (!--cache.count) this.layouts.delete(layout_id, cache.hash);
+    if (!--cache.count) this.layouts.delete(layout_id);
   }
 }
