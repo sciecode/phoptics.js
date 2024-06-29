@@ -6,16 +6,14 @@ import { UniformPool } from "./uniform_pool.mjs";
 export class BufferManager {
   constructor(backend, manager) {
     this.uniforms = new UniformPool(backend);
-    this.vertices = new VertexHeaps(backend, manager);
+    this.attributes = new VertexHeaps(backend, manager);
     this.indices = new IndexPool(backend);
   }
 
   get_uniform(uniform_obj) { return this.uniforms.get(uniform_obj); }
-  get_attributes(attrib_obj) { return this.vertices.get_attributes(attrib_obj); }
+  get_attributes(attrib_obj) { return this.attributes.get_attributes(attrib_obj); }
   get_index(index_obj) { return this.indices.get_index(index_obj); }
-  dispatch() {
-    this.vertices.dispatch();
-    this.indices.dispatch();
-    this.uniforms.dispatch();
-  }
+  dispatch_indices() { this.indices.dispatch(); }
+  dispatch_attributes() { this.attributes.dispatch(); }
+  dispatch_uniforms() { this.uniforms.dispatch(); }
 }

@@ -97,21 +97,23 @@ export class RenderCache {
 
   get_geometry(geometry_obj) {
     let id = geometry_obj.get_id();
-    if (id == UNINITIALIZED) {
+    if (id == UNINITIALIZED) { // TODO: make index object initializable
       let index_offset = NULL_HANDLE;
 
       if (geometry_obj.index) {
-        const index_cache = this.get_index(geometry_obj.index);
+        const index_cache = this.buffer_manager.get_index(geometry_obj.index);
         const sid = geometry_obj.index.stride >> 2;
         index_offset = index_cache.index_offset | (sid << 31);
       }
 
-      this.get_attributes(geometry_obj.attributes);
       geometry_obj.initialize(0, index_offset);
     } else {
-      if (geometry_obj.index) this.get_index(geometry_obj.index);
-      this.get_attributes(geometry_obj.attributes);
+      if (geometry_obj.index) this.buffer_manager.get_index(geometry_obj.index);
     }
+  }
+
+  get_attributes(attrib_obj) {
+    this.buffer_manager.get_attributes(attrib_obj);
   }
 
   get_material_binding(material_obj) {
@@ -153,7 +155,7 @@ export class RenderCache {
         const resource = binding_obj[entry.name];
         switch (resource.type) {
           case ResourceType.StructuredBuffer:
-            const buffer_info = this.get_uniform(resource);
+            const buffer_info = this.buffer_manager.get_uniform(resource);
             return {
               binding: idx,
               type: GPUResource.BUFFER,
@@ -237,7 +239,7 @@ export class RenderCache {
         const resource = binding_obj[binding_obj.info[i].name];
         switch (resource.type) {
           case ResourceType.StructuredBuffer:
-            this.get_uniform(resource);
+            this.buffer_manager.get_uniform(resource);
             break;
           case ResourceType.TextureView:
             const version = this.get_view(resource).version;
@@ -298,17 +300,5 @@ export class RenderCache {
     this.backend.resources.destroy_texture(cache.bid);
     for (let idx of cache.views) this.views.delete(idx);
     this.textures.delete(id);
-  }
-
-  get_uniform(uniform_obj) {
-    return this.buffer_manager.get_uniform(uniform_obj);
-  }
-
-  get_index(index_obj) {
-    return this.buffer_manager.get_index(index_obj);
-  }
-
-  get_attributes(attrib_obj) {
-    return this.buffer_manager.get_attributes(attrib_obj);
   }
 }

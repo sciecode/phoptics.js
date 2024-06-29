@@ -38,11 +38,15 @@ export class RenderState {
   set_renderlist(list) { 
     for (let entry of list)
       this.cache.get_geometry(entry.mesh.geometry);
-    this.cache.buffer_manager.dispatch(); // TODO: separate dispatch types
+    this.cache.buffer_manager.dispatch_indices();
+    
+    for (let entry of list)
+      this.cache.get_attributes(entry.mesh.geometry.attributes);
+    this.cache.buffer_manager.dispatch_attributes();
     
     for (let entry of list)
       this.cache.get_material_binding(entry.mesh.material);
-    this.cache.buffer_manager.dispatch(); // TODO: separate dispatch types
+    this.cache.buffer_manager.dispatch_uniforms();
 
     for (let entry of list) {
       const mesh = entry.mesh;
