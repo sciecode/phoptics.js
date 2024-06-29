@@ -21,21 +21,11 @@ export class PoolStorage {
     return idx;
   }
 
-  size() {
-    return this.count - this.freelist.length;
-  }
-
-  grow() {
-    this.data.length *= 2;
-  }
-
+  size() { return this.count - this.freelist.length; }
+  grow() { this.data.length *= 2; }
+  get(idx) { return this.data[idx]; }
   delete(idx) {
     this.freelist.push(idx);
     this.data[idx] = undefined;
   }
-
-  get(idx) {
-    return this.data[idx];
-  }
-
 }

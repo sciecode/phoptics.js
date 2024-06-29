@@ -2,6 +2,7 @@ import { UNINITIALIZED } from "../constants.mjs";
 import { GPUResource } from "../../backend/constants.mjs";
 import { OffsetAllocator } from "../../common/offset_allocator.mjs";
 import { PoolStorage } from "../../common/pool_storage.mjs";
+import { DenseStorage } from "../../common/dense_storage.mjs";
 import { SparseSet } from "../../common/sparse_set.mjs";
 
 let HEAP_SIZE = 0x2000000; // 32MB
@@ -13,7 +14,7 @@ export class VertexHeaps {
     this.manager = manager;
 
     this.slots = new PoolStorage(); // hid, slot, offset, binding_id
-    this.heaps = new PoolStorage(); // buffer, allocator, backing
+    this.heaps = new DenseStorage(); // buffer, allocator, backing
     this.formats = new SparseSet(); // heaps, offsets
     this.bindings = new SparseSet(); // groups, layouts
 
@@ -116,19 +117,15 @@ export class VertexHeaps {
   }
 
   dispatch() {
-    let count = this.heaps.size(), i = 0;
-    while (count) {
-      let heap = this.heaps.get(i++);
-      if (heap) {
-        const backing = heap.backing;
-        for (let range of backing.ranges) {
-          if (range.max >= 0) {
-            this.backend.write_buffer(heap.bid, range.min, backing.u8, range.min, range.max - range.min);
-            range.min = Infinity;
-            range.max = -Infinity;
-          }
+    for (let i = 0, il = this.heaps.size(); i < il; i++) {
+      let heap = this.heaps.data[i];
+      const backing = heap.backing;
+      for (let range of backing.ranges) {
+        if (range.max >= 0) {
+          this.backend.write_buffer(heap.bid, range.min, backing.u8, range.min, range.max - range.min);
+          range.min = Infinity;
+          range.max = -Infinity;
         }
-        count--;
       }
     }
   }
