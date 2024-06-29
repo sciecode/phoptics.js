@@ -1,4 +1,4 @@
-import { PoolStorage } from "../../common/pool_storage.mjs";
+import { SparseArray } from "../../common/sparse_array.mjs";
 import { SparseSet } from "../../common/sparse_set.mjs";
 import { UNINITIALIZED } from "../constants.mjs";
 
@@ -11,7 +11,7 @@ export class MaterialManager {
 
     this.shaders = new SparseSet();
     this.pipelines = new SparseSet();
-    this.materials = new PoolStorage();
+    this.materials = new SparseArray();
 
     this.material_callback = this.free_material.bind(this);
     this.shader_callback = this.free_shader.bind(this);

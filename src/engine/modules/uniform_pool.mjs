@@ -1,6 +1,6 @@
 import { UNINITIALIZED } from "../constants.mjs";
 import { OffsetAllocator } from "../../common/offset_allocator.mjs";
-import { PoolStorage } from "../../common/pool_storage.mjs";
+import { SparseArray } from "../../common/sparse_array.mjs";
 
 const BITS = 8;
 const MAX_SIZE = 0x800_0000; // 128MB
@@ -16,7 +16,7 @@ export class UniformPool {
     this.allocators = [];
     this.buffers = [];
     this.backing = [];
-    this.uniforms = new PoolStorage();
+    this.uniforms = new SparseArray();
 
     this.free_callback = this.free.bind(this);
   }

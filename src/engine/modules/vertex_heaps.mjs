@@ -1,8 +1,8 @@
 import { UNINITIALIZED } from "../constants.mjs";
 import { GPUResource } from "../../backend/constants.mjs";
 import { OffsetAllocator } from "../../common/offset_allocator.mjs";
-import { PoolStorage } from "../../common/pool_storage.mjs";
-import { DenseStorage } from "../../common/dense_storage.mjs";
+import { SparseArray } from "../../common/sparse_array.mjs";
+import { DenseArray } from "../../common/dense_array.mjs";
 import { SparseSet } from "../../common/sparse_set.mjs";
 
 let HEAP_SIZE = 0x2000000; // 32MB
@@ -13,8 +13,8 @@ export class VertexHeaps {
     this.backend = backend;
     this.manager = manager;
 
-    this.slots = new PoolStorage(); // hid, slot, offset, binding_id
-    this.heaps = new DenseStorage(); // buffer, allocator, backing
+    this.slots = new SparseArray(); // hid, slot, offset, binding_id
+    this.heaps = new DenseArray(); // buffer, allocator, backing
     this.formats = new SparseSet(); // heaps, offsets
     this.bindings = new SparseSet(); // groups, layouts
 

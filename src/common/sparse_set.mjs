@@ -1,9 +1,9 @@
-import { PoolStorage } from "./pool_storage.mjs";
+import { SparseArray } from "./sparse_array.mjs";
 
 export class SparseSet {
   constructor() {
     this.map = new Map();
-    this.dense = new PoolStorage();
+    this.dense = new SparseArray();
   }
 
   has(key) { return this.map.get(key); }

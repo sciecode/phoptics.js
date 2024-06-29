@@ -183,7 +183,6 @@ export class OffsetAllocator {
     this.indices[bin] = node_id;
     this.free_storage += size;
 
-
     return node_id;
   }
 

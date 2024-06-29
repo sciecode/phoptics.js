@@ -1,9 +1,10 @@
-export class PoolStorage {
+export class SparseArray {
 
   constructor(capacity = 128) {
     this.count = 0;
     this.data = new Array(capacity);
     this.freelist = [];
+    // TOOD: replace freelist with index based linked-list
   }
 
   allocate(data) {

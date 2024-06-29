@@ -1,6 +1,6 @@
 import { UNINITIALIZED } from "../constants.mjs";
 import { OffsetAllocator } from "../../common/offset_allocator.mjs";
-import { PoolStorage } from "../../common/pool_storage.mjs";
+import { SparseArray } from "../../common/sparse_array.mjs";
 
 const BITS = 2;
 const MAX_SIZE = 0x800_0000; // 128MB
@@ -18,7 +18,7 @@ export class IndexPool {
     this.buffers = [];
     this.backing = [];
 
-    this.indices = new PoolStorage();
+    this.indices = new SparseArray();
     this.index_callback = this.free_index.bind(this);
   }
 

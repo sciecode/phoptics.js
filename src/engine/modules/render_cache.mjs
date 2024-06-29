@@ -1,9 +1,9 @@
-import { GPUResource, NULL_HANDLE } from "../../backend/constants.mjs";
+import { GPUResource } from "../../backend/constants.mjs";
 import { ResourceType, UNINITIALIZED } from "../constants.mjs";
 import { BufferManager } from "./buffer_manager.mjs";
 import { SamplerTable } from "./sampler_table.mjs";
 import { MaterialManager } from "./material_manager.mjs";
-import { PoolStorage } from "../../common/pool_storage.mjs";
+import { SparseArray } from "../../common/sparse_array.mjs";
 import { SparseSet } from "../../common/sparse_set.mjs";
 import { Format } from "../../common/constants.mjs";
 
@@ -17,9 +17,9 @@ export class RenderCache {
     this.samplers = new SparseSet();
     this.sampler_table = new SamplerTable(backend.device.features);
 
-    this.views = new PoolStorage();
-    this.bindings = new PoolStorage();
-    this.textures = new PoolStorage();
+    this.views = new SparseArray();
+    this.bindings = new SparseArray();
+    this.textures = new SparseArray();
 
     this.texture_callback = this.free_texture.bind(this);
     this.bindings_callback = this.free_binding.bind(this);

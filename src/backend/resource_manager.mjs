@@ -1,4 +1,4 @@
-import { PoolStorage } from "../common/pool_storage.mjs";
+import { SparseArray } from "../common/sparse_array.mjs";
 import { Texture } from "./resources/texture.mjs";
 import { Pipeline } from "./resources/pipeline.mjs";
 import { BindGroup } from "./resources/bind_group.mjs";
@@ -7,14 +7,14 @@ export class ResourceManager {
   constructor(device) {
     this.device = device;
 
-    this.shaders = new PoolStorage();
-    this.pipelines = new PoolStorage();
-    this.pipeline_layouts = new PoolStorage();
+    this.shaders = new SparseArray();
+    this.pipelines = new SparseArray();
+    this.pipeline_layouts = new SparseArray();
 
-    this.groups = new PoolStorage();
-    this.buffers = new PoolStorage();
-    this.samplers = new PoolStorage();
-    this.textures = new PoolStorage();
+    this.groups = new SparseArray();
+    this.buffers = new SparseArray();
+    this.samplers = new SparseArray();
+    this.textures = new SparseArray();
 
     this.empty_layout = device.createBindGroupLayout({ entries: [] });
     this.create_bind_group({
