@@ -37,7 +37,7 @@ export class RenderState {
 
   set_renderlist(list) {
     for (let entry of list)
-      this.cache.get_geometry(entry.mesh.geometry);
+      this.cache.get_index(entry.mesh.geometry.index);
     this.cache.buffer_manager.dispatch_indices();
 
     for (let entry of list)
@@ -69,7 +69,7 @@ export class RenderState {
 
   preload(pass, mesh) {
     this.set_pass(pass);
-    this.cache.get_geometry(mesh.geometry);
+    this.cache.get_index(mesh.geometry.index);
     this.cache.get_attributes(mesh.geometry.attributes);
     this.cache.get_material_binding(mesh.material);
     this.set_layouts(mesh);

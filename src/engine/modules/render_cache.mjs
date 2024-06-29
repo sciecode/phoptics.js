@@ -95,21 +95,9 @@ export class RenderCache {
     return this.samplers.get(id);
   }
 
-  get_geometry(geometry_obj) {
-    let id = geometry_obj.get_id();
-    if (id == UNINITIALIZED) { // TODO: make index object initializable
-      let index_offset = NULL_HANDLE;
-
-      if (geometry_obj.index) {
-        const index_cache = this.buffer_manager.get_index(geometry_obj.index);
-        const sid = geometry_obj.index.stride >> 2;
-        index_offset = index_cache.index_offset | (sid << 31);
-      }
-
-      geometry_obj.initialize(0, index_offset);
-    } else {
-      if (geometry_obj.index) this.buffer_manager.get_index(geometry_obj.index);
-    }
+  get_index(index_obj) {
+    if (!index_obj) return;
+    this.buffer_manager.get_index(index_obj);
   }
 
   get_attributes(attrib_obj) {

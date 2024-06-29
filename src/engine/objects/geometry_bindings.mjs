@@ -1,12 +1,7 @@
 import { UNINITIALIZED } from "../constants.mjs";
 
-// TODO: separate classes
-
 class GeometryBinding {
-  #id = UNINITIALIZED;
-  #bid = UNINITIALIZED;
   #update = undefined;
-  #free = () => {};
   constructor(options) {
     this.data = options.data;
     this.stride = options.stride || 4;
@@ -31,12 +26,24 @@ class GeometryBinding {
     this.#update = undefined;
     return cur;
   }
-  get_id() { return this.#id; }
-  get_bid() { return this.#bid; }
-  initialize(id, bid, free) { if (this.#id == UNINITIALIZED) { this.#id = id; this.#bid = bid; this.#free = free; } }
-  destroy() { this.#free(this.#id); this.#id = -1; }
 }
-
-export class Index extends GeometryBinding {}
 export class Vertex extends GeometryBinding {}
 export class Instance extends GeometryBinding {}
+export class Index extends GeometryBinding {
+  #id = UNINITIALIZED;
+  #bid = UNINITIALIZED;
+  #index_offset = 0;
+  #free = () => {};
+  get_id() { return this.#id; }
+  get_bid() { return this.#bid; }
+  get_index_offset() { return this.#index_offset; }
+  destroy() { this.#free(this.#id); this.#id = -1; }
+  initialize(id, bid, index_offset, free) {
+    if (this.#id == UNINITIALIZED) {
+      this.#id = id;
+      this.#bid = bid;
+      this.#index_offset = index_offset;
+      this.#free = free;
+    }
+  }
+}

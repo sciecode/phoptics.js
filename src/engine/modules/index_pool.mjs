@@ -29,14 +29,19 @@ export class IndexPool {
       const size = index_obj.size;
       const { heap, slot, offset, bid } = this.create(size);
 
-      id = this.indices.allocate({
+      const index_cache = {
         heap: heap,
         slot: slot,
         bid: bid,
         offset: offset,
         index_offset: offset / index_obj.stride,
-      });
-      index_obj.initialize(id, bid, this.index_callback);
+      };
+
+      const sid = index_obj.stride >> 2;
+      const index_offset = index_cache.index_offset | (sid << 31);
+      id = this.indices.allocate(index_cache);
+
+      index_obj.initialize(id, bid, index_offset, this.index_callback);
     }
 
     const cache = this.indices.get(id), update = index_obj.has_update();

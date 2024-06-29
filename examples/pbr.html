@@ -127,7 +127,7 @@
         }
       }
 
-      quad.geometry.destroy(true);
+      quad.geometry.destroy();
       quad.material.destroy();
       render_pass.destroy();
 
@@ -186,7 +186,7 @@
         }
       }
 
-      quad.geometry.destroy(true);
+      quad.geometry.destroy();
       quad.material.destroy();
       render_pass.destroy();
 
@@ -224,7 +224,7 @@
       globals.update();
       engine.render(render_pass, scene);
 
-      quad.geometry.destroy(true);
+      quad.geometry.destroy();
       quad.material.destroy();
       render_pass.destroy();
 
