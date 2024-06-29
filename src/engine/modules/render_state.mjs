@@ -48,6 +48,8 @@ export class RenderState {
       this.cache.get_material_binding(entry.mesh.material);
     this.cache.buffer_manager.dispatch_uniforms();
 
+    // TODO: can we allocate dynamic buffer in advance?
+
     for (let entry of list) {
       const mesh = entry.mesh;
       const geometry = mesh.geometry, material = mesh.material;
@@ -58,7 +60,7 @@ export class RenderState {
       entry.key = 0;
       Keys.set_attributes(entry, geometry.get_attributes());
       Keys.set_index(entry, geometry.index);
-      Keys.set_dynamic(entry, mesh.dynamic); // TODO: should allocate dynamic earlier?
+      Keys.set_dynamic(entry, mesh.dynamic);
       Keys.set_pipeline(entry, pipeline_cache.bid);
     }
 
@@ -68,6 +70,8 @@ export class RenderState {
   preload(pass, mesh) {
     this.set_pass(pass);
     this.cache.get_geometry(mesh.geometry);
+    this.cache.get_attributes(mesh.geometry.attributes);
+    this.cache.get_material_binding(mesh.material);
     this.set_layouts(mesh);
     this.cache.get_pipeline(mesh.material, this.state);
   }
