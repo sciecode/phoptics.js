@@ -6,7 +6,7 @@ class GeometryBinding {
   #id = UNINITIALIZED;
   #bid = UNINITIALIZED;
   #update = undefined;
-  #free = () => {}
+  #free = () => {};
   constructor(options) {
     this.data = options.data;
     this.stride = options.stride || 4;
@@ -32,9 +32,9 @@ class GeometryBinding {
     return cur;
   }
   get_id() { return this.#id; }
-  get_bid() { return this.#bid }
+  get_bid() { return this.#bid; }
   initialize(id, bid, free) { if (this.#id == UNINITIALIZED) { this.#id = id; this.#bid = bid; this.#free = free; } }
-  destroy() { this.#free(this.#id); this.#id = -1 }
+  destroy() { this.#free(this.#id); this.#id = -1; }
 }
 
 export class Index extends GeometryBinding {}

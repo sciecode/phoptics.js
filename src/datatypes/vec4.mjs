@@ -33,13 +33,13 @@ export class Vec4 extends Float32Array {
   }
 
   from(buf, offset) {
-    this[0] = buf[offset];     this[1] = buf[offset + 1];
+    this[0] = buf[offset]; this[1] = buf[offset + 1];
     this[2] = buf[offset + 2]; this[2] = buf[offset + 3];
     return this;
   }
 
   to(buf, offset) {
-    buf[offset]     = this[0]; buf[offset + 1] = this[1];
+    buf[offset] = this[0]; buf[offset + 1] = this[1];
     buf[offset + 2] = this[2]; buf[offset + 3] = this[3];
     return this;
   }
@@ -55,7 +55,7 @@ export class Vec4 extends Float32Array {
     this[2] += v; this[3] += v;
     return this;
   }
-  
+
   sub(v) {
     this[0] -= v[0]; this[1] -= v[1];
     this[2] -= v[2]; this[3] -= v[3];
@@ -94,10 +94,10 @@ export class Vec4 extends Float32Array {
 
   affine(mat) {
     const v = this, m = mat,
-          x = v[0], y = v[1], z = v[2];
+      x = v[0], y = v[1], z = v[2];
 
-    v[0] = x * m[0] + y * m[1] + z * m[2]  + m[3];
-    v[1] = x * m[4] + y * m[5] + z * m[6]  + m[7];
+    v[0] = x * m[0] + y * m[1] + z * m[2] + m[3];
+    v[1] = x * m[4] + y * m[5] + z * m[6] + m[7];
     v[2] = x * m[8] + y * m[9] + z * m[10] + m[11];
     return this;
   }
@@ -112,11 +112,11 @@ export class Vec4 extends Float32Array {
 
   project(mat) {
     const v = this, m = mat,
-          x = v[0], y = v[1], z = v[2], w = v[3];
+      x = v[0], y = v[1], z = v[2], w = v[3];
 
-    v[0] = x * m[0]  + y * m[1]  + z * m[2]  + w * m[3];
-    v[1] = x * m[4]  + y * m[5]  + z * m[6]  + w * m[7];
-    v[2] = x * m[8]  + y * m[9]  + z * m[10] + w * m[11];
+    v[0] = x * m[0] + y * m[1] + z * m[2] + w * m[3];
+    v[1] = x * m[4] + y * m[5] + z * m[6] + w * m[7];
+    v[2] = x * m[8] + y * m[9] + z * m[10] + w * m[11];
     v[3] = x * m[12] + y * m[13] + z * m[14] + w * m[15];
     return this;
   }

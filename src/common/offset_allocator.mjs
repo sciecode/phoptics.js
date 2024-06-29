@@ -20,7 +20,7 @@ const sm_up = (x) => {
     const fls = 31 - clz(x);
     const mantissa_start = fls - MANTISSA_BITS;
     const exp = mantissa_start + 1;
-    
+
     const low_bits = (1 << mantissa_start) - 1;
     let mantissa = (x >>> mantissa_start) & MANTISSA_MASK;
     if ((x & low_bits) != 0) mantissa++;
@@ -28,7 +28,7 @@ const sm_up = (x) => {
   } else {
     return x;
   }
-}
+};
 
 const sm_dn = (x) => {
   if (x > MANTISSA_MASK) {
@@ -41,13 +41,13 @@ const sm_dn = (x) => {
   } else {
     return x;
   }
-}
+};
 
 const sm_ffs = (mask, i) => {
   const mask_after = ~((1 << i) - 1);
   const bits = mask & mask_after;
   return !bits ? UNUSED : ctz(bits);
-}
+};
 
 export class OffsetAllocator {
   constructor(size, max_alloc = 512 * 1024) {
@@ -75,7 +75,7 @@ export class OffsetAllocator {
 
     this.free_storage = 0;
     this.free_offset = this.max_alloc - 1;
-    
+
     for (let i = 0; i < this.max_alloc; i++) {
       const i6 = i * 6;
       this.free_nodes[i] = this.max_alloc - i - 1;
@@ -90,26 +90,26 @@ export class OffsetAllocator {
     const min_bin = sm_up(size);
     const min_fl = min_bin >>> MANTISSA_BITS;
     const min_sl = min_bin & MANTISSA_MASK;
-    
+
     let fl = min_fl;
     let sl = UNUSED;
 
     if (this.bins_top & (1 << fl)) sl = sm_ffs(this.bins[fl], min_sl);
-    
+
     if (sl == UNUSED) {
       fl = sm_ffs(this.bins_top, min_fl + 1);
-      if (fl == UNUSED) return { slot: undefined }; 
+      if (fl == UNUSED) return { slot: undefined };
       sl = ctz(this.bins[fl]);
     }
-            
+
     const bin = (fl << MANTISSA_BITS) | sl;
     const node_id = this.indices[bin], c6 = node_id * 6;
 
     const total_size = this.nodes[c6 + 1] & NODE_UNUSED_MASK;
     const remainder = total_size - size;
-    
+
     if (remainder && !this.free_offset) return { slot: undefined };
-    
+
     const offset = this.nodes[c6];
     const bin_next = this.nodes[c6 + 3];
     const neighbor_next = this.nodes[c6 + 5];
@@ -124,7 +124,7 @@ export class OffsetAllocator {
       this.bins[fl] &= ~(1 << sl);
       if (this.bins[fl] == 0) this.bins_top &= ~(1 << fl);
     }
-    
+
     if (remainder > 0) {
       const new_id = this.insert_node(remainder, offset + size), n6 = new_id * 6;
       if (neighbor_next != UNUSED) this.nodes[neighbor_next * 6 + 4] = new_id;
@@ -132,7 +132,7 @@ export class OffsetAllocator {
       this.nodes[n6 + 5] = neighbor_next;
       this.nodes[c6 + 5] = new_id;
     }
-    
+
     return { offset: offset, slot: node_id };
   }
 
@@ -179,7 +179,7 @@ export class OffsetAllocator {
 
     this.nodes.set([offset, size, UNUSED, node_fl], node_id * 6);
     if (node_fl != UNUSED) this.nodes[node_fl * 6 + 2] = node_id;
-    
+
     this.indices[bin] = node_id;
     this.free_storage += size;
 
@@ -201,7 +201,7 @@ export class OffsetAllocator {
       const bin = sm_dn(size);
       const fl = bin >>> MANTISSA_BITS;
       const sl = bin & MANTISSA_MASK;
-      
+
       this.indices[bin] = bin_next;
       if (bin_next != UNUSED) this.nodes[bin_next * 6 + 2] = UNUSED;
 

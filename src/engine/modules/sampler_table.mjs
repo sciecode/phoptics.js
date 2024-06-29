@@ -74,7 +74,7 @@ export class SamplerTable {
       case Format.RG32_SINT:
       case Format.RGBA32_SINT:
         return 'sint';
-        
+
     }
   }
 }

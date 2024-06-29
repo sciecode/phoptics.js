@@ -8,5 +8,5 @@ export class TextureView {
     this.info = options.info;
   }
   get_id() { return this.#id; }
-  initialize(id) { if (this.#id == UNINITIALIZED) { this.#id = id } }
+  initialize(id) { if (this.#id == UNINITIALIZED) { this.#id = id; } }
 }

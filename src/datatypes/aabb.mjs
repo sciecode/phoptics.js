@@ -32,7 +32,7 @@ export class AABB extends Float32Array {
   }
 
   copy(b) {
-    return this.set(b.center, b.extent);  
+    return this.set(b.center, b.extent);
   }
 
   affine(m) {

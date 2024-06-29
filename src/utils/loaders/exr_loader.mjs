@@ -19,13 +19,13 @@ export class EXRLoader {
       workers: options.workers,
       max_workers: options.max_workers || 8,
       factor: options.factor || .25
-    }
+    };
     this.tasks = new TaskQueue(worker_url, task_options);
     URL.revokeObjectURL(worker_url);
   };
 
   async load(url) {
-    return fetch(url).then( async response => {
+    return fetch(url).then(async response => {
       if (!response.ok) return undefined;
       return this.parse(await response.arrayBuffer());
     });
@@ -44,7 +44,7 @@ export class EXRLoader {
 let _;
 const decoders = ['raw', 'rle', 'zlib', 'zlib', _, _, _, _, _, _];
 const COMPRESS_BLOCK = [1, 1, 1, 16, 32, 16, 0, 0, 32, 256];
-const compressions = ['NO','RLE','ZIPS','ZIP','PIZ','PXR24','B44','B44A','DWAA','DWAB'];
+const compressions = ['NO', 'RLE', 'ZIPS', 'ZIP', 'PIZ', 'PXR24', 'B44', 'B44A', 'DWAA', 'DWAB'];
 
 const read_header = (reader) => {
   if (reader.u32() != 20000630) throw 'EXRLoader: file not OpenEXR format.';
@@ -54,9 +54,9 @@ const read_header = (reader) => {
 
   const spec = reader.u8();
   header.spec = {
-    tile: !! ( spec & 2 ),
-    deep: !! ( spec & 8 ),
-    multi: !! ( spec & 16 ),
+    tile: !!(spec & 2),
+    deep: !!(spec & 8),
+    multi: !!(spec & 16),
   };
 
   if (header.spec.deep) throw 'EXRLoader: unsupported deep-scan file extension.';
@@ -92,7 +92,7 @@ const read_header = (reader) => {
       stride: 0,
       count: 0,
     }
-  }
+  };
 
   const sequence = { R: 0, G: 1, B: 2, A: 3, Y: 0 };
 
@@ -113,16 +113,16 @@ const read_header = (reader) => {
 
   let fill;
   const type = channels.output.info.R.bytes;
-  
+
   if (channels.output.count == 3) {
     channels.output.info.A = { stride: channels.output.stride, bytes: type },
-    channels.output.stride += type;
+      channels.output.stride += type;
     channels.output.count++;
     fill = (type == 2) ? 0x3C00 : 1;
   }
 
   header.size = { width: size.width, height: size.height };
-  
+
   switch (channels.output.count) {
     case 1: header.format = type == 2 ? Format.R16_FLOAT : Format.R32_FLOAT; break;
     case 2: header.format = type == 2 ? Format.RG16_FLOAT : Format.RG32_FLOAT; break;
@@ -132,14 +132,14 @@ const read_header = (reader) => {
 
   // offsets
   let il = block.count; while (il--) reader.i64();
- 
+
   const algorithm = att.compression.decoder;
-  if (!algorithm) throw 'EXRLoader: compression algorithm currently unsupported.'
+  if (!algorithm) throw 'EXRLoader: compression algorithm currently unsupported.';
 
   const info = { type, size, block, channels, algorithm, fill };
 
   return { header, info };
-}
+};
 
 const decoder = (reader, info, tasks) => {
   return new Promise((res, rej) => {
@@ -153,7 +153,7 @@ const decoder = (reader, info, tasks) => {
       const line = reader.i32() - size.start,
         byte_length = reader.i32(),
         byte_start = reader.offset;
-      blocks.push({line, byte_length, byte_start});
+      blocks.push({ line, byte_length, byte_start });
       reader.skip(byte_length);
     }
 
@@ -168,7 +168,7 @@ const decoder = (reader, info, tasks) => {
       input: reader.bytes.buffer,
       type: type_constructor,
       processed: 0,
-    }
+    };
 
     const dispatch = (worker, data, output) => {
       if (data.blocks.length) {
@@ -186,7 +186,7 @@ const decoder = (reader, info, tasks) => {
         return true;
       }
       return false;
-    }
+    };
 
     const fulfill = (job, mes) => {
       const line = mes.data.line, data = new job.type(mes.data.output);
@@ -196,13 +196,13 @@ const decoder = (reader, info, tasks) => {
         res(job.output);
         return { finished: true };
       }
-      
+
       return { finished: false, extra: data.buffer };
-    }
+    };
 
     tasks.enqueue({ data, dispatch, fulfill });
   });
-}
+};
 
 class EXRReader extends DataReader {
   constructor(buffer) { super(buffer); }
@@ -223,7 +223,7 @@ class EXRReader extends DataReader {
 
   attribute(type, len) {
     let code;
-    switch(type) {
+    switch (type) {
       case 'float': return this.f32();
       case 'int': return this.i32();
       case 'v2f': return [this.f32(), this.f32()];

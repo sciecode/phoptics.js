@@ -3,9 +3,9 @@ export default () => {
   // COMMON
 
   const predictor = (stream) => {
-    for (let t = 1; t < stream.length; t++) 
-      stream[t] = stream[t-1] + stream[t] - 128;
-  }
+    for (let t = 1; t < stream.length; t++)
+      stream[t] = stream[t - 1] + stream[t] - 128;
+  };
 
   const interleave = (src, dst) => {
     let s = 0, t1 = 0, t2 = ((src.length + 1) / 2) | 0;
@@ -16,15 +16,15 @@ export default () => {
       if (s > stop) break;
       dst[s++] = src[t2++];
     }
-  }
+  };
 
   const read_block = (data) => {
     const line = data.line;
     const { type, size, block, channels } = data.info;
-    
+
     const end = line + block.height;
     const height = end > size.height ? end % block.height : block.height;
-    
+
     const input_line_bytes = size.width * channels.input.stride;
     const input_bytes = input_line_bytes * height;
     const is_compressed = input_bytes != data.input.byteLength;
@@ -49,8 +49,8 @@ export default () => {
       is_compressed,
       type: type_constructor,
       dst_stride: output_line_el,
-    }
-  }
+    };
+  };
 
   const populate = (dst, dst_stride, src, channels, width, height) => {
     const output_stride = channels.output.stride / dst.BYTES_PER_ELEMENT;
@@ -67,7 +67,7 @@ export default () => {
         for (let j = 0; j < width; j++) dst[dst_line + j * output_stride + stride] = src[src_line + j];
       }
     }
-  }
+  };
 
   let deflate, tmp_buffer;
   onmessage = async (mes) => {
@@ -76,16 +76,16 @@ export default () => {
     let algorithm;
     switch (data.algorithm) {
       case 'zlib': algorithm = zlib; break;
-      case 'rle' : algorithm = rle; break; 
-      case 'raw' : algorithm = raw; break;
-      default: 
+      case 'rle': algorithm = rle; break;
+      case 'raw': algorithm = raw; break;
+      default:
     }
-    
+
     const info = read_block(data);
     const src = info.is_compressed ? algorithm(data, info) : new info.type(info.input);
     populate(info.output, info.dst_stride, src, data.info.channels, data.info.block.width, info.height);
-    postMessage({line: data.line, output: info.output.buffer}, [info.output.buffer]);
-  }
+    postMessage({ line: data.line, output: info.output.buffer }, [info.output.buffer]);
+  };
 
   // DECOMPRESSORS
 
@@ -106,54 +106,54 @@ export default () => {
         for (let i = 0; i < count + 1; i++) dst[d++] = value;
       }
     }
-  }
+  };
 
   const rle = (data, cache) => {
     const { type, size, block, channels } = data.info;
     const height = cache.height;
-    
+
     const input_line_bytes = size.width * channels.input.stride;
     const input_bytes = input_line_bytes * height;
-    
+
     const tmp_buffer_bytes = input_line_bytes * block.height * 2;
     if (!tmp_buffer || tmp_buffer.byteLength < tmp_buffer_bytes) tmp_buffer = new ArrayBuffer(tmp_buffer_bytes);
     const out_bytes = new Uint8Array(tmp_buffer, 0, input_bytes);
     const tmp_bytes = new Uint8Array(tmp_buffer, input_bytes, input_bytes);
-   
+
     runlength(new Uint8Array(cache.input), tmp_bytes);
-    
+
     predictor(tmp_bytes);
     interleave(tmp_bytes, out_bytes);
-    
+
     const input_line_el = input_line_bytes / type;
     const src = new cache.type(out_bytes.buffer, 0, input_line_el * height);
 
     return src;
-  }
+  };
 
   const zlib = (data, cache) => {
     const { type, size, block, channels } = data.info;
     const height = cache.height;
-    
+
     const input_line_bytes = size.width * channels.input.stride;
     const input_bytes = input_line_bytes * height;
-    
+
     const tmp_buffer_bytes = input_line_bytes * block.height * 2;
     if (!tmp_buffer || tmp_buffer.byteLength < tmp_buffer_bytes) tmp_buffer = new ArrayBuffer(tmp_buffer_bytes);
 
     const out_bytes = new Uint8Array(tmp_buffer, 0, input_bytes);
     const tmp_bytes = new Uint8Array(tmp_buffer, input_bytes, input_bytes);
-    
+
     if (!deflate) deflate = new Decompressor();
-    
+
     deflate.zlib(new Uint8Array(cache.input), tmp_bytes);
-    
+
     predictor(tmp_bytes);
     interleave(tmp_bytes, out_bytes);
-    
+
     const input_line_el = input_line_bytes / type;
     const src = new cache.type(out_bytes.buffer, 0, input_line_el * height);
 
     return src;
-  }
-}
+  };
+};

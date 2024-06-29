@@ -3,11 +3,11 @@ import { ResourceType, UNINITIALIZED } from "../constants.mjs";
 export class StructuredBuffer {
   #id = UNINITIALIZED;
   #version = 0;
-  #free = () => {}
+  #free = () => {};
 
   constructor(options) {
     this.type = ResourceType.StructuredBuffer;
-    
+
     const arr = [];
     this.total_bytes = parse_struct(this, arr, options);
     this.bytes = new Uint8Array(this.total_bytes);
@@ -22,7 +22,7 @@ export class StructuredBuffer {
   get_id() { return this.#id; }
   get_version() { return this.#version; }
   initialize(id, free) { if (this.#id == UNINITIALIZED) { this.#id = id; this.#free = free; } }
-  destroy() { this.#free(this.#id); this.#id = -1 }
+  destroy() { this.#free(this.#id); this.#id = -1; }
   update() { this.#version = (this.#version + 1) & UNINITIALIZED; }
 }
 
@@ -55,4 +55,4 @@ const parse_struct = (parent, arr, desc) => {
   }
 
   return total_bytes;
-}
+};

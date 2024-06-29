@@ -35,28 +35,28 @@ class Remapper {
       get_index = i => index.data[i];
     } else {
       index_count = vertex_count;
-      get_index = i => i
+      get_index = i => i;
     }
 
     const mem = {
-      table:    { type: TYPE.u32, count: vertex_count },
-      buckets:  { type: TYPE.u32, count: bucket_count },
-    }
+      table: { type: TYPE.u32, count: vertex_count },
+      buckets: { type: TYPE.u32, count: bucket_count },
+    };
 
     Memory.allocate_layout(mem);
     this.table = mem.table.fill(EMPTY32);
     this.buckets = mem.buckets.fill(EMPTY32);
-    
+
     this.buffers = geometry.attributes.vertices.map(vertex => {
       let data;
       if (ArrayBuffer.isView(vertex.data)) {
-        data = (vertex.data instanceof Uint8Array) ? 
-        vertex.data : new Uint8Array(vertex.data.buffer, vertex.data.byteOffset, vertex.data.byteLength);
+        data = (vertex.data instanceof Uint8Array) ?
+          vertex.data : new Uint8Array(vertex.data.buffer, vertex.data.byteOffset, vertex.data.byteLength);
       } else {
         data = new Uint8Array(vertex.data, vertex.offset, vertex.total_bytes);
       }
-      return { buffer: data, stride: vertex.stride }
-    })
+      return { buffer: data, stride: vertex.stride };
+    });
 
     this.mask = bucket_count - 1;
 
@@ -149,4 +149,4 @@ export const opt_remap = (geometry) => {
   const remapper = new Remapper(geometry);
   remapper.remap_indices(geometry);
   remapper.remap_vertices(geometry);
-}
+};

@@ -5,7 +5,7 @@ export class RenderList extends Array {
     super();
   }
 
-  reset() { 
+  reset() {
     this.length = 0;
   }
 

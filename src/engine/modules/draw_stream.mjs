@@ -25,7 +25,7 @@ export class DrawStream {
   set_globals(group_handle) {
     this.upload_data(DrawStreamBits.bind_globals, DrawStreamFlags.bind_globals, group_handle);
   }
-  
+
   set_material(group_handle) {
     this.upload_data(DrawStreamBits.bind_material, DrawStreamFlags.bind_material, group_handle);
   }

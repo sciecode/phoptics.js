@@ -23,4 +23,4 @@ export class Memory {
 
 export const memcpy = (dst, dst_offset, src, src_offset, length) => {
   return dst.set(src.subarray(src_offset, src_offset + length), dst_offset);
-}
+};

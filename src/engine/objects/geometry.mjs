@@ -6,7 +6,7 @@ export class Geometry {
   #index_offset = 0;
 
   constructor(options) {
-    this.draw = { 
+    this.draw = {
       offset: options.draw?.offset || 0,
       count: options.draw?.count || 0,
       instance_count: options.draw?.instance_count || 1,
@@ -16,9 +16,9 @@ export class Geometry {
     this.attributes = new Attributes(options.vertices || [], options.instances || []);
   }
 
-  initialize(id, index) { 
-    if (this.#id == UNINITIALIZED) { 
-      this.#id = id; 
+  initialize(id, index) {
+    if (this.#id == UNINITIALIZED) {
+      this.#id = id;
       this.#index_offset = index;
     }
   }
@@ -28,7 +28,7 @@ export class Geometry {
   get_instance_offset() { return this.attributes.get_instance_offset() + this.draw.instance_offset; }
   get_attributes() { return this.attributes.get_binding(); }
   get_layout() { return this.attributes.get_layout(); }
-  set_static() { 
+  set_static() {
     if (this.index) this.index.free_storage();
     this.attributes.free_storage();
     return this;

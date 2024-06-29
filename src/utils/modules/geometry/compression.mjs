@@ -36,7 +36,7 @@ const calculate_buffer_size = (geometry, indices, vertices) => {
     compressed_vertex_size += entry.size;
 
   return fixed_header + variable_header + compressed_index_size + compressed_vertex_size;
-}
+};
 
 const populate = (output, geometry, indices, vertices) => {
   let offset = 0;
@@ -71,23 +71,23 @@ const populate = (output, geometry, indices, vertices) => {
     memcpy(output, offset, entry.buffer, 0, entry.size);
     offset += entry.size;
   }
-}
+};
 
 export const compress = (geometry) => {
   const indices = compress_indices(geometry);
   const vertices = compress_vertices(geometry);
- 
+
   const size = calculate_buffer_size(geometry, indices, vertices);
   const output = new Uint8Array(size);
   populate(output, geometry, indices, vertices);
 
   return output;
-}
+};
 
 const read_file_info = (compressed) => {
   let offset = 0;
   const dv = new DataView(compressed.buffer);
-  
+
   // == FIXED HEADER =
   let format = dv.getUint32(offset); offset += 4;
   if (format != FORMAT_ID) throw "Phoptics::uncompress: Invalid file format.";
@@ -100,9 +100,9 @@ const read_file_info = (compressed) => {
   const index_info = dv.getUint32(offset); offset += 4;
   const index_type = index_info & (1 << 31);
   const index_compressed_size = index_info & ~(1 << 31);
-  
+
   const info = {
-    indices: { 
+    indices: {
       buffer: null,
       count: index_count,
       type: index_type ? TYPE.u32 : TYPE.u16,
@@ -123,7 +123,7 @@ const read_file_info = (compressed) => {
       vertex_size: vertex_size,
       compressed_size: compressed_size,
       original_size: vertex_count * vertex_size,
-    }
+    };
   }
 
   // == COMPRESSED DATA =
@@ -140,13 +140,13 @@ const read_file_info = (compressed) => {
   }
 
   return info;
-}
+};
 
 export const uncompress = (buffer) => {
   const info = read_file_info(buffer);
-  
+
   const buffers = info.vertices.map(entry => {
-    return { type: TYPE.u8, count: entry.original_size }
+    return { type: TYPE.u8, count: entry.original_size };
   });
 
   buffers.push({
@@ -166,9 +166,9 @@ export const uncompress = (buffer) => {
     draw: { count: indices.length },
     index: new Index({ data: indices, stride: indices.BYTES_PER_ELEMENT }),
     vertices: info.vertices.map(vert => {
-      return new Vertex({ data: vert.output, stride: vert.vertex_size }); 
+      return new Vertex({ data: vert.output, stride: vert.vertex_size });
     }),
   });
 
   return geometry;
-}
+};

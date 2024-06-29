@@ -20,5 +20,5 @@ const build_target = (desc) => {
     clear: desc.clear,
     load: desc.load || ((desc.clear !== undefined) ? 'clear' : 'load'),
     store: desc.store || 'store',
-  }
-}
+  };
+};

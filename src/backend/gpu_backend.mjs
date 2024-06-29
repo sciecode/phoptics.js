@@ -40,8 +40,10 @@ export class GPUBackend {
     };
     this.device.queue.copyExternalImageToTexture(
       { source: options.image, flipY: options.flip_y, origin: options.source_origin },
-      { texture: gpu_tex, origin: options.target_origin, colorSpace: options.encoding,
-        premultipliedAlpha: options.alpha, mipLevel: level },
+      {
+        texture: gpu_tex, origin: options.target_origin, colorSpace: options.encoding,
+        premultipliedAlpha: options.alpha, mipLevel: level
+      },
       size
     );
   }
@@ -85,7 +87,7 @@ export class GPUBackend {
       this.render_packet(draw_packet);
 
     pass.end();
- 
+
     const commandBuffer = encoder.finish();
     this.device.queue.submit([commandBuffer]);
   }

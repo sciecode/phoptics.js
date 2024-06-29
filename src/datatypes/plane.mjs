@@ -40,10 +40,10 @@ export class Plane extends Float32Array {
   }
 
   unit() {
-		const scl = 1 / this.normal.length();
-		this.normal.mul_f32(scl);
-		this[3] *= scl;
-		return this;
+    const scl = 1 / this.normal.length();
+    this.normal.mul_f32(scl);
+    this[3] *= scl;
+    return this;
   }
 
   distance(v) {

@@ -19,7 +19,7 @@ export class TaskQueue {
 
   #dispatch(worker, extra) {
     for (const [key, job] of this.jobs) {
-      worker.onmessage = (mes) => { this.#fulfill(key, mes); }
+      worker.onmessage = (mes) => { this.#fulfill(key, mes); };
       if (job.dispatch(worker, job.data, extra)) return true;
     };
     this.idle.push(worker);

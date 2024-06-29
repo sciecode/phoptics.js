@@ -19,7 +19,7 @@ export class CanvasTexture {
   create_view(desc) {
     return new TextureView({ texture: this, info: desc });
   }
-  
+
   get_current_view(desc) {
     return this.context.getCurrentTexture().createView(desc);
   }

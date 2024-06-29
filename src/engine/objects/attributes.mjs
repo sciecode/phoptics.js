@@ -7,14 +7,14 @@ export class Attributes {
   #layout = 0;
   #vertex_offset = 0;
   #instance_offset = 0;
-  #free = () => {}
+  #free = () => {};
 
   constructor(vertices, instances) {
     this.vertices = vertices;
     this.instances = instances;
   }
 
-  initialize(bid, binding, layout, vert_offset, inst_offset, free) { 
+  initialize(bid, binding, layout, vert_offset, inst_offset, free) {
     if (this.#bid == UNINITIALIZED) {
       this.#bid = bid;
       this.#binding = binding;

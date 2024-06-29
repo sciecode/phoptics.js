@@ -27,7 +27,7 @@ export class Vec2 extends Float32Array {
   set phi(v) { this[1] = v; }
 
   set(x = 0, y = 0) {
-    this[0] = x; this[1] = y; 
+    this[0] = x; this[1] = y;
     return this;
   }
 
@@ -100,11 +100,11 @@ export class Vec2 extends Float32Array {
   }
 
   dot(v) {
-		return this[0] * v[0] + this[1] * v[1];
+    return this[0] * v[0] + this[1] * v[1];
   }
 
   squared_distance(v) {
-    const dx = this[0] - v[0], dy = this[1] - v[1]
-		return dx * dx + dy * dy;
+    const dx = this[0] - v[0], dy = this[1] - v[1];
+    return dx * dx + dy * dy;
   }
 }

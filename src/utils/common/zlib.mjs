@@ -28,54 +28,54 @@ export default () => {
     dst.set(src.subarray(src_offset, src_offset + length), dst_offset);
 
   class TYPE {
-    static get u16()  { return { id: 3,  bytes: 2, array: Uint16Array } }
-    static get u32()  { return { id: 6,  bytes: 4, array: Uint32Array } }
+    static get u16() { return { id: 3, bytes: 2, array: Uint16Array }; }
+    static get u32() { return { id: 6, bytes: 4, array: Uint32Array }; }
   }
 
   // ZLIB
 
-  const DEFLATE_NUM_PRECODE_SYMS =  19;
-  const DEFLATE_NUM_LITLEN_SYMS =   288;
-  const DEFLATE_NUM_OFFSET_SYMS =   32;
+  const DEFLATE_NUM_PRECODE_SYMS = 19;
+  const DEFLATE_NUM_LITLEN_SYMS = 288;
+  const DEFLATE_NUM_OFFSET_SYMS = 32;
 
-  const DEFLATE_MAX_NUM_SYMS =      288;
-  const DEFLATE_MAX_LENS_OVERRUN =  137;
+  const DEFLATE_MAX_NUM_SYMS = 288;
+  const DEFLATE_MAX_LENS_OVERRUN = 137;
 
-  const PRECODE_TABLEBITS	= 7;
-  const LITLEN_TABLEBITS =  11;
-  const OFFSET_TABLEBITS =  8;
-  const PRECODE_ENOUGH =    128;
-  const LITLEN_ENOUGH =     2342;
-  const OFFSET_ENOUGH =     402;
+  const PRECODE_TABLEBITS = 7;
+  const LITLEN_TABLEBITS = 11;
+  const OFFSET_TABLEBITS = 8;
+  const PRECODE_ENOUGH = 128;
+  const LITLEN_ENOUGH = 2342;
+  const OFFSET_ENOUGH = 402;
 
-  const DEFLATE_NUM_LITERALS =    256;
-  const DEFLATE_MAX_MATCH_LEN =     258;
+  const DEFLATE_NUM_LITERALS = 256;
+  const DEFLATE_MAX_MATCH_LEN = 258;
 
-  const DEFLATE_MAX_PRE_CODEWORD_LEN =    7;
-  const DEFLATE_MAX_CODEWORD_LEN =        15;
-  const DEFLATE_MAX_LITLEN_CODEWORD_LEN	= 15;
+  const DEFLATE_MAX_PRE_CODEWORD_LEN = 7;
+  const DEFLATE_MAX_CODEWORD_LEN = 15;
+  const DEFLATE_MAX_LITLEN_CODEWORD_LEN = 15;
   const DEFLATE_MAX_OFFSET_CODEWORD_LEN = 15;
 
-  const DEFLATE_MAX_EXTRA_LENGTH_BITS	=	5;
-  const DEFLATE_MAX_EXTRA_OFFSET_BITS	=	13;
+  const DEFLATE_MAX_EXTRA_LENGTH_BITS = 5;
+  const DEFLATE_MAX_EXTRA_OFFSET_BITS = 13;
 
-  const HUFFDEC_LITERAL =           0x80000000;
-  const HUFFDEC_EXCEPTIONAL =       0x00008000;
-  const HUFFDEC_SUBTABLE_POINTER =  0x00004000;
-  const HUFFDEC_END_OF_BLOCK =      0x00002000;
+  const HUFFDEC_LITERAL = 0x80000000;
+  const HUFFDEC_EXCEPTIONAL = 0x00008000;
+  const HUFFDEC_SUBTABLE_POINTER = 0x00004000;
+  const HUFFDEC_END_OF_BLOCK = 0x00002000;
 
-  const DEFLATE_BLOCKTYPE_UNCOMPRESSED =		0;
-  const DEFLATE_BLOCKTYPE_DYNAMIC_HUFFMAN =	2;
+  const DEFLATE_BLOCKTYPE_UNCOMPRESSED = 0;
+  const DEFLATE_BLOCKTYPE_DYNAMIC_HUFFMAN = 2;
 
-  const ZLIB_MIN_HEADER_SIZE =  2
-  const ZLIB_FOOTER_SIZE	=     4
-  const ZLIB_MIN_OVERHEAD	=     ZLIB_MIN_HEADER_SIZE + ZLIB_FOOTER_SIZE;
-  const ZLIB_CM_DEFLATE =       8
-  const ZLIB_CINFO_32K_WINDOW =	7
+  const ZLIB_MIN_HEADER_SIZE = 2;
+  const ZLIB_FOOTER_SIZE = 4;
+  const ZLIB_MIN_OVERHEAD = ZLIB_MIN_HEADER_SIZE + ZLIB_FOOTER_SIZE;
+  const ZLIB_CM_DEFLATE = 8;
+  const ZLIB_CINFO_32K_WINDOW = 7;
 
   const LENGTH_MAXBITS = DEFLATE_MAX_LITLEN_CODEWORD_LEN + DEFLATE_MAX_EXTRA_LENGTH_BITS;
 
-  const OFFSET_MAXBITS	=	DEFLATE_MAX_OFFSET_CODEWORD_LEN + DEFLATE_MAX_EXTRA_OFFSET_BITS;
+  const OFFSET_MAXBITS = DEFLATE_MAX_OFFSET_CODEWORD_LEN + DEFLATE_MAX_EXTRA_OFFSET_BITS;
   const OFFSET_MAXFASTBITS = OFFSET_TABLEBITS + DEFLATE_MAX_EXTRA_OFFSET_BITS;
 
   const WORDBYTES = 4;
@@ -83,22 +83,22 @@ export default () => {
   const MAX_BITSLEFT = BITBUF_NBITS;
   const CONSUMABLE_NBITS = MAX_BITSLEFT - 7;
   const FASTLOOP_PRELOADABLE_NBITS = CONSUMABLE_NBITS;
-  const PRELOAD_SLACK	= Math.max(0, FASTLOOP_PRELOADABLE_NBITS - MAX_BITSLEFT);
+  const PRELOAD_SLACK = Math.max(0, FASTLOOP_PRELOADABLE_NBITS - MAX_BITSLEFT);
 
   const ROUND_UP = (n, d) => ((n + d - 1) / (d)) | 0;
   const BITMASK = (n) => (1 << n) - 1;
-  const CAN_CONSUME_AND_THEN_PRELOAD = (consume_nbits, preload_nbits)	=> {
-    return CONSUMABLE_NBITS >= (consume_nbits) &&	FASTLOOP_PRELOADABLE_NBITS >= (consume_nbits) + (preload_nbits);
-  }
-  const EXTRACT_VARBITS = (word, count) =>	word & BITMASK(count);
+  const CAN_CONSUME_AND_THEN_PRELOAD = (consume_nbits, preload_nbits) => {
+    return CONSUMABLE_NBITS >= (consume_nbits) && FASTLOOP_PRELOADABLE_NBITS >= (consume_nbits) + (preload_nbits);
+  };
+  const EXTRACT_VARBITS = (word, count) => word & BITMASK(count);
   const EXTRACT_VARBITS8 = (word, count) => word & BITMASK(count & 255);
-  const get_unaligned_le16 = (p, i) => (p[i+1] << 8) | p[i];
-  const get_unaligned_be16 = (p, i) => (p[i] << 8) | p[i+1];
+  const get_unaligned_le16 = (p, i) => (p[i + 1] << 8) | p[i];
+  const get_unaligned_be16 = (p, i) => (p[i] << 8) | p[i + 1];
   const bsr32 = (v) => 31 - Math.clz32(v);
 
   const FASTLOOP_MAX_BYTES_WRITTEN = (2 + DEFLATE_MAX_MATCH_LEN + (5 * WORDBYTES) - 1);
-  const FASTLOOP_MAX_BYTES_READ = (ROUND_UP(MAX_BITSLEFT + (2 * LITLEN_TABLEBITS) +	
-    LENGTH_MAXBITS + OFFSET_MAXBITS, 8) +	WORDBYTES);
+  const FASTLOOP_MAX_BYTES_READ = (ROUND_UP(MAX_BITSLEFT + (2 * LITLEN_TABLEBITS) +
+    LENGTH_MAXBITS + OFFSET_MAXBITS, 8) + WORDBYTES);
 
   const precode_decode_results = new Uint32Array(DEFLATE_NUM_PRECODE_SYMS);
   for (let i = 0; i < DEFLATE_NUM_PRECODE_SYMS; i++) precode_decode_results[i] = i << 16;
@@ -108,26 +108,26 @@ export default () => {
   for (let i = 0; i < DEFLATE_NUM_LITERALS; i++) litlen_decode_results[i] = HUFFDEC_LITERAL | (i << 16);
   litlen_decode_results[256] = HUFFDEC_EXCEPTIONAL | HUFFDEC_END_OF_BLOCK;
   litlen_decode_results.set([
-    entry(3   , 0), entry(4   , 0), entry(5   , 0), entry(6   , 0),
-    entry(7   , 0), entry(8   , 0), entry(9   , 0), entry(10  , 0),
-    entry(11  , 1), entry(13  , 1), entry(15  , 1), entry(17  , 1),
-    entry(19  , 2), entry(23  , 2), entry(27  , 2), entry(31  , 2),
-    entry(35  , 3), entry(43  , 3), entry(51  , 3), entry(59  , 3),
-    entry(67  , 4), entry(83  , 4), entry(99  , 4), entry(115 , 4),
-    entry(131 , 5), entry(163 , 5), entry(195 , 5), entry(227 , 5),
-    entry(258 , 0), entry(258 , 0), entry(258 , 0),
+    entry(3, 0), entry(4, 0), entry(5, 0), entry(6, 0),
+    entry(7, 0), entry(8, 0), entry(9, 0), entry(10, 0),
+    entry(11, 1), entry(13, 1), entry(15, 1), entry(17, 1),
+    entry(19, 2), entry(23, 2), entry(27, 2), entry(31, 2),
+    entry(35, 3), entry(43, 3), entry(51, 3), entry(59, 3),
+    entry(67, 4), entry(83, 4), entry(99, 4), entry(115, 4),
+    entry(131, 5), entry(163, 5), entry(195, 5), entry(227, 5),
+    entry(258, 0), entry(258, 0), entry(258, 0),
   ], 257);
 
   const offset_decode_results = new Uint32Array(DEFLATE_NUM_OFFSET_SYMS);
   offset_decode_results.set([
-    entry(1     , 0),   entry(2     , 0),   entry(3     , 0),   entry(4     , 0),
-    entry(5     , 1),   entry(7     , 1),   entry(9     , 2),   entry(13    , 2),
-    entry(17    , 3),   entry(25    , 3),   entry(33    , 4),   entry(49    , 4),
-    entry(65    , 5),   entry(97    , 5),   entry(129   , 6),   entry(193   , 6),
-    entry(257   , 7),   entry(385   , 7),   entry(513   , 8),   entry(769   , 8),
-    entry(1025  , 9),   entry(1537  , 9),   entry(2049  , 10),  entry(3073  , 10),
-    entry(4097  , 11),  entry(6145  , 11),  entry(8193  , 12),  entry(12289 , 12),
-    entry(16385 , 13),  entry(24577 , 13),  entry(24577 , 13),  entry(24577 , 13),
+    entry(1, 0), entry(2, 0), entry(3, 0), entry(4, 0),
+    entry(5, 1), entry(7, 1), entry(9, 2), entry(13, 2),
+    entry(17, 3), entry(25, 3), entry(33, 4), entry(49, 4),
+    entry(65, 5), entry(97, 5), entry(129, 6), entry(193, 6),
+    entry(257, 7), entry(385, 7), entry(513, 8), entry(769, 8),
+    entry(1025, 9), entry(1537, 9), entry(2049, 10), entry(3073, 10),
+    entry(4097, 11), entry(6145, 11), entry(8193, 12), entry(12289, 12),
+    entry(16385, 13), entry(24577, 13), entry(24577, 13), entry(24577, 13),
   ]);
 
   const deflate_precode_lens_permutation = new Uint8Array([
@@ -200,7 +200,7 @@ export default () => {
           else overread_count++;
           bitsleft += 8; bit = bitsleft & 255;
         }
-      }
+      };
 
       const REFILL_BITS_IN_FASTLOOP = () => {
         let bit = bitsleft & 255;
@@ -208,7 +208,7 @@ export default () => {
           bitbuf |= input[in_next++] << bit;
           bitsleft += 8; bit = bitsleft & 255;
         }
-      }
+      };
 
       while (!is_final_block) {
         REFILL_BITS();
@@ -266,7 +266,7 @@ export default () => {
               bitbuf >>>= 7; bitsleft -= 7;
               this.lens.fill(0, i, i + rep_count);
             }
-            i+= rep_count;
+            i += rep_count;
           } while (i < num_litlen_syms + num_offset_syms);
 
           this.#build_offset_decode_table(num_litlen_syms, num_offset_syms);
@@ -374,20 +374,20 @@ export default () => {
 
             if (!CAN_CONSUME_AND_THEN_PRELOAD(
               Math.max(OFFSET_MAXBITS - OFFSET_TABLEBITS, OFFSET_MAXFASTBITS), LITLEN_TABLEBITS) &&
-                u8(bitsleft) < LITLEN_TABLEBITS - PRELOAD_SLACK)
+              u8(bitsleft) < LITLEN_TABLEBITS - PRELOAD_SLACK)
               REFILL_BITS_IN_FASTLOOP();
             entry = this.litlen_decode_table[bitbuf & litlen_tablemask];
             REFILL_BITS_IN_FASTLOOP();
 
             output[dst++] = output[src++];
             output[dst++] = output[src++];
-            do { output[dst++] = output[src++] } while (dst < out_next);
+            do { output[dst++] = output[src++]; } while (dst < out_next);
           } while (in_next < in_fastloop_end && out_next < out_fastloop_end);
 
           if (block_done) continue;
         }
 
-        for (;;) {
+        for (; ;) {
           let length, offset, src, dst;
 
           REFILL_BITS();
@@ -404,7 +404,7 @@ export default () => {
               let bytes = output.byteLength, buffer = output.buffer;
               buffer.resize(bytes * 2);
               output = new Uint8Array(buffer);
-            } 
+            }
             output[out_next++] = length;
             continue;
           }
@@ -416,7 +416,7 @@ export default () => {
             let bytes = output.byteLength, buffer = output.buffer;
             buffer.resize(bytes * 2);
             output = new Uint8Array(buffer);
-          }  
+          }
           REFILL_BITS();
 
           entry = this.offset_decode_table[bitbuf & BITMASK(OFFSET_TABLEBITS)];
@@ -434,7 +434,7 @@ export default () => {
 
           output[dst++] = output[src++];
           output[dst++] = output[src++];
-          do { output[dst++] = output[src++] } while (dst < out_next);
+          do { output[dst++] = output[src++]; } while (dst < out_next);
         }
       }
 
@@ -472,14 +472,14 @@ export default () => {
     }
 
     #build_decode_table(decode_table, lens, num_syms, decode_results,
-        table_bits, max_codeword_len, sorted_syms, table_bits_ret) {
+      table_bits, max_codeword_len, sorted_syms, table_bits_ret) {
 
       let sym, codeword, len, count, codespace_used, cur_table_end;
       let subtable_prefix, subtable_start, subtable_bits;
 
       this.len_counts.fill(0);
       for (sym = 0; sym < num_syms; sym++) this.len_counts[lens[sym]]++;
-      
+
       while (max_codeword_len > 1 && this.len_counts[max_codeword_len] == 0) max_codeword_len--;
       if (table_bits_ret != undefined) {
         table_bits = Math.min(table_bits, max_codeword_len);
@@ -543,7 +543,7 @@ export default () => {
       cur_table_end = 1 << table_bits;
       subtable_prefix = -1;
       subtable_start = 0;
-      for (;;) {
+      for (; ;) {
         let entry, i, stride, bit;
         if ((codeword & ((1 << table_bits) - 1)) != subtable_prefix) {
           subtable_prefix = (codeword & ((1 << table_bits) - 1));
@@ -576,4 +576,4 @@ export default () => {
     }
   }
 
-}
+};

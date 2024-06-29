@@ -5,7 +5,7 @@ const parse_faces = (info) => {
     for (let index of entries) info.indices.push(index.split('/').map(e => parseInt(e) - 1));
     info.i++;
   } while (info.lines[info.i][0] == 'f');
-}
+};
 
 const parse_positions = (info) => {
   do {
@@ -13,7 +13,7 @@ const parse_positions = (info) => {
     info.positions.push(entries.map(e => parseFloat(e)));
     info.i++;
   } while (info.lines[info.i][0] == 'v' && info.lines[info.i][1] == ' ');
-}
+};
 
 const parse_normals = (info) => {
   do {
@@ -21,7 +21,7 @@ const parse_normals = (info) => {
     info.normals.push(entries.map(e => parseFloat(e)));
     info.i++;
   } while (info.lines[info.i][0] == 'v' && info.lines[info.i][1] == 'n');
-}
+};
 
 const parse_uvs = (info) => {
   do {
@@ -29,18 +29,18 @@ const parse_uvs = (info) => {
     info.uvs.push(entries.map(e => parseFloat(e)));
     info.i++;
   } while (info.lines[info.i][0] == 'v' && info.lines[info.i][1] == 't');
-}
+};
 
 export class OBJLoader {
 
   constructor() {}
 
   async load(url) {
-    return fetch(url).then( async response => {
+    return fetch(url).then(async response => {
       if (!response.ok) return undefined;
-      
+
       let info = {
-        i: 0, 
+        i: 0,
         lines: (await response.text()).split('\n'),
         indices: [],
         positions: [],

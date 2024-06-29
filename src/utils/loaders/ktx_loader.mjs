@@ -4,14 +4,14 @@ import { DataReader } from "../common/data_reader.mjs";
 const model = (id, signed, gamma) => {
   let f;
   switch (id) {
-    case 128: 
+    case 128:
       f = gamma.id ? Format.BC1_UNORM_SRGB : Format.BC1_UNORM;
       break;
-      
+
     case 130:
       f = gamma.id ? Format.BC3_UNORM_SRGB : Format.BC3_UNORM;
       break;
-    case 131: 
+    case 131:
       f = signed ? Format.BC4_SNORM : Format.BC4_UNORM;
       break;
     case 132:
@@ -19,20 +19,20 @@ const model = (id, signed, gamma) => {
       break;
     case 133:
       f = signed ? Format.BC6_FLOAT : Format.BC6_UFLOAT;
-      break
-    case 134: 
+      break;
+    case 134:
       f = gamma.id ? Format.BC7_UNORM_SRGB : Format.BC7_UNORM;
       break;
     default: throw `unsupported texture format - ${id}`;
   }
   return { name: Format.internal(f), format: f };
-}
+};
 
 export class KTXLoader {
-  constructor (options) {}
+  constructor(options) {}
 
   async load(url) {
-    return fetch(url).then( async response => {
+    return fetch(url).then(async response => {
       if (!response.ok) return undefined;
       return this.parse(await response.arrayBuffer());
     });
@@ -44,7 +44,7 @@ export class KTXLoader {
     const textures = await this.#decoder(header, reader);
     return { textures, header };
   }
-   
+
   #header(reader) {
 
     if (!reader.magic()) throw `KTXLoader: file not KTX format.`;
@@ -85,14 +85,14 @@ export class KTXLoader {
     header.info = {
       ktx_id: reader.u8(),
       gamma: reader.skip(1) || reader.u8() < 2 ? { name: 'LINEAR', id: 0 } : { name: 'SRGB', id: 1 },
-    }
+    };
 
     header.premultiplied = !!reader.u8(),
-    header.info.block = {
-      width: reader.u8() + 1,
-      height: reader.u8() + 1,
-      depth: reader.u8() + 1,
-    };
+      header.info.block = {
+        width: reader.u8() + 1,
+        height: reader.u8() + 1,
+        depth: reader.u8() + 1,
+      };
     header.info.signed = false;
 
     reader.skip(12); // planes
@@ -123,7 +123,7 @@ const MAGIC = [
 ];
 
 class KTXReader extends DataReader {
-  constructor(buffer) { super(buffer) };
+  constructor(buffer) { super(buffer); };
   magic() {
     for (let i = 0; i < 12; i++) if (this.u8() != MAGIC[i]) return false;
     return true;

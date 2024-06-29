@@ -17,7 +17,7 @@ export class Engine {
 
     this.cache = new RenderCache(this.backend);
     this.dynamic = new DynamicManager(this.backend, this.cache);
-    
+
     this.state = new RenderState(this.cache, this.dynamic);
     this.draw_stream = new DrawStream();
   }
@@ -29,7 +29,7 @@ export class Engine {
     const global_bid = this.state.set_pass(pass);
     this.draw_stream.set_globals(global_bid);
     this.state.set_renderlist(list);
-    
+
     const draw_info = {
       index: NULL_HANDLE,
       draw_count: NULL_HANDLE,
@@ -38,10 +38,10 @@ export class Engine {
       index_offset: NULL_HANDLE,
       instance_offset: NULL_HANDLE,
     };
-    
+
     for (let entry of list) {
       this.draw_stream.set_pipeline(Keys.get_pipeline(entry));
-      
+
       const mesh = entry.mesh, material = mesh.material;
       this.draw_stream.set_material(material.get_binding());
       this.draw_stream.set_dynamic(mesh.dynamic ? this.dynamic.allocate(mesh) : 0);
@@ -89,7 +89,7 @@ export class Engine {
     const bid = this.cache.get_texture(texture_obj).bid;
     const resource = this.backend.resources.get_texture(bid);
     options.bytes_row = Math.ceil(resource.stride * size.width / 256) * 256;
-    
+
     const buf_bid = this.backend.resources.create_buffer({
       size: options.bytes_row * options.size.height,
       usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
@@ -98,7 +98,7 @@ export class Engine {
     options.dst = buf_bid;
 
     const buffer = this.backend.read_texture(resource.texture, options);
-    return buffer.mapAsync(GPUMapMode.READ).then( _ => {
+    return buffer.mapAsync(GPUMapMode.READ).then(_ => {
       const data = new dst.constructor(buffer.getMappedRange());
 
       const elements = resource.stride / dst.BYTES_PER_ELEMENT;
@@ -110,8 +110,8 @@ export class Engine {
             const offset = x * elements + v;
             const dst_id = y * dst_row + offset;
             const data_id = y * data_row + offset;
-            dst[dst_id] = data[data_id]
-          } 
+            dst[dst_id] = data[data_id];
+          }
         }
       }
       this.backend.resources.destroy_buffer(buf_bid);
@@ -121,7 +121,7 @@ export class Engine {
   static async acquire_device(options = {}) {
     options.powerPreference ||= "high-performance";
     const adapter = await navigator.gpu.requestAdapter(options);
-    
+
     const device_descriptor = {
       requiredFeatures: [],
     };
@@ -144,14 +144,14 @@ const FEATURE_LIST = [
   "float32-filterable",
   "texture-compression-bc",
   "texture-compression-astc",
-]
+];
 
 const make_pass_descriptor = (target, cache) => {
   const descriptor = {
     colorAttachments: [],
     depth: null,
   };
-  
+
   for (let [idx, attach] of target.color.entries()) {
     descriptor.colorAttachments.push({
       view: cache.color[idx],
@@ -159,7 +159,7 @@ const make_pass_descriptor = (target, cache) => {
       clearValue: attach.clear,
       loadOp: attach.load,
       storeOp: attach.store
-    })
+    });
   }
 
   if (target.depth) {
@@ -168,8 +168,8 @@ const make_pass_descriptor = (target, cache) => {
       depthClearValue: target.depth.clear,
       depthLoadOp: target.depth.load,
       depthStoreOp: target.depth.store
-    }
+    };
   }
 
   return descriptor;
-}
+};

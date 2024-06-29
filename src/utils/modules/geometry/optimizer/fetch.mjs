@@ -21,18 +21,18 @@ export const opt_fetch = (geometry) => {
   const buffer_count = geometry.attributes.vertices.length;
 
   const buffers = geometry.attributes.vertices.map(vertex => {
-    return { output: null, input: vertex.data, stride: vertex.stride }
+    return { output: null, input: vertex.data, stride: vertex.stride };
   });
-  
+
   let mem = [];
   for (let i = 0; i < buffer_count; ++i)
     mem.push({ type: TYPE.u8, count: vertex_count * buffers[i].stride });
-  mem.push({ type: TYPE.u32, count: vertex_count});
+  mem.push({ type: TYPE.u32, count: vertex_count });
   Memory.allocate_layout(mem);
 
   for (let i = 0; i < buffer_count; ++i)
     geometry.attributes.vertices[i].data = buffers[i].output = mem[i];
-  
+
   let next_vertex = 0;
   const table = mem[buffer_count].fill(EMPTY32);
   for (let i = 0; i < index_count; ++i) {
@@ -46,4 +46,4 @@ export const opt_fetch = (geometry) => {
     for (let i = 0, il = table.length; i < il; ++i)
       memcpy(entry.output, table[i] * stride, entry.input, i * stride, stride);
   }
-} 
+}; 

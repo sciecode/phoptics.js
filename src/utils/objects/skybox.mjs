@@ -3,14 +3,14 @@ import { Index, Vertex, Geometry } from 'phoptics';
 export class SkyboxGeometry extends Geometry {
   constructor() {
     let positions = new Float32Array([
-       1,  1, -1,
-      -1,  1, -1,
-       1, -1, -1,
+      1, 1, -1,
+      -1, 1, -1,
+      1, -1, -1,
       -1, -1, -1,
-       1,  1,  1,
-      -1,  1,  1,
-       1, -1,  1,
-      -1, -1,  1,
+      1, 1, 1,
+      -1, 1, 1,
+      1, -1, 1,
+      -1, -1, 1,
     ]);
 
     let index = new Uint16Array([

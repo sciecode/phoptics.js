@@ -16,19 +16,19 @@ export class BindGroup {
           res = {
             binding: entry.binding,
             resource: { buffer: resources.get_buffer(entry.resource), offset: entry.offset, size: entry.size },
-          }
+          };
           break;
         case GPUResource.TEXTURE:
           res = {
             binding: entry.binding,
             resource: entry.resource,
-          }
+          };
           break;
         case GPUResource.SAMPLER:
           res = {
             binding: entry.binding,
             resource: resources.get_sampler(entry.resource),
-          }
+          };
           break;
       }
       desc.entries.push(res);

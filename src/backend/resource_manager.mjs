@@ -1,6 +1,6 @@
 import { PoolStorage } from "../common/pool_storage.mjs";
 import { Texture } from "./resources/texture.mjs";
-import { Pipeline } from "./resources/pipeline.mjs"
+import { Pipeline } from "./resources/pipeline.mjs";
 import { BindGroup } from "./resources/bind_group.mjs";
 
 export class ResourceManager {
@@ -10,13 +10,13 @@ export class ResourceManager {
     this.shaders = new PoolStorage();
     this.pipelines = new PoolStorage();
     this.pipeline_layouts = new PoolStorage();
-    
+
     this.groups = new PoolStorage();
     this.buffers = new PoolStorage();
     this.samplers = new PoolStorage();
     this.textures = new PoolStorage();
 
-    this.empty_layout = device.createBindGroupLayout({entries:[]});
+    this.empty_layout = device.createBindGroupLayout({ entries: [] });
     this.create_bind_group({
       layout: this.empty_layout,
       entries: []

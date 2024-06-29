@@ -12,5 +12,5 @@ export class RenderPass {
     this.current_target = target_obj;
   }
 
-  destroy() { this.bindings?.destroy() }
+  destroy() { this.bindings?.destroy(); }
 }

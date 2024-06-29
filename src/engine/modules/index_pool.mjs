@@ -17,7 +17,7 @@ export class IndexPool {
     this.allocators = [];
     this.buffers = [];
     this.backing = [];
-    
+
     this.indices = new PoolStorage();
     this.index_callback = this.free_index.bind(this);
   }
@@ -28,7 +28,7 @@ export class IndexPool {
     if (id == UNINITIALIZED) {
       const size = index_obj.size;
       const { heap, slot, offset, bid } = this.create(size);
-      
+
       id = this.indices.allocate({
         heap: heap,
         slot: slot,
@@ -141,7 +141,7 @@ export class IndexPool {
       const backing = this.backing[i];
       if (backing.ranges.length) {
         this.coalesce(backing);
-        for (let range of backing.ranges) 
+        for (let range of backing.ranges)
           this.backend.write_buffer(this.buffers[i], range.st, backing.u8, range.st, range.end - range.st);
         backing.ranges.length = 0;
       }

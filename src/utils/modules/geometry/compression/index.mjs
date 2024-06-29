@@ -17,14 +17,14 @@ const calculate_buffer_size = (index_count, vertex_count) => {
   // compute number of bits required for each index
   let vertex_bits = 1;
 
-  while (vertex_bits < 32 && vertex_count > (1 << vertex_bits) )
+  while (vertex_bits < 32 && vertex_count > (1 << vertex_bits))
     vertex_bits++;
 
   // worst-case encoding is 2 header bytes + 3 varint-7 encoded index deltas
-  let vertex_groups = ((vertex_bits + 1 + 6) / 7 ) | 0;
+  let vertex_groups = ((vertex_bits + 1 + 6) / 7) | 0;
 
   return (index_count / 3) * (2 + 3 * vertex_groups) + 16;
-}
+};
 
 const get_codeaux_index = (v) => {
   for (let i = 0; i < 16; ++i)
@@ -32,7 +32,7 @@ const get_codeaux_index = (v) => {
       return i;
 
   return -1;
-}
+};
 
 const get_edge = (info, a, b, c) => {
   for (let i = 0; i < 16; ++i) {
@@ -47,7 +47,7 @@ const get_edge = (info, a, b, c) => {
   }
 
   return -1;
-}
+};
 
 const get_vertex = (info, v) => {
   for (let i = 0; i < 16; ++i) {
@@ -58,19 +58,19 @@ const get_vertex = (info, v) => {
   }
 
   return -1;
-}
+};
 
 const push_edge = (info, a, b) => {
   const i2 = info.edge_offset * 2;
   info.edge_fifo[i2] = a;
   info.edge_fifo[i2 + 1] = b;
   info.edge_offset = (info.edge_offset + 1) & 15;
-}
+};
 
 const push_vertex = (info, v, cond = 1) => {
   info.vertex_fifo[info.vertex_offset] = v;
   info.vertex_offset = (info.vertex_offset + cond) & 15;
-}
+};
 
 const encode_varbyte = (info, index, last) => {
   const d = u32(index - last);
@@ -81,7 +81,7 @@ const encode_varbyte = (info, index, last) => {
     info.output[info.data_offset++] = (v & 127) | (v > 127 ? 128 : 0);
     v >>>= 7;
   } while (v);
-}
+};
 
 const decode_varbyte = (info, last) => {
   let v = info.input[info.data_offset++];
@@ -104,20 +104,20 @@ const decode_varbyte = (info, last) => {
   const d = (v >>> 1) ^ -i32(v & 1);
 
   return last + d;
-}
+};
 
 const write_triangle = (info, idx, a, b, c) => {
   info.output[idx] = a;
-  info.output[idx+1] = b;
-  info.output[idx+2] = c;
-}
+  info.output[idx + 1] = b;
+  info.output[idx + 2] = c;
+};
 
 export const encode_indices = (output, indices, index_count) => {
   const mem = {
     edge_fifo: { type: TYPE.u32, count: 32 },
     vertex_fifo: { type: TYPE.u32, count: 16 },
-  }
-  
+  };
+
   const info = Memory.allocate_layout(mem);
 
   info.edge_fifo.fill(-1);
@@ -238,7 +238,7 @@ export const encode_indices = (output, indices, index_count) => {
   }
 
   return info.data_offset;
-}
+};
 
 export const compress_indices = (geometry) => {
   const index_count = (geometry.index.data.length / 3 | 0) * 3;
@@ -248,21 +248,21 @@ export const compress_indices = (geometry) => {
   const output = {
     size: null,
     buffer: new Uint8Array(calculate_buffer_size(index_count, vertex_count)),
-  }
+  };
 
   output.size = encode_indices(output.buffer, geometry.index.data, index_count);
 
   return output;
-}
+};
 
 const decode_indices = (output, input, index_count) => {
   const mem = {
     edge_fifo: { type: TYPE.u32, count: 32 },
     vertex_fifo: { type: TYPE.u32, count: 16 },
-  }
+  };
 
   index_count = (index_count / 3 | 0) * 3;
-  
+
   const info = Memory.allocate_layout(mem);
 
   info.edge_fifo.fill(-1);
@@ -284,9 +284,9 @@ const decode_indices = (output, input, index_count) => {
     if (code_tri < 0xf0) {
 
       const fe = code_tri >> 4;
-      
+
       const edge_index = ((info.edge_offset - 1 - fe) & 15) * 2;
-      
+
       const a = info.edge_fifo[edge_index];
       const b = info.edge_fifo[edge_index + 1];
 
@@ -402,8 +402,8 @@ const decode_indices = (output, input, index_count) => {
   }
 
   return output;
-}
+};
 
 export const uncompress_indices = (output, input) => {
   return decode_indices(output, input, output.length);
-}
+};

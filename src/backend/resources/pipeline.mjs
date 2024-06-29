@@ -2,9 +2,9 @@ import { Format } from "../../common/constants.mjs";
 
 export class Pipeline {
   constructor(device, resources, options = {}) {
-      
+
     const graphics = options.graphics;
-    const depth = graphics.depth || {}
+    const depth = graphics.depth || {};
     const layout = resources.get_pipeline_layout(options.layouts);
     const module = resources.get_shader(options.shader);
 
@@ -24,7 +24,7 @@ export class Pipeline {
         module: module,
         constants: options.constants,
         entryPoint: options.shader.fragment || 'fs',
-        targets: graphics.formats.color.map( format => { 
+        targets: graphics.formats.color.map(format => {
           return {
             format: Format.internal(format),
             blend: blend
@@ -42,7 +42,7 @@ export class Pipeline {
         topology: graphics.primitive,
         cullMode: graphics.cull
       }
-    }
+    };
     this.pipeline = device.createRenderPipeline(descriptor);
   }
 }
@@ -50,4 +50,4 @@ export class Pipeline {
 const parse_blend = (info) => {
   const blend = { dstFactor: info.dst, srcFactor: info.src, operation: info.op };
   return blend;
-}
+};

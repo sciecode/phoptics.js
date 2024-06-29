@@ -5,7 +5,7 @@ export class Texture {
     this.texture = device.createTexture({
       format: Format.internal(options.format),
       size: {
-        width: options.size.width, 
+        width: options.size.width,
         height: options.size.height,
         depthOrArrayLayers: options.size.depth,
       },
@@ -22,7 +22,7 @@ export class Texture {
     this.texture = device.createTexture({
       format: current.format,
       size: {
-        width: size.width, 
+        width: size.width,
         height: size.height,
         depthOrArrayLayers: size.depth,
       },

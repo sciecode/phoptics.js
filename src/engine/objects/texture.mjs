@@ -6,7 +6,7 @@ export class Texture {
   #id = UNINITIALIZED;
   #version = 0;
 
-  #free = () => {}
+  #free = () => {};
 
   constructor(options) {
     this.type = ResourceType.Texture;
@@ -39,7 +39,7 @@ export class Texture {
 
   get_id() { return this.#id; }
   get_version() { return this.#version; }
-  initialize(id, free) { if (this.#id == UNINITIALIZED) { this.#id = id; this.#free = free } }
+  initialize(id, free) { if (this.#id == UNINITIALIZED) { this.#id = id; this.#free = free; } }
   destroy() { this.#free(this.#id); this.#id = -1; }
   #update() { this.#version = (this.#version + 1) & UNINITIALIZED; }
 
@@ -49,7 +49,7 @@ export class Texture {
       const max = Math.max(width, height);
       return 32 - Math.clz32(max);
     } else {
-      return Math.min(ctz(width/block.width), ctz(height/block.height)) + 1;
+      return Math.min(ctz(width / block.width), ctz(height / block.height)) + 1;
     }
   }
 }

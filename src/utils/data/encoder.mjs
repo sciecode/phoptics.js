@@ -14,7 +14,7 @@ export const encode_oct32 = (v) => {
 
   const dx = Math.round(32767.5 + vx * 32767.5), dy = Math.round(32767.5 + vy * 32767.5);
   return dx | (dy << 16);
-}
+};
 
 export const encode_oct16 = (v) => {
   v.mul_f32(1 / (Math.abs(v.x) + Math.abs(v.y) + Math.abs(v.z)));
@@ -29,7 +29,7 @@ export const encode_oct16 = (v) => {
   }
   const dx = Math.round(127.5 + vx * 127.5), dy = Math.round(127.5 + vy * 127.5);
   return dx | (dy << 8);
-}
+};
 
 var f32 = new Float32Array(1);
 var i32 = new Int32Array(f32.buffer);
@@ -45,7 +45,7 @@ export const encode_f16 = (fval) => {
   if (val >= 0x47800000) {
     if (fbits & 0x7fffffff >= 0x47800000) {
       if (val < 0x7f800000) return sign | 0x7c00;
-      return sign | 0x7c00 | ( fbits & 0x007fffff ) >> 13;
+      return sign | 0x7c00 | (fbits & 0x007fffff) >> 13;
     }
     return sign | 0x7bff;
   }
@@ -82,4 +82,4 @@ export const encode_rgb9e5 = (v) => {
 
   const exp = max_exp ? max_exp - 112 : 0;
   return r | (g << 9) | (b << 18) | (exp << 27);
-}
+};

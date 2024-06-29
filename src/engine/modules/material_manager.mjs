@@ -5,10 +5,10 @@ import { UNINITIALIZED } from "../constants.mjs";
 export class MaterialManager {
   constructor(backend) {
     this.backend = backend;
- 
+
     this.layouts = new SparseSet();
     this.pipeline_layouts = new SparseSet();
-    
+
     this.shaders = new SparseSet();
     this.pipelines = new SparseSet();
     this.materials = new PoolStorage();
@@ -82,7 +82,7 @@ export class MaterialManager {
       this.pipelines.get(id).count++;
     } else {
       const layout = this.get_pipeline_layout([
-        info.state.global_layout, info.state.material_layout, 
+        info.state.global_layout, info.state.material_layout,
         info.state.dynamic_layout, info.state.geometry_layout
       ]);
       const pipeline = this.backend.resources.create_pipeline({
@@ -134,7 +134,7 @@ export class MaterialManager {
 
   free_material(material_id) {
     const cache = this.materials.get(material_id);
-    this.free_pipeline(cache.pipeline); 
+    this.free_pipeline(cache.pipeline);
     this.materials.delete(material_id);
   }
 

@@ -4,7 +4,7 @@ import { ResourceType } from "../constants.mjs";
 export class StructuredDynamic {
   constructor(options) {
     this.type = ResourceType.StructuredDynamic;
-    
+
     const arr = [];
     const buffer = new ArrayBuffer(parse_struct(this, arr, options));
     this.data = new Uint8Array(buffer);
@@ -46,4 +46,4 @@ const parse_struct = (parent, arr, desc) => {
   }
 
   return total_bytes;
-}
+};

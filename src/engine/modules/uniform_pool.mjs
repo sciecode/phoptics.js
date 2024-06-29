@@ -64,9 +64,9 @@ export class UniformPool {
       this.allocators.push(new OffsetAllocator(TOTAL_BLOCKS));
 
       this.buffers.push(this.backend.resources.create_buffer({
-          size: MAX_SIZE,
-          usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-        })
+        size: MAX_SIZE,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+      })
       );
       this.backing.push({ u8: new Uint8Array(MAX_SIZE), ranges: [], min: -1, max: -1 });
 
@@ -138,7 +138,7 @@ export class UniformPool {
       const backing = this.backing[i];
       if (backing.ranges.length) {
         this.coalesce(backing);
-        for (let range of backing.ranges) 
+        for (let range of backing.ranges)
           this.backend.write_buffer(this.buffers[i], range.st, backing.u8, range.st, range.end - range.st);
         backing.ranges.length = 0;
       }

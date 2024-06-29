@@ -6,7 +6,7 @@ export class Orbit {
     this.view = new Mat3x4();
     this.target = new Vec3();
     this.position = new Vec3().set(0, 0, 10);
-    
+
     // rotation
     this.start = new Vec2();
     this.delta = new Vec2();
@@ -33,7 +33,7 @@ export class Orbit {
     this.position.sub(this.target);
     let radius = this.position.length();
     this.sphr.theta = Math.atan2(this.position.x, this.position.z);
-		this.sphr.phi = Math.acos(Math.min(Math.max(this.position.y / radius, -1), 1));
+    this.sphr.phi = Math.acos(Math.min(Math.max(this.position.y / radius, -1), 1));
     this.sphr.add(this.sphr_delta);
     this.sphr.phi = Math.max(EPS, Math.min(Math.PI - EPS, this.sphr.phi));
     this.sphr_delta.set();
@@ -41,9 +41,9 @@ export class Orbit {
     // update offset
     radius = Math.min(Math.max(radius * this.zoom, this.zoom_limit.x), this.zoom_limit.y);
     const alp = Math.sin(this.sphr.phi) * radius;
-		this.position.y = Math.cos(this.sphr.phi) * radius;
-		this.position.x = alp * Math.sin(this.sphr.theta);
-		this.position.z = alp * Math.cos(this.sphr.theta);
+    this.position.y = Math.cos(this.sphr.phi) * radius;
+    this.position.x = alp * Math.sin(this.sphr.theta);
+    this.position.z = alp * Math.cos(this.sphr.theta);
     this.zoom = 1;
 
     // update position
@@ -52,11 +52,11 @@ export class Orbit {
   }
 
   zn(e) {
-		const scl = Math.pow(0.95, Math.abs(e.deltaY * 0.01));
+    const scl = Math.pow(0.95, Math.abs(e.deltaY * 0.01));
     this.zoom = e.deltaY > 0 ? this.zoom / scl : this.zoom * scl;
     this.update();
   }
-  
+
   mv(e) {
     this.delta.set(e.clientX, e.clientY).sub(this.start);
     this.start.set(e.clientX, e.clientY);
@@ -67,7 +67,7 @@ export class Orbit {
     this.update();
   }
 
-  dn(e) { 
+  dn(e) {
     this.start.set(e.clientX, e.clientY);
 
     this.node.addEventListener('pointermove', this.mv_cb);

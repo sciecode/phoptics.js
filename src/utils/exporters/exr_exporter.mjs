@@ -1,19 +1,19 @@
 
 export class EXRExporter {
-  static NONE =   0;
-  static RLE =    1;
-  static ZIPS =   2;
-  static ZIP =    3;
-  static PIZ =    4;
-  static PXR24 =  5;
-  static B44 =    6;
-  static B44A =   7;
-  static DWAA =   8;
-  static DWAB =   9;
+  static NONE = 0;
+  static RLE = 1;
+  static ZIPS = 2;
+  static ZIP = 3;
+  static PIZ = 4;
+  static PXR24 = 5;
+  static B44 = 6;
+  static B44A = 7;
+  static DWAA = 8;
+  static DWAB = 9;
   constructor() {}
   blob(data, size, options) {
     const buffer = this.buffer(data, size, options);
-    return new Blob( [buffer], { type: 'image/x-exr' } );
+    return new Blob([buffer], { type: 'image/x-exr' });
   }
 
   buffer(data, size, options = {}) {
@@ -24,10 +24,10 @@ export class EXRExporter {
 
     if (options.format) {
       switch (options.format) {
-        case 'R':     output_stride = 1; break;
-        case 'RG':    output_stride = 2; break;
-        case 'RGB':   output_stride = 3; break;
-        case 'RGBA':  output_stride = 4; break;
+        case 'R': output_stride = 1; break;
+        case 'RG': output_stride = 2; break;
+        case 'RGB': output_stride = 3; break;
+        case 'RGBA': output_stride = 4; break;
         default: throw 'EXRExporter: invalid output format.';
       }
       if (input_stride < output_stride) throw `EXRExporter: data provided isn't compatible with specified output format.`;
@@ -53,7 +53,7 @@ export class EXRExporter {
           for (let j = 0; j < blocks.width; j++) chunk[dst_line + j] = data[src_line + j * input_stride + ch];
         }
       }
-        
+
       const { output, len } = decoder(bytes, tmp, line_bytes * height);
       writer.chunk(output, line, len);
       line += height;
@@ -70,7 +70,7 @@ export class EXRExporter {
       width: width,
       height: COMPRESS_BLOCK[compression],
       count: Math.ceil(height / 1),
-    }
+    };
 
     const header_bytes = 512 + 64 * stride + 16 * blocks.count + data.byteLength;
     const buffer = new ArrayBuffer(header_bytes, { maxByteLength: header_bytes });
@@ -79,9 +79,9 @@ export class EXRExporter {
     const type = data.BYTES_PER_ELEMENT == 2 ? 1 : 2;
 
     writer.u32(20000630);   // magic
-  	writer.u32(2);          // mask
+    writer.u32(2);          // mask
 
-  	// attributes
+    // attributes
 
     writer.string('compression');
     writer.string('compression');
@@ -147,7 +147,7 @@ export class EXRExporter {
 
     writer.u8(0);
 
-  	// table
+    // table
 
     writer.table(blocks.count);
 
@@ -155,17 +155,17 @@ export class EXRExporter {
   }
 }
 
-const raw = (output, tmp, len) => { return { output, len } };
+const raw = (output, tmp, len) => { return { output, len }; };
 
 const rle = (output, tmp, len) => {
   deinterleave(output, tmp, len);
-  
+
   predictor(tmp, len);
 
   len = runlength(tmp, output, len);
 
   return { output, len };
-}
+};
 
 const runlength = (src, dst, len) => {
   let rs = 0, re = 1, w = 0;
@@ -180,7 +180,7 @@ const runlength = (src, dst, len) => {
     } else {
       while (re < len &&
         ((re + 1 >= len || src[re] != src[re + 1]) ||
-        (re + 2 >= len || src[re + 1] != src[re + 2])) &&
+          (re + 2 >= len || src[re + 1] != src[re + 2])) &&
         re - rs < 127) re++;
 
       dst[w++] = rs - re;
@@ -191,28 +191,28 @@ const runlength = (src, dst, len) => {
   }
 
   return w;
-}
+};
 
 const deinterleave = (src, dst, len) => {
-	let t1 = 0, s = 0, t2 = ((len + 1) / 2) | 0;
-	const stop = len - 1;
+  let t1 = 0, s = 0, t2 = ((len + 1) / 2) | 0;
+  const stop = len - 1;
 
-	while (true) {
-		if (s > stop) break;
-		dst[t1++] = src[s++];
-		if (s > stop) break;
-		dst[t2++] = src[s++];
-	}
-}
+  while (true) {
+    if (s > stop) break;
+    dst[t1++] = src[s++];
+    if (s > stop) break;
+    dst[t2++] = src[s++];
+  }
+};
 
 const predictor = (data, len) => {
-	let p = data[ 0 ];
-	for (let t = 1, tl = len; t < tl; t++) {
-		const d = data[ t ] - p + (128 + 256);
-		p = data[ t ];
-		data[ t ] = d;
-	}
-}
+  let p = data[0];
+  for (let t = 1, tl = len; t < tl; t++) {
+    const d = data[t] - p + (128 + 256);
+    p = data[t];
+    data[t] = d;
+  }
+};
 
 let _;
 const decoders = [raw, rle, _, _, _, _, _, _, _, _];
@@ -227,49 +227,49 @@ class EXRWriter {
     this.encoder = new TextEncoder();
   }
 
-  u8(d)  {
-    this.dv.setUint8(this.offset, d, true)
+  u8(d) {
+    this.dv.setUint8(this.offset, d, true);
     this.offset += 1;
   };
 
-  i8(d)  {
-    this.dv.setInt8(this.offset, d, true)
+  i8(d) {
+    this.dv.setInt8(this.offset, d, true);
     this.offset += 1;
   };
 
-  u16(d)  {
-    this.dv.setUint16(this.offset, d, true)
+  u16(d) {
+    this.dv.setUint16(this.offset, d, true);
     this.offset += 2;
   };
 
-  i16(d)  {
-    this.dv.setInt16(this.offset, d, true)
+  i16(d) {
+    this.dv.setInt16(this.offset, d, true);
     this.offset += 2;
   };
 
-  u32(d)  {
-    this.dv.setUint32(this.offset, d, true)
+  u32(d) {
+    this.dv.setUint32(this.offset, d, true);
     this.offset += 4;
   };
 
-  i32(d)  {
-    this.dv.setInt32(this.offset, d, true)
+  i32(d) {
+    this.dv.setInt32(this.offset, d, true);
     this.offset += 4;
   };
 
-  f32(d)  {
-    this.dv.setFloat32(this.offset, d, true)
+  f32(d) {
+    this.dv.setFloat32(this.offset, d, true);
     this.offset += 4;
   };
 
-  f64(d)  {
-    this.dv.setFloat64(this.offset, d, true)
+  f64(d) {
+    this.dv.setFloat64(this.offset, d, true);
     this.offset += 8;
   };
 
   string(str) {
     const charstr = this.encoder.encode(str + '\0');
-  	for (let i = 0; i < charstr.length; i++) this.u8(charstr[i]);
+    for (let i = 0; i < charstr.length; i++) this.u8(charstr[i]);
   }
 
   table(blocks) {
@@ -287,5 +287,5 @@ class EXRWriter {
     this.offset += bytes;
   }
 
-  skip(b) { this.offset += b }
+  skip(b) { this.offset += b; }
 }

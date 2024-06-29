@@ -16,11 +16,11 @@ export class RenderCache {
 
     this.samplers = new SparseSet();
     this.sampler_table = new SamplerTable(backend.device.features);
-    
+
     this.views = new PoolStorage();
     this.bindings = new PoolStorage();
     this.textures = new PoolStorage();
-    
+
     this.texture_callback = this.free_texture.bind(this);
     this.bindings_callback = this.free_binding.bind(this);
   }
@@ -49,7 +49,7 @@ export class RenderCache {
       }
       return;
     }
-  
+
     let id = view_obj.get_id(), cache;
     const cache_texture = this.get_texture(view_obj.texture);
 
@@ -57,7 +57,7 @@ export class RenderCache {
       cache = {
         view: this.backend.resources.get_texture(cache_texture.bid).get_view(view_obj.info),
         version: cache_texture.version,
-      }
+      };
       id = this.views.allocate(cache);
 
       cache_texture.views.push(id);
@@ -129,7 +129,7 @@ export class RenderCache {
 
   get_pipeline(material_obj, state) {
     let id = material_obj.get_id();
-    
+
     if (id == UNINITIALIZED) {
       id = this.material_manager.create_material({
         material: material_obj,
@@ -151,7 +151,7 @@ export class RenderCache {
   create_bind_group(binding_obj, layout, views) {
     return this.backend.resources.create_bind_group({
       layout: layout,
-      entries: binding_obj.info.map( (entry, idx) => {
+      entries: binding_obj.info.map((entry, idx) => {
         const resource = binding_obj[entry.name];
         switch (resource.type) {
           case ResourceType.StructuredBuffer:
@@ -188,18 +188,18 @@ export class RenderCache {
 
     if (id == UNINITIALIZED) {
       const layout_cache = this.material_manager.create_layout({
-        entries: binding_obj.info.map( (entry, idx) => {
+        entries: binding_obj.info.map((entry, idx) => {
           const resource = {
             binding: idx,
             visibility: entry.visibility || (GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT),
           };
           const binding = binding_obj[entry.name];
           switch (binding.type) {
-            case ResourceType.StructuredBuffer: 
+            case ResourceType.StructuredBuffer:
               resource.buffer = { type: "read-only-storage" };
               break;
             case ResourceType.TextureView:
-              resource.texture = { 
+              resource.texture = {
                 sampleType: this.sampler_table.get_sample_type(binding.texture.format),
                 viewDimension: binding.info?.dimension || "2d",
               };
@@ -222,7 +222,7 @@ export class RenderCache {
         layout: layout_cache.id,
         views: views,
         bid: bid,
-      }
+      };
 
       id = this.bindings.allocate(cache);
       binding_obj.initialize(id, this.bindings_callback);

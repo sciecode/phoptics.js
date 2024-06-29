@@ -8,7 +8,7 @@ export class PoolStorage {
 
   allocate(data) {
     let idx;
-    
+
     if (this.freelist.length) {
       idx = this.freelist.pop();
     } else {
@@ -25,7 +25,7 @@ export class PoolStorage {
     return this.count - this.freelist.length;
   }
 
-  grow () {
+  grow() {
     this.data.length *= 2;
   }
 

@@ -6,10 +6,10 @@ export class Material {
   #transparent = false;
   #version = 0;
   #binding = 0;
-  #free = () => {}
+  #free = () => {};
 
   constructor(options) {
-    this.shader = options.shader; 
+    this.shader = options.shader;
     this.#transparent = !!options.graphics?.blend;
 
     let write = options.graphics?.depth?.write;
@@ -26,7 +26,7 @@ export class Material {
     this.dynamic = options.dynamic;
     this.bindings = options.bindings ? new Bindings(options.bindings) : undefined;
   }
-  
+
   get_id() { return this.#id; }
   get_version() { return this.#version; }
   get_transparent() { return this.#transparent; }
@@ -52,6 +52,6 @@ const parse_blending = (blend) => {
     return {
       color: { dst: "one-minus-src-alpha", src: "src-alpha", op: "add" },
       alpha: { dst: "one-minus-src-alpha", src: "src-alpha", op: "add" }
-    }
+    };
   }
-}
+};

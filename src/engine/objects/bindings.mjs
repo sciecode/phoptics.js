@@ -5,7 +5,7 @@ import { StructuredBuffer } from "./structured_buffer.mjs";
 export class Bindings {
   #id = UNINITIALIZED;
   #version = 0;
-  #free = () => {}
+  #free = () => {};
 
   constructor(options) {
     this.info = new Array();
@@ -22,7 +22,7 @@ export class Bindings {
       }
     }
   }
-  
+
   get_id() { return this.#id; }
   get_version() { return this.#version; }
   initialize(id, free) { if (this.#id == UNINITIALIZED) { this.#id = id; this.#free = free; } }
@@ -37,4 +37,4 @@ export class Bindings {
 const bind_resource = (obj, entry, resource, ownership) => {
   obj[entry.name] = resource;
   obj.info.push({ name: entry.name, visibility: entry.visibility, ownership: ownership });
-}
+};

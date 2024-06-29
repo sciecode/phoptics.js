@@ -39,7 +39,7 @@ export class VertexHeaps {
         if (binding_hash == -1) binding_hash = 0;
         binding_hash |= info.instances.hid << 16;
       }
-      
+
       info.binding = this.bindings.has(binding_hash);
 
       if (info.binding === undefined) {
@@ -65,8 +65,8 @@ export class VertexHeaps {
       }
 
       bid = this.slots.allocate(info);
-      attributes.initialize(bid, 
-        binding_cache.binding, binding_cache.layout, 
+      attributes.initialize(bid,
+        binding_cache.binding, binding_cache.layout,
         info.vertices?.offset || 0, info.instances?.offset || 0,
         this.free
       );
@@ -107,7 +107,7 @@ export class VertexHeaps {
     const byte_size = update.size * data_stride;
     const buffer_offset = heap.offsets[idx] + offset * stride + update.buffer_offset * data_stride;
     const src = new Uint8Array(data_buffer, update.data.byteOffset + update.data_offset * data_stride, byte_size);
-    
+
     const backing = heap.backing;
     backing.u8.set(src, buffer_offset);
     let range = backing.ranges[idx];
@@ -152,11 +152,11 @@ export class VertexHeaps {
     });
 
     const allocator = new OffsetAllocator(format_info.format.elements);
-    const ranges = format_info.format.offsets.map(_ => { return { min: Infinity, max: -Infinity } });
+    const ranges = format_info.format.offsets.map(_ => { return { min: Infinity, max: -Infinity }; });
     const backing = { u8: new Uint8Array(HEAP_SIZE), ranges: ranges };
-    
-    let hid = this.heaps.allocate({ 
-      bid, backing, allocator, 
+
+    let hid = this.heaps.allocate({
+      bid, backing, allocator,
       offsets: format_info.format.offsets,
       fid: format_info.fid,
     });
@@ -230,7 +230,7 @@ export class VertexHeaps {
       this.heaps.delete(hip);
 
       format.heaps.splice(format.heaps.findIndex(hip), 1);
-      if (!format.heaps.length) 
+      if (!format.heaps.length)
         this.formats.delete(heap.fid, format.hash);
     }
   }
@@ -238,7 +238,7 @@ export class VertexHeaps {
   format_hash(attributes) {
     let vertices = { entries: attributes.vertices, hash: 0, size: 0 };
     let instances = { entries: attributes.instances, hash: 0, size: 0 };
-    
+
     let vert_id = 0, inst_id = 0;
     for (let vert of attributes.vertices) {
       vertices.size += vert.stride;
