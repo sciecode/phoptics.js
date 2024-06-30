@@ -23,6 +23,8 @@ import { compress_indices, uncompress_indices } from './compression/index.mjs';
 // -- compressed vertices data
 //
 
+// TODO: save per-attribute type
+
 const FORMAT_ID = 0xAA289;
 
 const calculate_buffer_size = (geometry, indices, vertices) => {
@@ -42,7 +44,7 @@ const populate = (output, geometry, indices, vertices) => {
   let offset = 0;
   const dv = new DataView(output.buffer);
   const attrib = geometry.attributes.vertices[0];
-  const vertex_count = attrib.total_bytes / attrib.stride;
+  const vertex_count = attrib.size / attrib.stride;
 
   // = FIXED HEADER =
   dv.setUint32(offset, FORMAT_ID); offset += 4;

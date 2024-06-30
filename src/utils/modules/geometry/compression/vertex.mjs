@@ -194,11 +194,14 @@ const encode_vertex = (output, input, vertex_count, vertex_size) => {
 
 export const compress_vertices = (geometry) => {
   const buffers = geometry.attributes.vertices.map(buf => {
-    return { buffer: buf.data, stride: buf.stride };
+    return {
+      stride: buf.stride,
+      buffer: new Uint8Array(buf.data.buffer, buf.data.byteOffset, buf.size),
+    };
   });
 
   const attrib = geometry.attributes.vertices[0];
-  const vertex_count = attrib.total_bytes / attrib.stride;
+  const vertex_count = attrib.size / attrib.stride;
 
   const mem = buffers.map(entry => {
     return {

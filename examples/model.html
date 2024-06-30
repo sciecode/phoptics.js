@@ -33,7 +33,8 @@
     } from 'phoptics';
     import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
     import { OBJLoader } from 'phoptics/utils/loaders/obj_loader.mjs';
-    import { optimize_geometry } from 'phoptics/utils/modules/geometry/optimizer.mjs'
+    import { optimize_geometry } from 'phoptics/utils/modules/geometry/optimizer.mjs';
+    import { compress, uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
     import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
 
     import model_shader from './assets/shaders/objects/model_shader.mjs';
@@ -100,9 +101,11 @@
         dynamic: [ { name: "world", type: Mat3x4 } ],
       });
 
-      const geo = await new OBJLoader().load('./assets/models/walt.obj');
+      let geo = await new OBJLoader().load('./assets/models/walt.obj');
       optimize_geometry(geo);
-      console.log(geo);
+      const compressed = compress(geo);
+
+      geo = uncompress(compressed);
 
       mesh = new Mesh(geo, material);
       renderlist.add(mesh);
