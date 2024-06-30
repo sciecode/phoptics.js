@@ -41,7 +41,7 @@
     const dpr = window.devicePixelRatio;
     let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
     let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
-    let mesh1, mesh2, mesh3, obj_pos = new Vec3(), q = new Quat();
+    let mesh, obj_pos = new Vec3(), q = new Quat();
 
     const renderlist = new RenderList();
 
@@ -107,10 +107,10 @@
       opt_remap(geo2);
       console.log(geo2);
 
-      // mesh = new Mesh(geo, material);
-      // renderlist.add(mesh);
+      mesh = new Mesh(geo2, material);
+      renderlist.add(mesh);
 
-      // animate();
+      animate();
     })();
 
     const auto_resize = () => {
@@ -127,7 +127,7 @@
     };
 
     const animate = () => {
-      requestAnimationFrame(animate);
+      // requestAnimationFrame(animate);
 
       auto_resize();
 

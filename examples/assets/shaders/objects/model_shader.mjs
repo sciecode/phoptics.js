@@ -20,7 +20,6 @@ struct Globals {
 
 struct Uniforms {
   world_matrix: mat3x4f,
-  color: vec4f,
 }
 
 struct Attributes {
@@ -30,32 +29,23 @@ struct Attributes {
 
 @group(0) @binding(0) var<storage, read> globals: Globals;
 @group(2) @binding(0) var<storage, read> dynamic: array<vec4f>;
-@group(3) @binding(0) var<storage, read> attributes: array<u32>;
-
-fn dec_oct16(data : u32) -> vec3f {
-  let v = vec2f(vec2u(data, data >> 8) & vec2u(255)) / 127.5 - 1.0;
-  var nor = vec3f(v, 1.0 - abs(v.x) - abs(v.y));
-  let t = max(-nor.z, 0.0);
-  nor.x += select(t, -t, nor.x > 0.);
-  nor.y += select(t, -t, nor.y > 0.);
-  return normalize(nor);
-}
+@group(3) @binding(0) var<storage, read> pos: array<f32>;
+@group(3) @binding(1) var<storage, read> norm: array<f32>;
 
 fn read_uniform(inst : u32) -> Uniforms {
   var uniform : Uniforms;
 
-  var p = inst >> 2;
+  var p = inst / 3;
   uniform.world_matrix = mat3x4f(dynamic[p], dynamic[p+1], dynamic[p+2]);
-  uniform.color = dynamic[p+3];
   return uniform;
 }
 
 fn read_attribute(vert : u32) -> Attributes {
   var attrib : Attributes;
 
-  let p = vert * 2;
-  attrib.pos = vec3f(bitcast<vec4h>(vec2u(attributes[p], attributes[p+1])).xyz);
-  attrib.normal = dec_oct16(attributes[p+1] >> 16);
+  let p = vert * 3;
+  attrib.pos = vec3f(pos[p], pos[p+1], pos[p+2]);
+  attrib.normal = vec3f(norm[p], norm[p+1], norm[p+2]);
   return attrib;
 }
 
@@ -141,8 +131,7 @@ fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
     800.                  // intensity
   );
 
-  let uniform = read_uniform(in.inst);
-  let albedo = uniform.color.rgb;
+  let albedo = .5;
   let L = albedo * frag.Ld_dif;
 
   let Ln = phoptics_tonemap(L, globals.exposure, globals.nits);

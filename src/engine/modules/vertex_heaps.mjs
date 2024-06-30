@@ -6,7 +6,7 @@ import { DenseArray } from "../../common/dense_array.mjs";
 import { SparseSet } from "../../common/sparse_set.mjs";
 
 let HEAP_SIZE = 0x2000000; // 32MB
-let align_storage = (bytes) => (bytes + 255) & 255;
+let align_storage = (bytes) => (bytes + 255) & ~255;
 
 export class VertexHeaps {
   constructor(backend, manager) {
