@@ -26,7 +26,7 @@ const opt_cache_group = (geometry, output) => {
   const index_count = indices.length;
   const triangle_count = index_count / 3;
   const attrib = geometry.attributes.vertices[0];
-  const vertex_count = attrib.total_bytes / attrib.stride;
+  const vertex_count = attrib.size / attrib.stride;
 
   const mem = {
     adj_count: { type: TYPE.u32, count: vertex_count },
