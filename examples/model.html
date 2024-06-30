@@ -33,7 +33,7 @@
     } from 'phoptics';
     import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
     import { OBJLoader } from 'phoptics/utils/loaders/obj_loader.mjs';
-    import { opt_remap } from 'phoptics/utils/modules/geometry/optimizer.mjs'
+    import { optimize_geometry } from 'phoptics/utils/modules/geometry/optimizer.mjs'
     import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
 
     import model_shader from './assets/shaders/objects/model_shader.mjs';
@@ -101,13 +101,10 @@
       });
 
       const geo = await new OBJLoader().load('./assets/models/walt.obj');
-      const geo2 = await new OBJLoader().load('./assets/models/walt.obj');
+      optimize_geometry(geo);
       console.log(geo);
 
-      opt_remap(geo2);
-      console.log(geo2);
-
-      mesh = new Mesh(geo2, material);
+      mesh = new Mesh(geo, material);
       renderlist.add(mesh);
 
       animate();
@@ -127,7 +124,7 @@
     };
 
     const animate = () => {
-      // requestAnimationFrame(animate);
+      requestAnimationFrame(animate);
 
       auto_resize();
 

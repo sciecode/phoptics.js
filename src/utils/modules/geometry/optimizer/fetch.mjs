@@ -8,6 +8,7 @@
  * 
 **/
 
+import { Vertex } from 'phoptics';
 import { TYPE } from "../common/type.mjs";
 import { Memory, memcpy } from '../common/memory.mjs';
 
@@ -17,11 +18,15 @@ export const opt_fetch = (geometry) => {
   const indices = geometry.index.data;
   const index_count = (indices.length / 3 | 0) * 3;
   const attrib = geometry.attributes.vertices[0];
-  const vertex_count = attrib.total_bytes / attrib.stride;
+  const vertex_count = attrib.size / attrib.stride;
   const buffer_count = geometry.attributes.vertices.length;
 
   const buffers = geometry.attributes.vertices.map(vertex => {
-    return { output: null, input: vertex.data, stride: vertex.stride };
+    return {
+      output: null,
+      input: new Uint8Array(vertex.data.buffer, vertex.data.byteOffset, vertex.size),
+      stride: vertex.stride
+    };
   });
 
   let mem = [];
@@ -31,7 +36,7 @@ export const opt_fetch = (geometry) => {
   Memory.allocate_layout(mem);
 
   for (let i = 0; i < buffer_count; ++i)
-    geometry.attributes.vertices[i].data = buffers[i].output = mem[i];
+    buffers[i].output = mem[i];
 
   let next_vertex = 0;
   const table = mem[buffer_count].fill(EMPTY32);
@@ -45,5 +50,12 @@ export const opt_fetch = (geometry) => {
     const entry = buffers[j], stride = entry.stride;
     for (let i = 0, il = table.length; i < il; ++i)
       memcpy(entry.output, table[i] * stride, entry.input, i * stride, stride);
+    const attrib = geometry.attributes.vertices[j];
+    const type = attrib.data.constructor;
+    const elements = entry.output.byteLength / type.BYTES_PER_ELEMENT;
+    geometry.attributes.vertices[j] = new Vertex({
+      stride: attrib.stride,
+      data: new type(entry.output.buffer, entry.output.byteOffset, elements),
+    });
   }
 }; 
