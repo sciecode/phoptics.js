@@ -101,7 +101,11 @@
       });
 
       const geo = await new OBJLoader().load('./assets/models/walt.obj');
+      const geo2 = await new OBJLoader().load('./assets/models/walt.obj');
       console.log(geo);
+
+      opt_remap(geo2);
+      console.log(geo2);
 
       // mesh = new Mesh(geo, material);
       // renderlist.add(mesh);

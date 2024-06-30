@@ -23,14 +23,10 @@ class Remapper {
     let get_index, index_count, next_vertex = 0;
     const attrib = geometry.attributes.vertices[0];
     const index = geometry.index;
-    const vertex_count = attrib.total_bytes / attrib.stride;
+    const vertex_count = attrib.size / attrib.stride;
     const bucket_count = calculate_bucket_count(vertex_count);
 
     if (index) {
-      if (!ArrayBuffer.isView(index.data)) {
-        const constructor = index.stride == 4 ? Uint32Array : Uint16Array;
-        index.data = new constructor(index.data, index.offset, index.total_bytes / index.stride);
-      }
       index_count = index.data.length;
       get_index = i => index.data[i];
     } else {
@@ -48,13 +44,8 @@ class Remapper {
     this.buckets = mem.buckets.fill(EMPTY32);
 
     this.buffers = geometry.attributes.vertices.map(vertex => {
-      let data;
-      if (ArrayBuffer.isView(vertex.data)) {
-        data = (vertex.data instanceof Uint8Array) ?
-          vertex.data : new Uint8Array(vertex.data.buffer, vertex.data.byteOffset, vertex.data.byteLength);
-      } else {
-        data = new Uint8Array(vertex.data, vertex.offset, vertex.total_bytes);
-      }
+      let data = (vertex.data instanceof Uint8Array) ?
+        vertex.data : new Uint8Array(vertex.data.buffer, vertex.data.byteOffset, vertex.size);
       return { buffer: data, stride: vertex.stride };
     });
 
@@ -138,9 +129,10 @@ class Remapper {
         memcpy(new_buffer, this.table[i] * stride, buffer, i * stride, stride);
       }
       const attrib = geometry.attributes.vertices[k];
-      attrib.data = new_buffer;
-      attrib.total_bytes = new_buffer.byteLength;
-      attrib.offset = 0;
+      attrib.size = new_buffer.byteLength;
+      const type = attrib.data.constructor;
+      const elements = attrib.size / type.BYTES_PER_ELEMENT;
+      attrib.data = new type(new_buffer.buffer, new_buffer.byteOffset, elements);
     }
   }
 }
