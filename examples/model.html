@@ -35,6 +35,7 @@
     import { OBJLoader } from 'phoptics/utils/loaders/obj_loader.mjs';
     import { optimize_geometry } from 'phoptics/utils/modules/geometry/optimizer.mjs';
     import { compress, uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
+    import { unweld } from 'phoptics/utils/modules/geometry/tangent.mjs';
     import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
 
     import model_shader from './assets/shaders/objects/model_shader.mjs';
@@ -103,9 +104,12 @@
 
       let geo = await new OBJLoader().load('./assets/models/walt.obj');
       optimize_geometry(geo);
-      const compressed = compress(geo);
+      unweld(geo);
 
-      geo = uncompress(compressed);
+      // TODO: MikkTspace
+      // const compressed = compress(geo);
+
+      // geo = uncompress(compressed);
 
       mesh = new Mesh(geo, material);
       renderlist.add(mesh);
