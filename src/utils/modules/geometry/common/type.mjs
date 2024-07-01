@@ -22,6 +22,22 @@ export class TYPE {
   static get u64() { return { id: 9, bytes: 8, array: BigUint64Array }; }
   static get f64() { return { id: 10, bytes: 8, array: Float64Array }; }
 
+  static to_id(id) {
+    switch (id) {
+      case Int8Array: return TYPE.i8.id;
+      case Uint8Array: return TYPE.u8.id;
+      case Int16Array: return TYPE.i16.id;
+      case Uint16Array: return TYPE.u16.id;
+      // case 4: return TYPE.f16; // enable once Float16Array is available
+      case Int32Array: return TYPE.i32.id;
+      case Uint32Array: return TYPE.u32.id;
+      case Float32Array: return TYPE.f32.id;
+      case BigInt64Array: return TYPE.i64.id;
+      case BigUint64Array: return TYPE.u64.id;
+      case Float64Array: return TYPE.f64.id;
+    }
+  }
+
   static from_id(id) {
     switch (id) {
       case 0: return TYPE.i8;

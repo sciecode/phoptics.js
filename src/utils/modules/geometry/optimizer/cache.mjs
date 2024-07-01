@@ -156,9 +156,7 @@ const opt_cache_group = (geometry, output) => {
 
 export const opt_cache = (geometry) => {
   const indices = geometry.index.data;
-  // TODO: validate proper buffer alignment for indices and vertices - on all optimization steps
-  // might need to include vertex_count property on attributes
-  const output = new indices.constructor(indices.length + (indices.length & 1)); // incorrect
+  const output = new indices.constructor(indices.length + (indices.length & 1));
   opt_cache_group(geometry, output);
   geometry.index = new Index({
     data: output,
