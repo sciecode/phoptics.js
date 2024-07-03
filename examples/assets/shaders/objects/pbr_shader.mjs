@@ -194,7 +194,7 @@ fn tbn_mat(eye : vec3f, norm : vec3f, uv : vec2f) -> mat3x3f {
   let metalness = textureSample(t_metallic, samp, in.uv).r;
   let tbn_normal = normal_rg(textureSample(t_normal, samp, in.uv).rg * 2 - 1);
 
-  const perceptual_roughness = .15;
+  const perceptual_roughness = .35;
   let a = max(perceptual_roughness * perceptual_roughness, 0.089);
 
   var frag : RenderInfo;

@@ -37,17 +37,26 @@ export const unweld = (geometry) => {
   }
 
   geometry.index = undefined;
-}
+};
 
 class Info {
   constructor() {
     this.neighbours = [-1, -1, -1];
-  	this.groups = [-1, -1, -1];
+    this.groups = [-1, -1, -1];
 
     this.s = new Vec3(); this.sm = 0;
     this.t = new Vec3(); this.tm = 0;
-    
-  	this.any = true;
+
+    this.any = true;
+    this.preserve = false;
+  }
+}
+
+class Group {
+  constructor() {
+    this.count = 0;
+    this.offset = 0;
+    this.vert = 0;
     this.preserve = false;
   }
 }
@@ -57,24 +66,25 @@ const non_zero = (v) => Math.abs(v) > Number.EPSILON;
 // assumes no degenerate faces
 export const generate_tangents = (geometry, info) => {
   opt_remap(geometry); // make indexed & remove duplicates
-  
+
   const get_uv = (idx, v) => {
     const buffer = geometry.attributes.vertices[info.uv.id];
     v.from(buffer.data, idx * buffer.stride + (info.uv.offset || 0));
-  }
-  
+  };
+
   const get_pos = (idx, v) => {
     const buffer = geometry.attributes.vertices[info.position.id];
     v.from(buffer.data, idx * buffer.stride + (info.position.offset || 0));
-  }
+  };
 
   const get_normal = (idx, v) => {
     const buffer = geometry.attributes.vertices[info.normal.id];
     v.from(buffer.data, idx * buffer.stride + (info.normal.offset || 0));
-  }
+  };
 
   const indices = geometry.index.data;
   const triangle_count = (indices.length / 3 | 0);
+  const indices_count = triangle_count * 3;
   const tri_info = new Array(triangle_count);
 
   for (let i = 0; i < triangle_count; i++)
@@ -96,29 +106,123 @@ export const generate_tangents = (geometry, info) => {
 
       if (non_zero(abs_area)) {
         get_pos(idx1, v1), get_pos(idx2, v2), get_pos(idx3, v3);
-    		const d1 = v2.sub(v1), d2 = v3.sub(v1);
-        
+        const d1 = v2.sub(v1), d2 = v3.sub(v1);
+
         const lens = vs.copy(d1).mul_f32(t31.y)
           .sub(v1.copy(d2).mul_f32(t21.y))
           .length();
-        
+
         const lent = vt.copy(d1).mul_f32(-t31.x)
           .add(v1.copy(d2).mul_f32(t21.x))
           .length();
-        
-  			const sign = info.preserve ? -1 : 1;
-  			if (non_zero(lens)) info.s.copy(vs).mul_f32(sign / lens);
-  			if (non_zero(lent)) info.t.copy(vt).mul_f32(sign / lent);
+
+        const sign = info.preserve ? -1 : 1;
+        if (non_zero(lens)) info.s.copy(vs).mul_f32(sign / lens);
+        if (non_zero(lent)) info.t.copy(vt).mul_f32(sign / lent);
 
         const abs_area = Math.abs(area);
         info.sm = lens / abs_area;
         info.tm = lent / abs_area;
 
-  			if (non_zero(info.sm) && non_zero(info.tm)) info.any = false;
+        if (non_zero(info.sm) && non_zero(info.tm)) info.any = false;
       }
     }
   }
 
   // initialize neighbour info
+  build_neighbours(tri_info, indices, triangle_count);
 
-}
+  // initialize groups
+  const groups = new Array(indices_count);
+  const tri_groups = new Array(indices_count);
+
+  for (let i = 0; i < indices_count; i++)
+    groups[i] = new Group();
+
+  const group_count = build_groups(groups, tri_groups, tri_info, indices, triangle_count);
+};
+
+const build_neighbours = (info, indices, triangle_count) => {
+  for (let f = 0; f < triangle_count; f++) {
+    for (let i = 0; i < 3; i++) {
+      if (info[f].neighbours[i] == -1) {
+        const i0_A = indices[f * 3 + i];
+        const i1_A = indices[f * 3 + (i + 1) % 3];
+
+        let found = false, t = 0, j = 0;
+        while (!found && t < triangle_count) {
+          if (t != f) {
+            j = 0;
+            while (!found && j < 3) {
+              const i1_B = indices[t * 3 + j];
+              const i0_B = indices[t * 3 + (j + 1) % 3];
+              if (i0_A == i0_B && i1_A == i1_B) found = true;
+              else ++j;
+            }
+          }
+
+          if (!found) ++t;
+        }
+
+        if (found) {
+          info[f].neighbours[i] = t;
+          info[t].neighbours[j] = f;
+        }
+      }
+    }
+  }
+};
+
+const add_tri_group = (group, tri_groups, face) => {
+  tri_groups[group.offset + group.count++] = face;
+};
+
+const assign = (info, indices, groups, tri_groups, face, group, group_id) => {
+  let i = 2;
+  const tri = info[face];
+  const idx = 3 * face, vert = group.vert;
+
+  if (vert == indices[idx]) i = 0;
+  else if (vert == indices[idx + 1]) i = 1;
+  if (tri.groups[i] == group_id) return true;
+  else if (tri.groups[i] == -1) return false;
+
+  if (tri.any && tri.group[0] == -1 && tri.group[1] == -1 && tri.group[2] == -1)
+    tri.preserve = group.preserve;
+  if (tri.preserve != group.preserve) return false;
+
+  add_tri_group(group, tri_groups, face);
+  tri.groups[i] = group_id;
+
+  let nl = tri.neighbours[i], nr = tri.neighbours[i > 0 ? (i - 1) : 2];
+  if (nl >= 0) assign(info, indices, groups, tri_groups, nl, group, group_id);
+  if (nr >= 0) assign(info, indices, groups, tri_groups, nr, group, group_id);
+
+  return true;
+};
+
+const build_groups = (groups, tri_groups, info, indices, triangle_count) => {
+  let group_count = 0, offset = 0;
+  for (let f = 0; f < triangle_count; f++) {
+    let tri = info[f];
+    for (let i = 0; i < 3; i++) {
+      if (!tri.any && tri.groups[i] == -1) {
+        const group_id = group_count++; group = groups[group_count];
+        tri.groups[i] = group_id;
+        group.vert = indices[f * 3 + i];
+        group.count = 0;
+        group.offset = offset;
+        group.preserve = tri.preserve;
+
+        add_tri_group(group, tri_groups, f);
+
+        let nl = tri.neighbours[i], nr = tri.neighbours[i > 0 ? (i - 1) : 2];
+        if (nl >= 0) assign(info, indices, groups, tri_groups, nl, group, group_id);
+        if (nr >= 0) assign(info, indices, groups, tri_groups, nr, group, group_id);
+        offset += group.count;
+      }
+    }
+  }
+
+  return group_count;
+};
