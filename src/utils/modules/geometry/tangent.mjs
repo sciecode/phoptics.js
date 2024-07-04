@@ -104,7 +104,7 @@ export const generate_tangents = (geometry, info) => {
       const area = t21.x * t31.y - t21.y * t31.x;
       info.preserve = area > 0;
 
-      if (non_zero(abs_area)) {
+      if (non_zero(area)) {
         get_pos(idx1, v1), get_pos(idx2, v2), get_pos(idx3, v3);
         const d1 = v2.sub(v1), d2 = v3.sub(v1);
 
@@ -116,7 +116,7 @@ export const generate_tangents = (geometry, info) => {
           .add(v1.copy(d2).mul_f32(t21.x))
           .length();
 
-        const sign = info.preserve ? -1 : 1;
+        const sign = info.preserve ? -1 : 1; // TODO: validate - should be correct for WebGPU tex coords
         if (non_zero(lens)) info.s.copy(vs).mul_f32(sign / lens);
         if (non_zero(lent)) info.t.copy(vt).mul_f32(sign / lent);
 
@@ -140,25 +140,25 @@ export const generate_tangents = (geometry, info) => {
     groups[i] = new Group();
 
   const group_count = build_groups(groups, tri_groups, tri_info, indices, triangle_count);
+
+  // create tangent space
 };
 
-const build_neighbours = (info, indices, triangle_count) => {
+const build_neighbours = (info, indices, triangle_count) => { // this is extremelly slow
   for (let f = 0; f < triangle_count; f++) {
     for (let i = 0; i < 3; i++) {
       if (info[f].neighbours[i] == -1) {
         const i0_A = indices[f * 3 + i];
         const i1_A = indices[f * 3 + (i + 1) % 3];
 
-        let found = false, t = 0, j = 0;
+        let found = false, t = f + 1, j = 0;
         while (!found && t < triangle_count) {
-          if (t != f) {
-            j = 0;
-            while (!found && j < 3) {
-              const i1_B = indices[t * 3 + j];
-              const i0_B = indices[t * 3 + (j + 1) % 3];
-              if (i0_A == i0_B && i1_A == i1_B) found = true;
-              else ++j;
-            }
+          j = 0;
+          while (!found && j < 3) {
+            const i1_B = indices[t * 3 + j];
+            const i0_B = indices[t * 3 + (j + 1) % 3];
+            if (i0_A == i0_B && i1_A == i1_B) found = true;
+            else ++j;
           }
 
           if (!found) ++t;
@@ -207,7 +207,7 @@ const build_groups = (groups, tri_groups, info, indices, triangle_count) => {
     let tri = info[f];
     for (let i = 0; i < 3; i++) {
       if (!tri.any && tri.groups[i] == -1) {
-        const group_id = group_count++; group = groups[group_count];
+        const group_id = group_count++, group = groups[group_id];
         tri.groups[i] = group_id;
         group.vert = indices[f * 3 + i];
         group.count = 0;

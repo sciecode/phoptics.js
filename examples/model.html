@@ -35,7 +35,7 @@
     import { OBJLoader } from 'phoptics/utils/loaders/obj_loader.mjs';
     import { optimize_geometry } from 'phoptics/utils/modules/geometry/optimizer.mjs';
     import { compress, uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
-    import { unweld } from 'phoptics/utils/modules/geometry/tangent.mjs';
+    import { generate_tangents } from 'phoptics/utils/modules/geometry/tangent.mjs';
     import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
 
     import model_shader from './assets/shaders/objects/model_shader.mjs';
@@ -93,24 +93,25 @@
 
       orbit = new Orbit(canvas_texture.canvas);
       orbit.target.set(0, 0, 0);
-      orbit.position.set(0, 0, 200);
+      orbit.position.set(0, 0, 2);
       orbit.update();
       camera.luma.set(250, 1);
-      camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 400);
+      camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, .1, 100);
 
       const material = new Material({
         shader: new Shader({ code: model_shader }),
         dynamic: [ { name: "world", type: Mat3x4 } ],
       });
 
-      let geo = await new OBJLoader().load('./assets/models/walt.obj');
+      let geo = await new OBJLoader().load('./assets/models/cerberus.obj');
       optimize_geometry(geo);
-
-      // TODO: MikkTspace
       // const compressed = compress(geo);
       // geo = uncompress(compressed);
-      const mesh = new Mesh(geo, material);
 
+      // TODO: MikkTspace
+      generate_tangents(geo, { position: { id: 0 }, normal: { id: 1 }, uv: { id: 2 } });
+      
+      const mesh = new Mesh(geo, material);
       // create wireframe
       const face_count = geo.draw.count / 3;
       const indices = new Uint32Array(geo.draw.count * 2);
@@ -137,6 +138,10 @@
       renderlist.add(mesh1);
       renderlist.add(mesh);
 
+      const q = new Quat().rot_y(Math.PI / 2);
+      mesh.dynamic.world.rotate(q);
+      mesh1.dynamic.world.rotate(q);
+
       animate();
     })();
 
@@ -149,7 +154,7 @@
         viewport.width = newW; viewport.height = newH;
         render_target.set_size(viewport);
 
-        camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 400);
+        camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, .1, 100);
       }
     };
 
