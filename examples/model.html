@@ -28,7 +28,7 @@
 <body>
   <script type="module">
     import {
-      Engine, Mesh, RenderList, Shader, Material, Texture, CanvasTexture,
+      Engine, Mesh, Geometry, Vertex, Index, RenderList, Shader, Material, Texture, CanvasTexture,
       RenderPass, RenderTarget, StructuredBuffer, Format
     } from 'phoptics';
     import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
@@ -39,6 +39,7 @@
     import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
 
     import model_shader from './assets/shaders/objects/model_shader.mjs';
+    import model_wireframe_shader from './assets/shaders/objects/model_wireframe_shader.mjs';
 
     const dpr = window.devicePixelRatio;
     let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
@@ -104,14 +105,36 @@
 
       let geo = await new OBJLoader().load('./assets/models/walt.obj');
       optimize_geometry(geo);
-      unweld(geo);
 
       // TODO: MikkTspace
       // const compressed = compress(geo);
-
       // geo = uncompress(compressed);
+      const mesh = new Mesh(geo, material);
 
-      mesh = new Mesh(geo, material);
+      // create wireframe
+      const face_count = geo.draw.count / 3;
+      const indices = new Uint32Array(geo.draw.count * 2);
+      for (let i = 0; i < face_count; i++) {
+        const i3 = i * 3, i6 = i * 6;
+        indices[i6] = indices[i6 + 5] = geo.index.data[i3];
+        indices[i6 + 1] = indices[i6 + 2] = geo.index.data[i3 + 1];
+        indices[i6 + 3] = indices[i6 + 4] = geo.index.data[i3 + 2];
+      }
+      const geo_wireframe = new Geometry({
+        draw: { count: geo.draw.count * 2 },
+        index: new Index({ data: indices, stride: 4 }),
+        vertices: [new Vertex({
+          data: geo.attributes.vertices[0].data,
+          stride: geo.attributes.vertices[0].stride
+        })]
+      })
+      const material_wireframe = new Material({
+        shader: new Shader({ code: model_wireframe_shader }),
+        dynamic: [ { name: "world", type: Mat3x4 } ],
+        graphics: { primitive: 'line-list' }
+      });
+      const mesh1 = new Mesh(geo_wireframe, material_wireframe);
+      renderlist.add(mesh1);
       renderlist.add(mesh);
 
       animate();

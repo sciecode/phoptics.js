@@ -6,7 +6,6 @@ struct FragInput {
   @builtin(position) position : vec4f,
   @location(0) w_pos : vec3f,
   @location(1) w_normal : vec3f,
-  @location(2) @interpolate(flat) inst: u32,
 }
 
 struct Globals {
@@ -35,7 +34,7 @@ struct Attributes {
 fn read_uniform(inst : u32) -> Uniforms {
   var uniform : Uniforms;
 
-  var p = inst / 3;
+  var p = inst >> 2;
   uniform.world_matrix = mat3x4f(dynamic[p], dynamic[p+1], dynamic[p+2]);
   return uniform;
 }
@@ -63,7 +62,6 @@ fn read_attribute(vert : u32) -> Attributes {
   output.position = c_pos;
   output.w_pos = w_pos;
   output.w_normal = attrib.normal * normal_matrix;
-  output.inst = inst;
 
   return output;
 }

@@ -78,6 +78,8 @@ export class GPUBackend {
         draw_count: 0,
         vertex_offset: 0,
         index_offset: -1,
+        index_handle: -1,
+        index_type: false,
         instance_count: 1,
         instance_offset: 0,
       }
@@ -130,19 +132,24 @@ export class GPUBackend {
       pass.setBindGroup(3, group);
     }
 
-    // index offset
+    // index buffer
+    let index_update = false;
     if (metadata & DrawStreamFlags.index_offset) {
       draw_packet.draw.index_offset = stream[draw_packet.offset++];
+      const type = draw_packet.draw.index_offset & 0x8000_0000 ? "uint32" : "uint16"; // TODO: minimize type changes
+      if (type != draw_packet.draw.index_type) {
+        draw_packet.draw.index_type = type;
+        index_update = true;
+      }
+    }
+    if (metadata & DrawStreamFlags.index) {
+      draw_packet.draw.index_handle = stream[draw_packet.offset++];
+      index_update = true;
     }
 
-    // index buffer
-    if (metadata & DrawStreamFlags.index) {
-      const index_handle = stream[draw_packet.offset++];
-      if (index_handle != NULL_HANDLE) {
-        const buffer = this.resources.get_buffer(index_handle);
-        const type = draw_packet.draw.index_offset & 0x8000_0000 ? "uint32" : "uint16";
-        pass.setIndexBuffer(buffer, type);
-      }
+    if (draw_packet.draw.index_handle != NULL_HANDLE && index_update) {
+      const buffer = this.resources.get_buffer(draw_packet.draw.index_handle);
+      pass.setIndexBuffer(buffer, draw_packet.draw.index_type);
     }
 
     // draw count
@@ -167,8 +174,9 @@ export class GPUBackend {
 
     // dynamic offset
     if (metadata & DrawStreamFlags.dynamic_offset) {
+      const offset = stream[draw_packet.offset++];
       if (draw_packet.draw.dynamic_group)
-        draw_packet.draw.instance_offset = stream[draw_packet.offset++] / 4;
+        draw_packet.draw.instance_offset = offset / 4;
     }
 
     const info = draw_packet.draw;
