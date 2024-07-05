@@ -19,9 +19,9 @@ struct FragInput {
 }
 
 fn dec_oct_uv(uv : vec2f) -> vec3f {
-  let v = uv / .5 - 1.;
+  let v = uv * 2 - 1;
   // assumes input uv [0,0] top-left corner (WebGPU)
-  var nor = vec3f(v.x, -v.y, 1.0 - abs(v.x) - abs(v.y));
+  var nor = vec3f(v.x, -v.y, 1 - abs(v.x) - abs(v.y));
   let t = max(-nor.z, 0);
   nor.x += select(t, -t, nor.x > 0.);
   nor.y += select(t, -t, nor.y > 0.);
