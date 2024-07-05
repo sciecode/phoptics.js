@@ -1,10 +1,10 @@
-import { Vertex } from 'phoptics';
+import { Vertex, RadixSort } from 'phoptics';
 import { Vec3, Vec2 } from 'phoptics/math';
 import { opt_remap } from 'phoptics/utils/modules/geometry/optimizer.mjs';
+
 import { TYPE } from "./common/type.mjs";
 import { Memory, memcpy } from './common/memory.mjs';
 
-// TODO: move to a different module - this isn't required here
 export const unweld = (geometry) => {
   const indices = geometry.index.data;
   const index_count = (indices.length / 3 | 0) * 3;
@@ -65,21 +65,21 @@ const non_zero = (v) => Math.abs(v) > Number.EPSILON;
 
 // assumes no degenerate faces
 export const generate_tangents = (geometry, info) => {
-  opt_remap(geometry); // make indexed & remove duplicates
+  if (!geometry.index) opt_remap(geometry); // make indexed & remove duplicates
 
   const get_uv = (idx, v) => {
     const buffer = geometry.attributes.vertices[info.uv.id];
-    v.from(buffer.data, idx * buffer.stride + (info.uv.offset || 0));
+    v.from(buffer.data, idx * buffer.stride / buffer.data.BYTES_PER_ELEMENT + (info.uv.offset || 0));
   };
 
   const get_pos = (idx, v) => {
     const buffer = geometry.attributes.vertices[info.position.id];
-    v.from(buffer.data, idx * buffer.stride + (info.position.offset || 0));
+    v.from(buffer.data, idx * buffer.stride / buffer.data.BYTES_PER_ELEMENT + (info.position.offset || 0));
   };
 
   const get_normal = (idx, v) => {
     const buffer = geometry.attributes.vertices[info.normal.id];
-    v.from(buffer.data, idx * buffer.stride + (info.normal.offset || 0));
+    v.from(buffer.data, idx * buffer.stride / buffer.data.BYTES_PER_ELEMENT + (info.normal.offset || 0));
   };
 
   const indices = geometry.index.data;
@@ -135,43 +135,71 @@ export const generate_tangents = (geometry, info) => {
   // initialize groups
   const groups = new Array(indices_count);
   const tri_groups = new Array(indices_count);
-
-  for (let i = 0; i < indices_count; i++)
-    groups[i] = new Group();
-
+  for (let i = 0; i < indices_count; i++) groups[i] = new Group();
   const group_count = build_groups(groups, tri_groups, tri_info, indices, triangle_count);
 
   // create tangent space
 };
 
-const build_neighbours = (info, indices, triangle_count) => { // this is extremelly slow
+const get_edge = (indices, idx, i0, i1) => {
+  const [id0, id1, id2] = indices.slice(idx, idx + 3);
+	if (id0 == i0 || id0 == i1) {
+		if (id1 == i0 || id1 == i1) return [id0, id1, 0];
+		else return [id2, id0, 2];
+	} else return [id1, id2, 1];
+}
+
+const build_neighbours = (info, indices, triangle_count) => {
+  const edges = new Array(triangle_count * 3);
   for (let f = 0; f < triangle_count; f++) {
+    const f3 = f * 3;
     for (let i = 0; i < 3; i++) {
-      if (info[f].neighbours[i] == -1) {
-        const i0_A = indices[f * 3 + i];
-        const i1_A = indices[f * 3 + (i + 1) % 3];
-
-        let found = false, t = f + 1, j = 0;
-        while (!found && t < triangle_count) {
-          j = 0;
-          while (!found && j < 3) {
-            const i1_B = indices[t * 3 + j];
-            const i0_B = indices[t * 3 + (j + 1) % 3];
-            if (i0_A == i0_B && i1_A == i1_B) found = true;
-            else ++j;
-          }
-
-          if (!found) ++t;
-        }
-
-        if (found) {
-          info[f].neighbours[i] = t;
-          info[t].neighbours[j] = f;
-        }
-      }
+      const i0 = indices[f3 + i];
+      const i1 = indices[f3 + (i + 1) % 3];
+      edges[f3 + i] = i0 < i1 ? [i0, i1, f] : [i1, i0, f];
     }
   }
-};
+
+  RadixSort(edges, { get: (a) => a[0] });
+  
+  for (let i = 0, s = 0; i < edges.length; i++) {
+    if (edges[s][0] != edges[i][0]) {
+      const st = s;
+      const len = i-s;
+      s = i;
+      if (len > 1) RadixSort(edges, { st, len, get: (a) => a[1] });
+    }
+  }
+  
+  for (let i = 0, s = 0; i < edges.length; i++) {
+    if (edges[s][0] != edges[i][0] || edges[s][1] != edges[i][1]) {
+      const st = s;
+      const len = i-s;
+      s = i;
+      if (len > 1) RadixSort(edges, { st, len, get: (a) => a[2] });
+    }
+  }
+
+  for (let i = 0; i < edges.length; i++) {
+		const [i0, i1, f] = edges[i];
+		let [i0_A, i1_A, eA] = get_edge(indices, f * 3, i0, i1);
+
+		if (info[f].neighbours[eA] == -1) {
+			let j = i + 1, found = false;
+			while (j < edges.length && i0 == edges[j][0] && i1 == edges[j][1] && !found) {
+				let [i0_B, i1_B, eB] = get_edge(indices, t * 3, edges[j][0], edges[j][1]), t = edges[j][2];
+				if (i0_A == i0_B && i1_A == i1_B && info[t].neighbours[eb] == -1) found = true;
+				else ++j;
+			}
+
+			if (found) {
+				const t = edges[j][2];
+				info[f].neighbours[eA] = t;
+				info[t].neighbours[eB] = f;
+			}
+		}
+	}
+}
 
 const add_tri_group = (group, tri_groups, face) => {
   tri_groups[group.offset + group.count++] = face;

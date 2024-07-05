@@ -17,9 +17,11 @@ import { Format } from "../common/constants.mjs";
 import { ResourceType } from "./constants.mjs";
 import { Engine } from "./engine.mjs";
 
+import RadixSort from "../common/radix_sort.mjs";
+
 export {
-  Format, ResourceType,
+  Format, ResourceType, RadixSort,
   Engine, Mesh, RenderList, Shader, Sampler, Texture, Material, Geometry, Bindings,
   Vertex, Index, Instance, RenderPass, TextureView, RenderTarget, CanvasTexture,
-  StructuredBuffer, StructuredDynamic,
+  StructuredBuffer, StructuredDynamic
 };

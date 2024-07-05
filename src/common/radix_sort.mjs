@@ -16,9 +16,9 @@ for (let i = 0; i < (ITERATIONS + 1); i++) {
 const defaultGet = (el) => el;
 
 export default (arr, opt = {}) => {
-
   const get = opt.get || defaultGet;
   const len = opt.len || arr.length;
+  const st = opt.st || 0;
 
   if (!len) return;
 
@@ -28,7 +28,6 @@ export default (arr, opt = {}) => {
   const data = [arr, aux];
 
   const insertionSortBlock = (depth, start, len) => {
-
     const a = data[depth & 1];
     const b = data[(depth + 1) & 1];
 
@@ -50,7 +49,6 @@ export default (arr, opt = {}) => {
   };
 
   const radixSortBlock = (depth, start, len) => {
-
     const a = data[depth & 1];
     const b = data[(depth + 1) & 1];
 
@@ -88,9 +86,7 @@ export default (arr, opt = {}) => {
         prev = cur;
       }
     }
-
   };
 
-  radixSortBlock(0, 0, len);
-
+  (len < 32) ? insertionSortBlock(0, st, len) : radixSortBlock(0, st, len);
 };
