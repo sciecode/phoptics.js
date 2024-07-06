@@ -27,6 +27,19 @@ struct Attributes {
 @group(2) @binding(1) var<storage, read> norm: array<f32>;
 @group(3) @binding(0) var<storage, read> world_matrix: mat3x4f;
 
+fn mul33(m : mat3x3f, v : vec3f) -> vec3f {
+  return v * m;
+}
+
+fn mul34(m : mat3x4f, v : vec3f) -> vec3f {
+  let mt = transpose(m);
+  return v.x * mt[0] + (v.y * mt[1] + (v.z * mt[2] + mt[3]));
+}
+
+fn mul44(m : mat4x4f, v : vec3f) -> vec4f {
+  let mt = transpose(m);
+  return v.x * mt[0] + (v.y * mt[1] + (v.z * mt[2] + mt[3]));
+}
 
 fn read_attribute(vert : u32) -> Attributes {
   var attrib : Attributes;
@@ -37,19 +50,14 @@ fn read_attribute(vert : u32) -> Attributes {
   return attrib;
 }
 
-@vertex fn vs(@builtin(vertex_index) vert : u32, @builtin(instance_index) inst : u32) -> FragInput {
+@vertex fn vs(@builtin(vertex_index) vert : u32) -> FragInput {
   var output : FragInput;
 
   let attrib = read_attribute(vert);
-
-  var w_pos = vec4f(attrib.pos, 1) * world_matrix;
-  var c_pos = vec4f(vec4f(w_pos, 1) * globals.view_matrix, 1) * globals.projection_matrix;
-
-  var normal_matrix = mat3x3f(world_matrix[0].xyz, world_matrix[1].xyz, world_matrix[2].xyz);
-
-  output.position = c_pos;
-  output.w_pos = w_pos;
-  output.w_normal = attrib.normal * normal_matrix;
+  output.w_pos = mul34(world_matrix, attrib.pos);
+  let normal_matrix = mat3x3f(world_matrix[0].xyz, world_matrix[1].xyz, world_matrix[2].xyz);
+  output.w_normal = mul33(normal_matrix, attrib.normal);
+  output.position = mul44(globals.projection_matrix, mul34(globals.view_matrix, output.w_pos));
 
   return output;
 }

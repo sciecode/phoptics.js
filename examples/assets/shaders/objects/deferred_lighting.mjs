@@ -30,7 +30,7 @@ struct Globals {
   let c_pos = pos[vertexIndex];
 
   output.position = vec4f(c_pos, .5, 1);
-  output.uv = (c_pos + 1) * .5;
+  output.uv = c_pos * .5 + .5;
   output.uv.y = 1. - output.uv.y;
 
   return output;

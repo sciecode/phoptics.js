@@ -20,6 +20,16 @@ struct Attributes {
 @group(0) @binding(0) var<storage, read> globals: Globals;
 @group(2) @binding(0) var<storage, read> attributes: array<f32>;
 
+fn mul34(m : mat3x4f, v : vec3f) -> vec3f {
+  let mt = transpose(m);
+  return v.x * mt[0] + (v.y * mt[1] + (v.z * mt[2] + mt[3]));
+}
+
+fn mul44(m : mat4x4f, v : vec3f) -> vec4f {
+  let mt = transpose(m);
+  return v.x * mt[0] + (v.y * mt[1] + (v.z * mt[2] + mt[3]));
+}
+
 fn read_attribute(vert : u32) -> Attributes {
   var attrib : Attributes;
 
@@ -31,17 +41,13 @@ fn read_attribute(vert : u32) -> Attributes {
 @vertex fn vs(@builtin(vertex_index) vert: u32) -> FragInput {
   var output : FragInput;
 
+  output.dir = read_attribute(vert).pos;
+
   var view = globals.view_matrix;
-  view[0].w = 0;
-  view[1].w = 0;
-  view[2].w = 0;
+  view[0].w = 0; view[1].w = 0; view[2].w = 0;
 
-  var attrib = read_attribute(vert);
-  var c_pos = vec4f(vec4f(attrib.pos, 1) * view, 1) * globals.projection_matrix;
-  c_pos.z = 0.00000001;
-
-  output.position = c_pos;
-  output.dir = attrib.pos;
+  output.position = mul44(globals.projection_matrix, mul34(view, output.dir));
+  output.position.z = 0.00000001;
   
   return output;
 }

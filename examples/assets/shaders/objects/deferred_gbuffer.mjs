@@ -41,7 +41,7 @@ fn read_attribute(vert : u32) -> Attributes {
   return attrib;
 }
 
-@vertex fn vs(@builtin(vertex_index) vert: u32, @builtin(instance_index) inst: u32) -> FragInput {
+@vertex fn vs(@builtin(vertex_index) vert: u32) -> FragInput {
   var output : FragInput;
 
   let attrib = read_attribute(vert);
