@@ -60,5 +60,5 @@ fn read_attribute(vert : u32) -> Attributes {
 }
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
-  return vec4f(.4, .8, .4, 1);
+  return vec4f(.4, .8, .6, 1);
 }`;
