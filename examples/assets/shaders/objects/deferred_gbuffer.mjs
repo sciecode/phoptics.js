@@ -25,12 +25,11 @@ struct Attributes {
 @group(3) @binding(0) var<storage, read> attributes: array<u32>;
 
 fn dec_oct16(data : u32) -> vec3f {
-  let v = unpack4x8unorm(data).xy * 2 - 1;
-  var nor = vec3f(v, 1 - abs(v.x) - abs(v.y));
-  let t = max(-nor.z, 0);
-  nor.x += select(t, -t, nor.x > 0);
-  nor.y += select(t, -t, nor.y > 0);
-  return normalize(nor);
+  var v = vec2f(vec2u(data, data >> 8) & vec2u(255)) / 127.5 - 1;
+  let z = 1 - abs(v.x) - abs(v.y);
+  let t = vec2f(saturate(-z));
+  v += select(t, -t, v > vec2f());
+  return normalize(vec3f(v, z));
 }
 
 fn read_uniform(inst : u32) -> mat3x4f {
