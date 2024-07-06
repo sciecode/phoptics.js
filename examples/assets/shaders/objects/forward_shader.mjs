@@ -102,14 +102,12 @@ fn point_light(frag : ptr<function, RenderInfo>, l_pos : vec3f, l_color : vec3f,
   (*frag).Ld_dif += Ep * Fd_Lambert() * cosNL;
 }
 
-const R3_3 = vec3f(.333333333333333);
+const R3_3 = vec3f(1./3.);
 fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
-  let black = exp2(1 - ev2);
-
   // remap luminance to (L-black) / (nits * black)
   let r_nits = 1 / nits;
-  let r_nb = (1 / black) * r_nits;  // should force rcp once available
-  let base = fma(L, vec3f(r_nb), -vec3f(r_nits));
+  let r_nb = exp2(ev2 - 1) * r_nits;
+  let base = fma(L, vec3f(r_nb), vec3f(-r_nits));
 
   // distribute saturated luminance between channels
   let sat = saturate(fma(base, R3_3, -R3_3));

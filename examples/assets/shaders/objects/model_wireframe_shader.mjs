@@ -41,6 +41,17 @@ fn read_attribute(vert : u32) -> Attributes {
   return attrib;
 }
 
+const R3_3 = vec3f(1./3.);
+fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
+  // remap luminance to (L-black) / (nits * black)
+  let r_nits = 1 / nits;
+  let r_nb = exp2(ev2 - 1) * r_nits;
+  let base = fma(L, vec3f(r_nb), vec3f(-r_nits));
+
+  // distribute saturated luminance between channels
+  let sat = saturate(fma(base, R3_3, -R3_3));
+  return base + (sat.x + sat.y + sat.z);
+}
 
 @vertex fn vs(@builtin(vertex_index) vert : u32) -> FragInput {
   var output : FragInput;
