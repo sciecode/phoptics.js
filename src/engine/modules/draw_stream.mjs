@@ -35,8 +35,9 @@ export class DrawStream {
   }
 
   set_dynamic(info) {
-    this.upload_data(DrawStreamBits.bind_dynamic, DrawStreamFlags.bind_dynamic, info.group);
-    this.upload_data(DrawStreamBits.dynamic_offset, DrawStreamFlags.dynamic_offset, info.offset);
+    this.upload_data(DrawStreamBits.bind_dynamic, DrawStreamFlags.bind_dynamic, info.group || 0);
+    if (info.group)
+      this.upload_data(DrawStreamBits.dynamic_offset, DrawStreamFlags.dynamic_offset, info.offset);
   }
 
   upload_data(bit, flag, data) {

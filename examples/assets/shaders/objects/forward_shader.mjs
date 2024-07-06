@@ -29,8 +29,8 @@ struct Attributes {
 }
 
 @group(0) @binding(0) var<storage, read> globals: Globals;
-@group(2) @binding(0) var<storage, read> dynamic: array<vec4f>;
-@group(3) @binding(0) var<storage, read> attributes: array<u32>;
+@group(2) @binding(0) var<storage, read> attributes: array<u32>;
+@group(3) @binding(0) var<storage, read> uniforms: Uniforms;
 
 fn dec_oct16(data : u32) -> vec3f {
   var v = vec2f(vec2u(data, data >> 8) & vec2u(255)) / 127.5 - 1;
@@ -38,15 +38,6 @@ fn dec_oct16(data : u32) -> vec3f {
   let t = vec2f(saturate(-z));
   v += select(t, -t, v > vec2f());
   return normalize(vec3f(v, z));
-}
-
-fn read_uniform(inst : u32) -> Uniforms {
-  var uniform : Uniforms;
-
-  var p = inst >> 2;
-  uniform.world_matrix = mat3x4f(dynamic[p], dynamic[p+1], dynamic[p+2]);
-  uniform.color = dynamic[p+3];
-  return uniform;
 }
 
 fn read_attribute(vert : u32) -> Attributes {
@@ -58,15 +49,12 @@ fn read_attribute(vert : u32) -> Attributes {
   return attrib;
 }
 
-@vertex fn vs(@builtin(vertex_index) vert : u32, @builtin(instance_index) inst : u32) -> FragInput {
+@vertex fn vs(@builtin(vertex_index) vert : u32) -> FragInput {
   var output : FragInput;
 
-  let uniform = read_uniform(inst);
-  output.color = uniform.color.rgb;
-
   let attrib = read_attribute(vert);
-  output.w_pos = vec4f(attrib.pos, 1) * uniform.world_matrix;
-  output.w_normal = attrib.normal * mat3x3f(uniform.world_matrix[0].xyz, uniform.world_matrix[1].xyz, uniform.world_matrix[2].xyz);
+  output.w_pos = vec4f(attrib.pos, 1) * uniforms.world_matrix;
+  output.w_normal = attrib.normal * mat3x3f(uniforms.world_matrix[0].xyz, uniforms.world_matrix[1].xyz, uniforms.world_matrix[2].xyz);
   output.position = vec4f(vec4f(output.w_pos, 1) * globals.view_matrix, 1) * globals.projection_matrix;
 
   return output;
@@ -139,7 +127,7 @@ fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
     800.                  // intensity
   );
 
-  let albedo = in.color.rgb;
+  let albedo = uniforms.color.rgb; 
   let L = albedo * frag.Ld_dif;
 
   let Ln = phoptics_tonemap(L, globals.exposure, globals.nits);

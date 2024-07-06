@@ -1,6 +1,7 @@
 import { GPUResource } from "../../backend/constants.mjs";
 
 const MAX_SIZE = 0x800_0000; // 128MB
+const aligned = (x) => (x + 255) & ~255;
 
 export class DynamicManager {
   constructor(backend, cache) {
@@ -15,7 +16,7 @@ export class DynamicManager {
       entries: [{
         binding: 0,
         visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-        buffer: { type: "read-only-storage" }
+        buffer: { hasDynamicOffset: true, type: "read-only-storage" }
       }]
     });
 
@@ -23,12 +24,12 @@ export class DynamicManager {
 
     this.group = this.backend.resources.create_bind_group({
       layout: layout_cache.layout,
+      dynamic_entries: 1,
       entries: [{
         binding: 0,
         type: GPUResource.BUFFER,
         resource: this.buffer,
-        offset: 0,
-        size: MAX_SIZE,
+        size: 1024, // TODO: temporary fix with unique groups
       }]
     });
 
@@ -43,7 +44,7 @@ export class DynamicManager {
     };
 
     this.data.set(mesh.dynamic.data, this.offset);
-    this.offset += mesh.dynamic.data.byteLength;
+    this.offset += aligned(mesh.dynamic.data.byteLength);
 
     return ret;
   }

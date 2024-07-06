@@ -83,7 +83,7 @@ export class MaterialManager {
     } else {
       const layout = this.get_pipeline_layout([
         info.state.global_layout, info.state.material_layout,
-        info.state.dynamic_layout, info.state.geometry_layout
+        info.state.geometry_layout, info.state.dynamic_layout,
       ]);
       const pipeline = this.backend.resources.create_pipeline({
         shader: shader_bid,

@@ -19,10 +19,6 @@ struct Globals {
   exposure : f32,
 }
 
-struct Uniforms {
-  world_matrix: mat3x4f,
-}
-
 struct Attributes {
   pos : vec3f,
   normal : vec3f,
@@ -33,16 +29,8 @@ struct Attributes {
 @group(0) @binding(1) var gsamp: sampler;
 @group(0) @binding(2) var lut: texture_2d<f32>;
 @group(0) @binding(3) var cubemap: texture_cube<f32>;
-@group(2) @binding(0) var<storage, read> dynamic: array<vec4f>;
-@group(3) @binding(0) var<storage, read> attributes: array<u32>;
-
-fn read_uniform(inst : u32) -> Uniforms {
-  var uniform : Uniforms;
-
-  var p = inst >> 2;
-  uniform.world_matrix = mat3x4f(dynamic[p], dynamic[p+1], dynamic[p+2]);
-  return uniform;
-}
+@group(2) @binding(0) var<storage, read> attributes: array<u32>;
+@group(3) @binding(0) var<storage, read> world_matrix: mat3x4f;
 
 fn read_attribute(vert : u32) -> Attributes {
   var attrib : Attributes;
@@ -71,12 +59,11 @@ fn normal_rg(v : vec2f) -> vec3f {
   var output : FragInput;
 
   let attrib = read_attribute(vert);
-  let uniform = read_uniform(inst);
 
-  var w_pos = vec4f(attrib.pos, 1) * uniform.world_matrix;
+  var w_pos = vec4f(attrib.pos, 1) * world_matrix;
   var c_pos = vec4f(vec4f(w_pos, 1) * globals.view_matrix, 1) * globals.projection_matrix;
 
-  var normal_matrix = mat3x3f(uniform.world_matrix[0].xyz, uniform.world_matrix[1].xyz, uniform.world_matrix[2].xyz);
+  var normal_matrix = mat3x3f(world_matrix[0].xyz, world_matrix[1].xyz, world_matrix[2].xyz);
 
   output.position = c_pos;
   output.w_pos = w_pos;

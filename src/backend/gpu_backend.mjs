@@ -72,7 +72,7 @@ export class GPUBackend {
       stream: draw_stream.stream,
       pass: pass,
       draw: {
-        dynamic_group: null,
+        bind_dynamic: null,
         dynamic_offset: [],
         empty: [],
         draw_count: 0,
@@ -118,18 +118,24 @@ export class GPUBackend {
       pass.setBindGroup(1, group);
     }
 
-    // dynamic bind
-    if (metadata & DrawStreamFlags.bind_dynamic) {
-      draw_packet.draw.dynamic_group = stream[draw_packet.offset++];
-      const bind_group = this.resources.get_bind_group(draw_packet.draw.dynamic_group);
-      pass.setBindGroup(2, bind_group.group);
-    }
-
     // attributes bind
     if (metadata & DrawStreamFlags.bind_attributes) {
       const group_handle = stream[draw_packet.offset++];
       const group = this.resources.get_bind_group(group_handle).group;
-      pass.setBindGroup(3, group);
+      pass.setBindGroup(2, group);
+    }
+
+    // dynamic bind
+    if (metadata & (DrawStreamFlags.bind_dynamic | DrawStreamFlags.dynamic_offset)) {
+      let group_handle = draw_packet.draw.bind_dynamic = metadata & DrawStreamFlags.bind_dynamic ?
+        stream[draw_packet.offset++] : draw_packet.draw.bind_dynamic;
+      const bind_group = this.resources.get_bind_group(group_handle);
+      const group = bind_group.group;
+
+      if (metadata & (DrawStreamFlags.dynamic_offset))
+        draw_packet.draw.dynamic_offset[0] = stream[draw_packet.offset++];
+
+      pass.setBindGroup(3, group, bind_group.dynamic_entries ? draw_packet.draw.dynamic_offset : draw_packet.draw.empty);
     }
 
     // index buffer
@@ -170,13 +176,6 @@ export class GPUBackend {
     // instance offset
     if (metadata & DrawStreamFlags.instance_offset) {
       draw_packet.draw.instance_offset = stream[draw_packet.offset++];
-    }
-
-    // dynamic offset
-    if (metadata & DrawStreamFlags.dynamic_offset) {
-      const offset = stream[draw_packet.offset++];
-      if (draw_packet.draw.dynamic_group)
-        draw_packet.draw.instance_offset = offset / 4;
     }
 
     const info = draw_packet.draw;

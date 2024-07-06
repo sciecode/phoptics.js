@@ -21,8 +21,8 @@ struct Attributes {
 }
 
 @group(0) @binding(0) var<storage, read> globals: Globals;
-@group(2) @binding(0) var<storage, read> dynamic: array<vec4f>;
-@group(3) @binding(0) var<storage, read> attributes: array<u32>;
+@group(2) @binding(0) var<storage, read> attributes: array<u32>;
+@group(3) @binding(0) var<storage, read> world_matrix: mat3x4f;
 
 fn dec_oct16(data : u32) -> vec3f {
   var v = vec2f(vec2u(data, data >> 8) & vec2u(255)) / 127.5 - 1;
@@ -30,14 +30,6 @@ fn dec_oct16(data : u32) -> vec3f {
   let t = vec2f(saturate(-z));
   v += select(t, -t, v > vec2f());
   return normalize(vec3f(v, z));
-}
-
-fn read_uniform(inst : u32) -> mat3x4f {
-  var uniform : mat3x4f;
-
-  var p = inst >> 2;
-  uniform = mat3x4f(dynamic[p], dynamic[p+1], dynamic[p+2]);
-  return uniform;
 }
 
 fn read_attribute(vert : u32) -> Attributes {
@@ -54,7 +46,7 @@ fn read_attribute(vert : u32) -> Attributes {
 
   let attrib = read_attribute(vert);
 
-  var w_pos = vec4f(attrib.pos, 1) * read_uniform(inst);
+  var w_pos = vec4f(attrib.pos, 1) * world_matrix;
   var c_pos = vec4f(vec4f(w_pos, 1) * globals.view_matrix, 1) * globals.projection_matrix;
 
   output.position = c_pos;

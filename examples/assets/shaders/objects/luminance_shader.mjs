@@ -17,25 +17,13 @@ struct Globals {
   scl : f32,
 }
 
-struct Uniforms {
-  world_matrix: mat3x4f,
-}
-
 struct Attributes {
   pos : vec3f,
 }
 
 @group(0) @binding(0) var<storage, read> globals: Globals;
-@group(2) @binding(0) var<storage, read> dynamic: array<vec4f>;
-@group(3) @binding(0) var<storage, read> attributes: array<f32>;
-
-fn read_uniform(inst : u32) -> Uniforms {
-  var uniform : Uniforms;
-
-  var p = inst >> 2;
-  uniform.world_matrix = mat3x4f(dynamic[p], dynamic[p+1], dynamic[p+2]);
-  return uniform;
-}
+@group(2) @binding(0) var<storage, read> attributes: array<f32>;
+@group(3) @binding(0) var<storage, read> world_matrix: mat3x4f;
 
 fn read_attributes(vert : u32) -> Attributes {
   var attrib : Attributes;
@@ -49,7 +37,7 @@ fn read_attributes(vert : u32) -> Attributes {
   var output : FragInput;
 
   var attrib = read_attributes(vert);
-  var w_pos = vec4f(attrib.pos, 1) * read_uniform(inst).world_matrix;
+  var w_pos = vec4f(attrib.pos, 1) * world_matrix;
   var c_pos = vec4f(vec4f(w_pos, 1) * globals.view_matrix, 1) * globals.projection_matrix;
 
   output.position = c_pos;
