@@ -45,8 +45,8 @@ const R3_3 = vec3f(1./3.);
 fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
   // remap luminance to (L-black) / (nits * black)
   let r_nits = 1 / nits;
-  let r_nb = exp2(ev2 - 1) * r_nits;
-  let base = fma(L, vec3f(r_nb), vec3f(-r_nits));
+  let r_nb = .5 * exp2(ev2) * r_nits; // can pre-calculate reciprocals on CPU
+  let base = fma(L, vec3f(r_nb), -vec3f(r_nits));
 
   // distribute saturated luminance between channels
   let sat = saturate(fma(base, R3_3, -R3_3));
@@ -63,5 +63,5 @@ fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
 }
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
-  return vec4f(.4, .8, .6, 1);
+  return vec4f(phoptics_tonemap(in.position.xyz, globals.exposure, globals.nits), 1);
 }`;
