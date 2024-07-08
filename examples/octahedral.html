@@ -126,6 +126,7 @@
       render_pass.set_render_target(render_target);
 
       const outset = border / size, scale = size / (size - 2 * border);
+      const enc_offset = - outset * scale, enc_slope = scale;
       const dim = new StructuredBuffer([{ name: "mapping", type: Vec4 }]);
 
       const quad = new Mesh(
@@ -145,7 +146,7 @@
 
       // mips
       for (let m = 0; m < mips; m++) {
-        dim.mapping.set(outset, scale, m);
+        dim.mapping.set(enc_offset, enc_slope, m);
         dim.update();
         render_target.color[0].view = oct_envmap.create_view({
           dimension: "2d",
@@ -225,7 +226,7 @@
       // encode octahedral mipmaps
       const { tex: oct_envmap, info } = await create_octahedral_envmap(engine, pmlm);
       const dim = new StructuredBuffer([{ name: "mapping", type: Vec4 }]);
-      dim.mapping.set(info.outset, info.scale, .8);
+      dim.mapping.set(info.outset + .5 / info.scale, .5 / info.scale, .23);
 
       const skybox = new Mesh(
         new SkyboxGeometry(),
