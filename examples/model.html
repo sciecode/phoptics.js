@@ -95,7 +95,8 @@
       orbit.target.set(0, 0, 0);
       orbit.position.set(0, 0, 2);
       orbit.update();
-      camera.luma.set(250, 1);
+      const exposure = calc_tonemap(1, 250);
+      camera.luma.set(exposure.r_nits, exposure.r_nb);
       camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, .1, 100);
 
       const material = new Material({
@@ -144,6 +145,12 @@
 
       animate();
     })();
+
+    const calc_tonemap = (ev2, nits) => {
+      let r_nits = 1 / nits;
+      let r_nb = .5 * (2 ** ev2) * r_nits;
+      return { r_nits, r_nb };
+    }
 
     const auto_resize = () => {
       const dpr = window.devicePixelRatio;

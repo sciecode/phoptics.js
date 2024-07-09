@@ -257,7 +257,7 @@
         { name: "projection", type: Mat4x4 },
         { name: "view", type: Mat3x4 },
         { name: "position", type: Vec4 },
-        { name: "info", type: Vec4 },
+        { name: "luma", type: Vec4 },
       ]);
 
       render_pass = new RenderPass({
@@ -299,7 +299,8 @@
       orbit.position.set(0, 0, 2);
       orbit.zoom_limit.x = 1;
       orbit.update();
-      camera.info.set(250, 1);
+      const exposure = calc_tonemap(1, 250);
+      camera.luma.set(exposure.r_nits, exposure.r_nb);
       camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, .1, 99);
 
       const transform_layout = [{ name: "world", type: Mat3x4 }];
@@ -374,6 +375,12 @@
 
       requestAnimationFrame(animate);
     })();
+
+    const calc_tonemap = (ev2, nits) => {
+      let r_nits = 1 / nits;
+      let r_nb = .5 * (2 ** ev2) * r_nits;
+      return { r_nits, r_nb };
+    }
 
     const auto_resize = () => {
       const dpr = window.devicePixelRatio;

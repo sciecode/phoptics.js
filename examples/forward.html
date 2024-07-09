@@ -92,7 +92,8 @@
       orbit.target.set(0, 1, 0);
       orbit.position.set(0, 2, 4);
       orbit.update();
-      camera.luma.set(250, 1);
+      const exposure = calc_tonemap(1, 250);
+      camera.luma.set(exposure.r_nits, exposure.r_nb);
       camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 300);
 
       const transform_layout = [
@@ -126,6 +127,12 @@
       animate();
     })();
 
+    const calc_tonemap = (ev2, nits) => {
+      let r_nits = 1 / nits;
+      let r_nb = .5 * (2 ** ev2) * r_nits;
+      return { r_nits, r_nb };
+    }
+
     const auto_resize = () => {
       const dpr = window.devicePixelRatio;
       const newW = (canvas_texture.canvas.clientWidth * dpr) | 0;
@@ -148,7 +155,7 @@
 
       camera.position.copy(orbit.position);
       camera.view.copy(orbit.view);
-      camera.luma.y = Math.sin(nr * 4) + 1.;
+      camera.luma.y = calc_tonemap(Math.sin(nr * 4) + 1., 250).r_nb;
       camera.update();
 
       {

@@ -56,10 +56,8 @@ fn read_attribute(vert : u32) -> Attributes {
 @group(1) @binding(1) var cubemap: texture_cube<f32>;
 
 const R3_3 = vec3f(1./3.);
-fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
+fn phoptics_tonemap(L : vec3f, r_nb: f32, r_nits : f32) -> vec3f {
   // remap luminance to (L-black) / (nits * black)
-  let r_nits = 1 / nits;
-  let r_nb = .5 * exp2(ev2) * r_nits; // can pre-calculate reciprocals on CPU
   let base = fma(L, vec3f(r_nb), -vec3f(r_nits));
 
   // distribute saturated luminance between channels
@@ -70,7 +68,7 @@ fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
   var dir = in.dir;
   dir.z *= -1;
-  var L = pow(textureSample(cubemap, samp, dir).rgb, vec3f(2.2)) * globals.nits; // nits boost SDR cubemap
+  var L = pow(textureSample(cubemap, samp, dir).rgb, vec3f(2.2)) * 250; // nits boost SDR cubemap
   let Ln = phoptics_tonemap(L, globals.exposure, globals.nits);
   let output = pow(Ln, vec3f(1./2.2));
   return vec4f(output, 1);

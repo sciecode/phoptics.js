@@ -12,9 +12,8 @@ struct Globals {
   view_matrix : mat3x4f,
   camera_pos : vec3f,
   null0 : f32, // unused
-  nits : f32,
-  exposure : f32,
-  scl : f32,
+  r_nits : f32,
+  r_nb : f32,
 }
 
 struct Attributes {
@@ -58,10 +57,8 @@ fn read_attributes(vert : u32) -> Attributes {
 }
 
 const R3_3 = vec3f(1./3.);
-fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
+fn phoptics_tonemap(L : vec3f, r_nb: f32, r_nits : f32) -> vec3f {
   // remap luminance to (L-black) / (nits * black)
-  let r_nits = 1 / nits;
-  let r_nb = .5 * exp2(ev2) * r_nits; // can pre-calculate reciprocals on CPU
   let base = fma(L, vec3f(r_nb), -vec3f(r_nits));
 
   // distribute saturated luminance between channels
@@ -74,7 +71,7 @@ fn phoptics_tonemap(L : vec3f, ev2: f32, nits : f32) -> vec3f {
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
   var L = textureSample(luminance, samp, in.uv).rgb;
-  let Ln = phoptics_tonemap(L, globals.exposure, globals.nits);
+  let Ln = phoptics_tonemap(L, globals.r_nb, globals.r_nits);
   let output = pow(Ln, vec3f(1./2.2));
 
   return vec4f(output, 1.);
