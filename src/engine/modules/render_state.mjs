@@ -1,9 +1,10 @@
 import Keys from "./keys.mjs";
+import { DynamicManager } from "./dynamic_manager.mjs";
 
 export class RenderState {
-  constructor(cache, dynamic) {
+  constructor(cache, backend) {
     this.cache = cache;
-    this.dynamic = dynamic;
+    this.dynamic = new DynamicManager(backend, cache);
 
     this.state = {
       formats: null,
@@ -32,7 +33,7 @@ export class RenderState {
   set_layouts(mesh) {
     this.state.material_layout = this.cache.query_material_layout(mesh.material);
     this.state.geometry_layout = mesh.geometry.get_layout();
-    this.state.dynamic_layout = mesh.dynamic ? this.dynamic.layout : undefined;
+    this.state.dynamic_layout = mesh.dynamic ? this.dynamic.layout_id : undefined;
   }
 
   set_renderlist(list) {
@@ -47,8 +48,6 @@ export class RenderState {
     for (let entry of list)
       this.cache.get_material_binding(entry.mesh.material);
     this.cache.buffer_manager.dispatch_uniforms();
-
-    // TODO: can we allocate dynamic buffer in advance?
 
     for (let entry of list) {
       const mesh = entry.mesh;
@@ -65,6 +64,10 @@ export class RenderState {
     }
 
     Keys.sort(list);
+
+    for (let entry of list)
+      if (entry.mesh.dynamic) this.dynamic.allocate(entry.mesh);
+    this.dynamic.commit();
   }
 
   preload(pass, mesh) {

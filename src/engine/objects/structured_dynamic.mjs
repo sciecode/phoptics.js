@@ -1,13 +1,16 @@
 
 import { ResourceType } from "../constants.mjs";
 
+const aligned = (x) => (x + 255) & ~255;
 export class StructuredDynamic {
+  #info = { group: undefined, offset: undefined };
   constructor(options) {
     this.type = ResourceType.StructuredDynamic;
 
     const arr = [];
     const buffer = new ArrayBuffer(parse_struct(this, arr, options));
     this.data = new Uint8Array(buffer);
+    this.blocks = aligned(this.data.length) >> 8; 
 
     let current_offset = 0;
     for (let entry of arr) {
@@ -15,6 +18,8 @@ export class StructuredDynamic {
       current_offset += entry.size;
     }
   }
+  set_cache(group, offset) { this.#info.group = group; this.#info.offset = offset; }
+  get_info() { return this.#info; }
 }
 
 const parse_struct = (parent, arr, desc) => {

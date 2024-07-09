@@ -1,7 +1,6 @@
 import { GPUResource } from "../../backend/constants.mjs";
 
 const MAX_SIZE = 0x800_0000; // 128MB
-const aligned = (x) => (x + 255) & ~255;
 
 export class DynamicManager {
   constructor(backend, cache) {
@@ -20,38 +19,53 @@ export class DynamicManager {
       }]
     });
 
-    this.layout = layout_cache.id;
+    this.layout_id = layout_cache.id;
+    this.layout = layout_cache.layout;
 
-    this.group = this.backend.resources.create_bind_group({
-      layout: layout_cache.layout,
-      dynamic_entries: 1,
-      entries: [{
-        binding: 0,
-        type: GPUResource.BUFFER,
-        resource: this.buffer,
-        size: 1024, // TODO: temporary fix with unique groups
-      }]
-    });
+    this.groups = [];
 
     this.offset = 0;
     this.data = new Uint8Array(MAX_SIZE);
   }
 
   allocate(mesh) {
+    const dyn = mesh.dynamic, group_info = this.get_group_info(dyn.blocks);
     const ret = {
-      group: this.group,
+      group: group_info.group,
       offset: this.offset,
     };
 
-    this.data.set(mesh.dynamic.data, this.offset);
-    this.offset += aligned(mesh.dynamic.data.byteLength);
-
+    this.data.set(dyn.data, this.offset);
+    dyn.set_cache(group_info.group, this.offset);
+    
+    this.offset += group_info.bytes;
     return ret;
   }
 
-  reset() { this.offset = 0; }
+  get_group_info(blocks) {
+    if (!this.groups[blocks]) {
+      const bytes = blocks << 8;
+      this.groups[blocks] = {
+        bytes,
+        group: this.backend.resources.create_bind_group({
+          layout: this.layout,
+          dynamic_entries: 1,
+          entries: [{
+            binding: 0,
+            type: GPUResource.BUFFER,
+            resource: this.buffer,
+            size: bytes
+          }]
+        }),
+      }
+    }
+
+    return this.groups[blocks];
+  }
+
   commit() {
     if (this.offset)
       this.backend.write_buffer(this.buffer, 0, this.data, 0, this.offset);
+    this.offset = 0;
   }
 }

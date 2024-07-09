@@ -3,7 +3,6 @@ import { GPUBackend } from "../backend/gpu_backend.mjs";
 import { DrawStream } from "./modules/draw_stream.mjs";
 import { RenderState } from "./modules/render_state.mjs";
 import { RenderCache } from "./modules/render_cache.mjs";
-import { DynamicManager } from "./modules/dynamic_manager.mjs";
 import { Format } from "../common/constants.mjs";
 import Keys from "./modules/keys.mjs";
 
@@ -16,14 +15,12 @@ export class Engine {
       this.features[feat] = true;
 
     this.cache = new RenderCache(this.backend);
-    this.dynamic = new DynamicManager(this.backend, this.cache);
+    this.state = new RenderState(this.cache, this.backend);
 
-    this.state = new RenderState(this.cache, this.dynamic);
     this.draw_stream = new DrawStream();
   }
 
   render(pass, list) {
-    this.dynamic.reset();
     this.draw_stream.clear();
 
     const global_bid = this.state.set_pass(pass);
@@ -44,7 +41,7 @@ export class Engine {
 
       const mesh = entry.mesh, material = mesh.material;
       this.draw_stream.set_material(material.get_binding());
-      this.draw_stream.set_dynamic(mesh.dynamic ? this.dynamic.allocate(mesh) : 0);
+      this.draw_stream.set_dynamic(mesh.dynamic?.get_info() || 0);
 
       const geometry = mesh.geometry;
       this.draw_stream.set_attributes(geometry.get_attributes());
@@ -57,8 +54,6 @@ export class Engine {
       draw_info.instance_offset = geometry.get_instance_offset();
       this.draw_stream.draw(draw_info);
     }
-
-    this.dynamic.commit();
 
     const target = pass.current_target, target_cache = this.cache.get_target(target);
     const descriptor = make_pass_descriptor(target, target_cache);
