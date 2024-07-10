@@ -1,4 +1,6 @@
-export default `
+export default /* wgsl */`
+@import encoding;
+
 struct FragInput {
   @builtin(position) position : vec4f,
   @location(0) dir : vec3f,
@@ -72,22 +74,9 @@ fn phoptics_tonemap(L : vec3f, r_nb: f32, r_nits : f32) -> vec3f {
   return base + (sat.x + sat.y + sat.z);
 }
 
-// input: uv [-1,1]
-fn border_contract(uv : vec2f) -> vec2f { return uv * dim.slope + dim.offset; }
-
-// input: unit normal
-// output: uv [-1,1]
-fn enc_oct_uv(nor : vec3f) -> vec2f {
-  var oct = 1. / (abs(nor.x) + abs(nor.y) + abs(nor.z));
-  let t = vec2f(saturate(-nor.z));
-  let n = (nor.xy + select(-t, t, nor.xy > vec2f())) * oct;
-  return border_contract(vec2f(n.x, -n.y));
-}
-
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
   var L = textureSampleLevel(envmap, samp, enc_oct_uv(in.dir), dim.mip).rgb;
   let Ln = phoptics_tonemap(L, globals.exposure, globals.nits);
   let output = pow(Ln, vec3f(1./2.2));
   return vec4f(output, 1);
-}
-`;
+}`;

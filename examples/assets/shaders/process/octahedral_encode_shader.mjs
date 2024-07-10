@@ -1,4 +1,6 @@
-export default `
+export default /* wgsl */`
+@import encoding;
+
 struct FragInput {
   @builtin(position) position : vec4f,
   @location(0) uv : vec2f,
@@ -12,23 +14,6 @@ struct FragInput {
   output.uv = coord * .5;
   
   return output;
-}
-
-fn dec_oct_uv(uv : vec2f) -> vec3f {
-  var v = oct_border(uv) * 2. - 1.;
-  let z = - 1. + abs(v.x) + abs(v.y);
-  let t = vec2f(saturate(z));
-  v += select(t, -t, v > vec2f());
-  return vec3f(v, z);
-}
-
-// offset = - outset * scale
-// slope = scale
-fn oct_border(qw : vec2f) -> vec2f {
-  let uv = qw * dim.slope + dim.offset;
-  var st = select(uv, vec2f(1. - fract(uv.x), 1. - uv.y), (uv.x < 0.) | (uv.x > 1.));
-  st = select(st, vec2f(1. - st.x, 1. - fract(st.y)), (uv.y < 0.) | (uv.y > 1.));
-  return st;
 }
 
 struct Mapping {

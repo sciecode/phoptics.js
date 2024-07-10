@@ -34,6 +34,8 @@
     import { Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
     import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
     import { SkyboxGeometry } from 'phoptics/utils/objects/skybox.mjs';
+    import { ShaderLib } from 'phoptics/utils/modules/shaders/shader_lib.mjs';
+    import { general_modules } from 'phoptics/utils/modules/shaders/general_modules.mjs';
 
     import skybox_oct_shader from './assets/shaders/objects/skybox_oct_shader.mjs';
     import filtering_shader from './assets/shaders/process/filtering_shader.mjs';
@@ -52,6 +54,7 @@
 
     const dpr = window.devicePixelRatio;
     let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
+    let shader_lib = new ShaderLib(general_modules);
     let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
 
     const generate_pmlm = (engine, cubemap) => {
@@ -132,7 +135,7 @@
       const quad = new Mesh(
         new Geometry({ draw: { count: 3 } }),
         new Material({
-          shader: new Shader({ code: octahedral_encode_shader }),
+          shader: new Shader({ code: shader_lib.generate(octahedral_encode_shader) }),
           bindings: [
             { name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
             { name: "cube", resource: pmlm.create_view({ dimension: "cube" }) },
@@ -232,7 +235,7 @@
       const skybox = new Mesh(
         new SkyboxGeometry(),
         new Material({
-          shader: new Shader({ code: skybox_oct_shader }),
+          shader: new Shader({ code: shader_lib.generate(skybox_oct_shader) }),
           graphics: { depth: { write: false } },
           bindings: [
             { name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
