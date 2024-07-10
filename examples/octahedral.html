@@ -35,7 +35,7 @@
     import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
     import { SkyboxGeometry } from 'phoptics/utils/objects/skybox.mjs';
     import { ShaderLib } from 'phoptics/utils/modules/shaders/shader_lib.mjs';
-    import { general_modules } from 'phoptics/utils/modules/shaders/general_modules.mjs';
+    import { builtin } from 'phoptics/utils/modules/shaders/builtin.mjs';
 
     import skybox_oct_shader from './assets/shaders/objects/skybox_oct_shader.mjs';
     import filtering_shader from './assets/shaders/process/filtering_shader.mjs';
@@ -53,7 +53,7 @@
     const load_bitmap = (url) => fetch(url).then(resp => resp.blob()).then(blob => createImageBitmap(blob));
 
     const dpr = window.devicePixelRatio;
-    let shader_lib = new ShaderLib(general_modules);
+    let shader_lib = new ShaderLib(builtin);
     let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
     let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
 

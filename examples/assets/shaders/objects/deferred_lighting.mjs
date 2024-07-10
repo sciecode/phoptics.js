@@ -1,4 +1,4 @@
-export default `
+export default /* wgsl */`
 const PI = 3.14159265359;
 
 struct FragInput {

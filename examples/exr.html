@@ -35,10 +35,13 @@
     import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
     import { EXRLoader } from 'phoptics/utils/loaders/exr_loader.mjs';
     import { EXRExporter } from 'phoptics/utils/exporters/exr_exporter.mjs';
+    import { ShaderLib } from 'phoptics/utils/modules/shaders/shader_lib.mjs';
+    import { builtin } from 'phoptics/utils/modules/shaders/builtin.mjs';
 
     import luminance_shader from "./assets/shaders/objects/luminance_shader.mjs";
 
     const dpr = window.devicePixelRatio;
+    let shader_lib = new ShaderLib(builtin);
     let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
     let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
 
@@ -92,7 +95,7 @@
       camera.luma.set(exposure.r_nits, exposure.r_nb);
       camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 300);
 
-      const shader = new Shader({ code: luminance_shader });
+      const shader = new Shader({ code: shader_lib.generate(luminance_shader) });
       const transform_layout = [{ name: "world", type: Mat3x4 }];
 
       const geometry = new Geometry({

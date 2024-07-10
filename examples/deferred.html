@@ -28,7 +28,7 @@
         RenderPass, RenderTarget, StructuredBuffer, Format } from 'phoptics';
       import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
       import { ShaderLib } from 'phoptics/utils/modules/shaders/shader_lib.mjs';
-      import { general_modules } from 'phoptics/utils/modules/shaders/general_modules.mjs';
+      import { builtin } from 'phoptics/utils/modules/shaders/builtin.mjs';
       import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
 
       import gbuffer_shader from "./assets/shaders/objects/deferred_gbuffer.mjs";
@@ -36,7 +36,7 @@
 
       const dpr = window.devicePixelRatio;
       let target = new Vec3(), obj_pos = new Vec3();
-      let shader_lib = new ShaderLib(general_modules);
+      let shader_lib = new ShaderLib(builtin);
       let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
       let engine, camera, gbuffer_scene, lighting_scene, mesh;
       let gbuffer_pass, gbuffer_target, render_pass, render_target, canvas_texture;

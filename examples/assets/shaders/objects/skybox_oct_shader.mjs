@@ -1,5 +1,5 @@
 export default /* wgsl */`
-@import encoding;
+@import math, encoding;
 
 struct FragInput {
   @builtin(position) position : vec4f,
@@ -10,8 +10,7 @@ struct Globals {
   projection_matrix : mat4x4f,
   view_matrix : mat3x4f,
   camera_pos : vec3f,
-  null0 : f32, // unused
-  nits : f32,
+  @align(16) nits : f32,
   exposure : f32,
 }
 
@@ -21,16 +20,6 @@ struct Attributes {
 
 @group(0) @binding(0) var<storage, read> globals: Globals;
 @group(2) @binding(0) var<storage, read> attributes: array<f32>;
-
-fn mul34(m : mat3x4f, v : vec3f) -> vec3f {
-  let mt = transpose(m);
-  return v.x * mt[0] + (v.y * mt[1] + (v.z * mt[2] + mt[3]));
-}
-
-fn mul44(m : mat4x4f, v : vec3f) -> vec4f {
-  let mt = transpose(m);
-  return v.x * mt[0] + (v.y * mt[1] + (v.z * mt[2] + mt[3]));
-}
 
 fn read_attribute(vert : u32) -> Attributes {
   var attrib : Attributes;

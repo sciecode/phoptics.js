@@ -36,7 +36,7 @@
     import { SkyboxGeometry } from 'phoptics/utils/objects/skybox.mjs';
     import { KTXLoader } from 'phoptics/utils/loaders/ktx_loader.mjs';
     import { ShaderLib } from 'phoptics/utils/modules/shaders/shader_lib.mjs';
-    import { general_modules } from 'phoptics/utils/modules/shaders/general_modules.mjs';
+    import { builtin } from 'phoptics/utils/modules/shaders/builtin.mjs';
     import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
 
     import mipmap_shader from "./assets/shaders/process/mipmap_shader.mjs";
@@ -46,7 +46,7 @@
     import pbr_shader from "./assets/shaders/objects/pbr_shader.mjs";
 
     const dpr = window.devicePixelRatio;
-    let shader_lib = new ShaderLib(general_modules);
+    let shader_lib = new ShaderLib(builtin);
     let viewport = new Vec2().set(window.innerWidth * dpr | 0, window.innerHeight * dpr | 0);
     let engine, canvas_texture, render_pass, render_target, scene, camera, orbit, globals;
 
@@ -366,7 +366,7 @@
       const skybox = new Mesh(
         new SkyboxGeometry(),
         new Material({
-          shader: new Shader({ code: skybox_shader }),
+          shader: new Shader({ code: shader_lib.generate(skybox_shader) }),
           graphics: { depth: { write: false } },
           bindings: [
             { name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },

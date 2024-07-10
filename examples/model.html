@@ -32,16 +32,19 @@
       RenderPass, RenderTarget, StructuredBuffer, Format
     } from 'phoptics';
     import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
-    import { OBJLoader } from 'phoptics/utils/loaders/obj_loader.mjs';
-    import { optimize_geometry } from 'phoptics/utils/modules/geometry/optimizer.mjs';
-    import { compress, uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
-    import { generate_tangents } from 'phoptics/utils/modules/geometry/tangent.mjs';
     import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
+    import { OBJLoader } from 'phoptics/utils/loaders/obj_loader.mjs';
+    import { ShaderLib } from 'phoptics/utils/modules/shaders/shader_lib.mjs';
+    import { builtin } from 'phoptics/utils/modules/shaders/builtin.mjs';
+    import { optimize_geometry } from 'phoptics/utils/modules/geometry/optimizer.mjs';
+    import { generate_tangents } from 'phoptics/utils/modules/geometry/tangent.mjs';
+    import { compress, uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
 
     import model_shader from './assets/shaders/objects/model_shader.mjs';
     import model_wireframe_shader from './assets/shaders/objects/model_wireframe_shader.mjs';
 
     const dpr = window.devicePixelRatio;
+    let shader_lib = new ShaderLib(builtin);
     let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
     let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
     let mesh, obj_pos = new Vec3(), q = new Quat();
@@ -100,7 +103,7 @@
       camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, .1, 100);
 
       const material = new Material({
-        shader: new Shader({ code: model_shader }),
+        shader: new Shader({ code: shader_lib.generate(model_shader) }),
         dynamic: [{ name: "world", type: Mat3x4 }],
       });
 
@@ -131,7 +134,7 @@
         })]
       });
       const material_wireframe = new Material({
-        shader: new Shader({ code: model_wireframe_shader }),
+        shader: new Shader({ code: shader_lib.generate(model_wireframe_shader) }),
         dynamic: [{ name: "world", type: Mat3x4 }],
         graphics: { primitive: 'line-list' }
       });

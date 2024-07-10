@@ -1,4 +1,4 @@
-export default `
+export default /* wgsl */`
 struct FragInput {
   @builtin(position) position : vec4f,
   @location(0) uv : vec2f,

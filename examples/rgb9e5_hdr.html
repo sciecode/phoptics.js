@@ -33,11 +33,14 @@
     } from 'phoptics';
     import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
     import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
+    import { ShaderLib } from 'phoptics/utils/modules/shaders/shader_lib.mjs';
+    import { builtin } from 'phoptics/utils/modules/shaders/builtin.mjs';
     import { encode_rgb9e5 } from 'phoptics/utils/data/encoder.mjs';
 
     import luminance_shader from "./assets/shaders/objects/luminance_shader.mjs";
 
     const dpr = window.devicePixelRatio;
+    let shader_lib = new ShaderLib(builtin);
     let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
     let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
 
@@ -147,7 +150,7 @@
         ]
       });
 
-      const shader = new Shader({ code: luminance_shader });
+      const shader = new Shader({ code: shader_lib.generate(luminance_shader) });
       const transform_layout = [{ name: "world", type: Mat3x4 }];
 
       const mat0 = new Material({

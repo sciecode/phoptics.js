@@ -34,10 +34,13 @@
     import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
     import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
     import { KTXLoader } from 'phoptics/utils/loaders/ktx_loader.mjs';
+    import { ShaderLib } from 'phoptics/utils/modules/shaders/shader_lib.mjs';
+    import { builtin } from 'phoptics/utils/modules/shaders/builtin.mjs';
 
     import luminance_shader from "./assets/shaders/objects/luminance_shader.mjs";
 
     const dpr = window.devicePixelRatio;
+    let shader_lib = new ShaderLib(builtin);
     let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
     let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
 
@@ -126,7 +129,7 @@
       engine.upload_texture(bc7, textures[0]);
 
       const mat = new Material({
-        shader: new Shader({ code: luminance_shader }),
+        shader: new Shader({ code: shader_lib.generate(luminance_shader) }),
         dynamic: transform_layout,
         bindings: [
           {
