@@ -72,15 +72,15 @@ fn phoptics_tonemap(L : vec3f, r_nb: f32, r_nits : f32) -> vec3f {
   return base + (sat.x + sat.y + sat.z);
 }
 
-// offset = .5 / scale + outset
-// slope = .5 / scale
-fn border_contract(qw : vec2f) -> vec2f { return qw * dim.slope + dim.offset; }
+// input: uv [-1,1]
+fn border_contract(uv : vec2f) -> vec2f { return uv * dim.slope + dim.offset; }
 
+// input: unit normal
+// output: uv [-1,1]
 fn enc_oct_uv(nor : vec3f) -> vec2f {
   var oct = 1. / (abs(nor.x) + abs(nor.y) + abs(nor.z));
-  let t = vec2f(saturate(-nor.z * oct));
-  let n = nor.xy * oct + select(-t, t, nor.xy > vec2f());
-  // outputs WebGPU uv [0,0] top-left corner
+  let t = vec2f(saturate(-nor.z));
+  let n = (nor.xy + select(-t, t, nor.xy > vec2f())) * oct;
   return border_contract(vec2f(n.x, -n.y));
 }
 
