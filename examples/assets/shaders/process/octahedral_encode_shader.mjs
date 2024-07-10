@@ -27,6 +27,7 @@ struct Mapping {
 @group(1) @binding(2) var<storage, read> dim: Mapping;
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
-  var col = pow(textureSampleLevel(cubemap, samp, dec_oct_uv(in.uv), dim.mip).rgb, vec3f(2.2)); // LDR - sRGB
+  let dir = dec_oct_uv(oct_expand(in.uv, dim.slope, dim.offset)) * vec3f(1, 1, -1);
+  var col = pow(textureSampleLevel(cubemap, samp, dir, dim.mip).rgb, vec3f(2.2)); // LDR - sRGB
   return vec4f(col,1);
 }`;

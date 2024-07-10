@@ -32,11 +32,14 @@
       RenderPass, RenderTarget, StructuredBuffer, Format
     } from 'phoptics';
     import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
+    import { ShaderLib } from 'phoptics/utils/modules/shaders/shader_lib.mjs';
+    import { general_modules } from 'phoptics/utils/modules/shaders/general_modules.mjs';
     import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
 
     import instancing_shader from "./assets/shaders/objects/instancing_shader.mjs";
 
     const dpr = window.devicePixelRatio;
+    let shader_lib = new ShaderLib(general_modules);
     let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
     let engine, canvas_texture, render_pass, render_target, scene, camera;
     let target = new Vec3();
@@ -94,7 +97,7 @@
       camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 600);
 
       const material = new Material({
-        shader: new Shader({ code: instancing_shader }),
+        shader: new Shader({ code: shader_lib.generate(instancing_shader) }),
       });
 
       const query = await fetch('./assets/models/walt.phg');

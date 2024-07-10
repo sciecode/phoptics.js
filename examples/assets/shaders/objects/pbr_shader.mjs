@@ -1,7 +1,9 @@
-export default `
+export default /* wgsl */`
 enable f16;
 const PI = 3.14159265359;
 const R_PI = 0.3183098861837907;
+
+@import encoding;
 
 struct FragInput {
   @builtin(position) position : vec4f,
@@ -56,15 +58,7 @@ fn read_attribute(vert : u32) -> Attributes {
   return attrib;
 }
 
-fn dec_oct16(data : u32) -> vec3f {
-  var v = vec2f(vec2u(data, data >> 8) & vec2u(255)) / 127.5 - 1;
-  let z = 1 - abs(v.x) - abs(v.y);
-  let t = vec2f(saturate(-z));
-  v += select(t, -t, v > vec2f());
-  return normalize(vec3f(v, z));
-}
-
-fn normal_rg(v : vec2f) -> vec3f {
+fn normal_rg(v : vec2f) -> vec3f { // TODO: rename & move to encoding
   let z = sqrt(saturate(1 - dot(v,v)));
 	return normalize(vec3f(v, z));
 }

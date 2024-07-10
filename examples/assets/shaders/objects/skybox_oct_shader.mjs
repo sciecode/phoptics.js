@@ -75,7 +75,8 @@ fn phoptics_tonemap(L : vec3f, r_nb: f32, r_nits : f32) -> vec3f {
 }
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
-  var L = textureSampleLevel(envmap, samp, enc_oct_uv(in.dir), dim.mip).rgb;
+  let uv = oct_contract(enc_oct_uv(in.dir), dim.slope, dim.offset);
+  var L = textureSampleLevel(envmap, samp, uv, dim.mip).rgb;
   let Ln = phoptics_tonemap(L, globals.exposure, globals.nits);
   let output = pow(Ln, vec3f(1./2.2));
   return vec4f(output, 1);

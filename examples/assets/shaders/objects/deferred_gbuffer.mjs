@@ -1,6 +1,8 @@
-export default `
+export default /* wgsl*/`
 enable f16;
 const PI = 3.14159265359;
+
+@import encoding;
 
 struct FragInput {
   @builtin(position) position : vec4f,
@@ -23,14 +25,6 @@ struct Attributes {
 @group(0) @binding(0) var<storage, read> globals: Globals;
 @group(2) @binding(0) var<storage, read> attributes: array<u32>;
 @group(3) @binding(0) var<storage, read> world_matrix: mat3x4f;
-
-fn dec_oct16(data : u32) -> vec3f {
-  var v = vec2f(vec2u(data, data >> 8) & vec2u(255)) / 127.5 - 1;
-  let z = 1 - abs(v.x) - abs(v.y);
-  let t = vec2f(saturate(-z));
-  v += select(t, -t, v > vec2f());
-  return normalize(vec3f(v, z));
-}
 
 fn read_attribute(vert : u32) -> Attributes {
   var attrib : Attributes;

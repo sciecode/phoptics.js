@@ -35,6 +35,8 @@
     import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
     import { SkyboxGeometry } from 'phoptics/utils/objects/skybox.mjs';
     import { KTXLoader } from 'phoptics/utils/loaders/ktx_loader.mjs';
+    import { ShaderLib } from 'phoptics/utils/modules/shaders/shader_lib.mjs';
+    import { general_modules } from 'phoptics/utils/modules/shaders/general_modules.mjs';
     import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
 
     import mipmap_shader from "./assets/shaders/process/mipmap_shader.mjs";
@@ -44,6 +46,7 @@
     import pbr_shader from "./assets/shaders/objects/pbr_shader.mjs";
 
     const dpr = window.devicePixelRatio;
+    let shader_lib = new ShaderLib(general_modules);
     let viewport = new Vec2().set(window.innerWidth * dpr | 0, window.innerHeight * dpr | 0);
     let engine, canvas_texture, render_pass, render_target, scene, camera, orbit, globals;
 
@@ -328,7 +331,7 @@
       engine.upload_texture(metallic, m_tex[0]);
 
       const material = new Material({
-        shader: new Shader({ code: pbr_shader }),
+        shader: new Shader({ code: shader_lib.generate(pbr_shader) }),
         dynamic: transform_layout,
         bindings: [
           {

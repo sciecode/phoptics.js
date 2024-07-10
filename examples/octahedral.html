@@ -53,8 +53,8 @@
     const load_bitmap = (url) => fetch(url).then(resp => resp.blob()).then(blob => createImageBitmap(blob));
 
     const dpr = window.devicePixelRatio;
-    let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
     let shader_lib = new ShaderLib(general_modules);
+    let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
     let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
 
     const generate_pmlm = (engine, cubemap) => {

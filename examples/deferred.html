@@ -27,16 +27,19 @@
       import { Engine, Mesh, RenderList, Shader, Sampler, Geometry, Material, Texture, CanvasTexture,
         RenderPass, RenderTarget, StructuredBuffer, Format } from 'phoptics';
       import { Vec3, Vec4, Mat3x4, Mat4x4 } from 'phoptics/math';
+      import { ShaderLib } from 'phoptics/utils/modules/shaders/shader_lib.mjs';
+      import { general_modules } from 'phoptics/utils/modules/shaders/general_modules.mjs';
       import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
 
       import gbuffer_shader from "./assets/shaders/objects/deferred_gbuffer.mjs";
       import lighting_shader from "./assets/shaders/objects/deferred_lighting.mjs";
 
       const dpr = window.devicePixelRatio;
+      let target = new Vec3(), obj_pos = new Vec3();
+      let shader_lib = new ShaderLib(general_modules);
       let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
       let engine, camera, gbuffer_scene, lighting_scene, mesh;
       let gbuffer_pass, gbuffer_target, render_pass, render_target, canvas_texture;
-      let target = new Vec3(), obj_pos = new Vec3();
 
       (async () => {
         engine = new Engine(await Engine.acquire_device());
@@ -104,7 +107,7 @@
         const transform_layout = [{ name: "world", type: Mat3x4 }];
 
         const gbuffer_material = new Material({
-          shader: new Shader({ code: gbuffer_shader }),
+          shader: new Shader({ code: shader_lib.generate(gbuffer_shader) }),
           dynamic: transform_layout,
         });
 

@@ -32,12 +32,15 @@
       RenderPass, RenderTarget, StructuredBuffer, Format
     } from 'phoptics';
     import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
-    import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
     import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
+    import { ShaderLib } from 'phoptics/utils/modules/shaders/shader_lib.mjs';
+    import { general_modules } from 'phoptics/utils/modules/shaders/general_modules.mjs';
+    import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
 
     import forward_shader from "./assets/shaders/objects/forward_shader.mjs";
 
     const dpr = window.devicePixelRatio;
+    let shader_lib = new ShaderLib(general_modules);
     let viewport = { width: window.innerWidth * dpr | 0, height: window.innerHeight * dpr | 0 };
     let engine, canvas_texture, render_pass, render_target, scene, camera, orbit;
     let mesh1, mesh2, mesh3, obj_pos = new Vec3(), q = new Quat();
@@ -101,7 +104,7 @@
         { name: "color", type: Vec4 }
       ];
 
-      const shader_base = new Shader({ code: forward_shader });
+      const shader_base = new Shader({ code: shader_lib.generate(forward_shader) });
 
       const material = new Material({
         shader: shader_base,
