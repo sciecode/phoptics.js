@@ -96,9 +96,7 @@
       camera.view.translate(camera.position).look_at(target).view_inverse();
       camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 600);
 
-      const material = new Material({
-        shader: new Shader({ code: shader_lib.generate(instancing_shader) }),
-      });
+      const material = new Material({ shader: shader_lib.process(instancing_shader) });
 
       const query = await fetch('./assets/models/walt.phg');
       const compressed = new Uint8Array(await query.arrayBuffer());
@@ -127,7 +125,7 @@
       let r_nits = 1 / nits;
       let r_nb = .5 * (2 ** ev2) * r_nits;
       return { r_nits, r_nb };
-    }
+    };
 
     const auto_resize = () => {
       const dpr = window.devicePixelRatio;

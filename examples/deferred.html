@@ -112,7 +112,7 @@
       const transform_layout = [{ name: "world", type: Mat3x4 }];
 
       const gbuffer_material = new Material({
-        shader: new Shader({ code: shader_lib.generate(gbuffer_shader) }),
+        shader: shader_lib.process(gbuffer_shader),
         dynamic: transform_layout,
       });
 
@@ -125,7 +125,7 @@
       gbuffer_scene.add(mesh);
 
       const lighting_material = new Material({
-        shader: new Shader({ code: shader_lib.generate(lighting_shader) }),
+        shader: shader_lib.process(lighting_shader),
       });
 
       const lighting = new Mesh(

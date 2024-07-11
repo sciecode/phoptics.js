@@ -83,7 +83,7 @@
       scene = new RenderList();
       const quad = new Mesh(
         new Geometry({ draw: { count: 3 } }),
-        new Material({ shader: new Shader({ code: shader_lib.generate(filtering_shader) }) })
+        new Material({ shader: shader_lib.process(filtering_shader) })
       );
       scene.add(quad);
 
@@ -135,7 +135,7 @@
       const quad = new Mesh(
         new Geometry({ draw: { count: 3 } }),
         new Material({
-          shader: new Shader({ code: shader_lib.generate(octahedral_encode_shader) }),
+          shader: shader_lib.process(octahedral_encode_shader),
           bindings: [
             { name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
             { name: "cube", resource: pmlm.create_view({ dimension: "cube" }) },
@@ -235,7 +235,7 @@
       const skybox = new Mesh(
         new SkyboxGeometry(),
         new Material({
-          shader: new Shader({ code: shader_lib.generate(skybox_oct_shader) }),
+          shader: shader_lib.process(skybox_oct_shader),
           graphics: { depth: { write: false } },
           bindings: [
             { name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },

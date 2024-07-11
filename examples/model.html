@@ -102,8 +102,13 @@
       camera.luma.set(exposure.r_nits, exposure.r_nb);
       camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, .1, 100);
 
+      shader_lib.register({
+        model: model_shader,
+        wireframe: model_wireframe_shader,
+      });
+
       const material = new Material({
-        shader: new Shader({ code: shader_lib.generate(model_shader) }),
+        shader: shader_lib.get('model'),
         dynamic: [{ name: "world", type: Mat3x4 }],
       });
 
@@ -134,7 +139,7 @@
         })]
       });
       const material_wireframe = new Material({
-        shader: new Shader({ code: shader_lib.generate(model_wireframe_shader) }),
+        shader: shader_lib.get('wireframe'),
         dynamic: [{ name: "world", type: Mat3x4 }],
         graphics: { primitive: 'line-list' }
       });
@@ -153,7 +158,7 @@
       let r_nits = 1 / nits;
       let r_nb = .5 * (2 ** ev2) * r_nits;
       return { r_nits, r_nb };
-    }
+    };
 
     const auto_resize = () => {
       const dpr = window.devicePixelRatio;

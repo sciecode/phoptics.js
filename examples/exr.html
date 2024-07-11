@@ -95,7 +95,7 @@
       camera.luma.set(exposure.r_nits, exposure.r_nb);
       camera.projection.perspective(Math.PI / 3, viewport.width / viewport.height, 1, 300);
 
-      const shader = new Shader({ code: shader_lib.generate(luminance_shader) });
+      const shader = shader_lib.process(luminance_shader);
       const transform_layout = [{ name: "world", type: Mat3x4 }];
 
       const geometry = new Geometry({
@@ -172,7 +172,7 @@
       let r_nits = 1 / nits;
       let r_nb = .5 * (2 ** ev2) * r_nits;
       return { r_nits, r_nb };
-    }
+    };
 
     const auto_resize = () => {
       const dpr = window.devicePixelRatio;
