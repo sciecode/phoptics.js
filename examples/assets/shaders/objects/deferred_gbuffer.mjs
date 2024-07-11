@@ -1,8 +1,6 @@
 export default /* wgsl*/`
 enable f16;
-const PI = 3.14159265359;
-
-@import encoding;
+@import constants, encoding;
 
 struct FragInput {
   @builtin(position) position : vec4f,

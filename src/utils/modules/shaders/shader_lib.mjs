@@ -9,7 +9,7 @@ export class ShaderLib {
       this.modules[name] = modules[name];
   }
   generate(shader) {
-    let pos = shader.indexOf('@import');
+    let import_map = {}, pos = shader.indexOf('@import');
     while (pos > -1) {
       const st = pos;
       pos += 8;
@@ -19,7 +19,10 @@ export class ShaderLib {
         const name = shader.substring(pos, comma).trim();
         const module = this.modules[name];
         if (!module) throw `ShaderLib: module '${name}' not loaded.`;
-        shader = shader.concat(module);
+        if (!import_map[name]) {
+          shader = shader.concat(module);
+          import_map[name] = true;
+        }
         pos = comma + 1;
         comma = shader.indexOf(',', pos);
       }
@@ -28,7 +31,11 @@ export class ShaderLib {
       const name = shader.substring(pos, delim).trim();
       const module = this.modules[name];
       if (!module) throw `ShaderLib: module '${name}' not loaded.`;
-      shader = shader.substring(0, st).concat(shader.substring(delim + 1), module);
+      shader = shader.substring(0, st).concat(shader.substring(delim + 1));
+      if (!import_map[name]) {
+        shader = shader.concat(module);
+        import_map[name] = true;
+      }
       pos = shader.indexOf('@import', delim + 1);
     }
     return shader;

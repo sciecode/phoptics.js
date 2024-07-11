@@ -83,7 +83,7 @@
       scene = new RenderList();
       const quad = new Mesh(
         new Geometry({ draw: { count: 3 } }),
-        new Material({ shader: new Shader({ code: filtering_shader }) })
+        new Material({ shader: new Shader({ code: shader_lib.generate(filtering_shader) }) })
       );
       scene.add(quad);
 
@@ -255,7 +255,7 @@
       let r_nits = 1 / nits;
       let r_nb = .5 * (2 ** ev2) * r_nits;
       return { r_nits, r_nb };
-    }
+    };
 
     const auto_resize = () => {
       const dpr = window.devicePixelRatio;

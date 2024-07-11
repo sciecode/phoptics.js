@@ -1,5 +1,5 @@
 export default /* wgsl */`
-const PI = 3.14159265359;
+@import constants;
 
 struct FragInput {
   @builtin(position) position : vec4f,

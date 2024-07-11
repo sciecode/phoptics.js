@@ -1,5 +1,5 @@
 export default /* wgsl */`
-@import math, encoding;
+@import math, encoding, tonemap;
 
 struct FragInput {
   @builtin(position) position : vec4f,
@@ -52,16 +52,6 @@ struct Mapping {
 @group(1) @binding(0) var samp: sampler;
 @group(1) @binding(1) var envmap: texture_2d<f32>;
 @group(1) @binding(2) var<storage, read> dim : Mapping;
-
-const R3_3 = vec3f(1./3.);
-fn phoptics_tonemap(L : vec3f, r_nb: f32, r_nits : f32) -> vec3f {
-  // remap luminance to (L-black) / (nits * black)
-  let base = fma(L, vec3f(r_nb), -vec3f(r_nits));
-
-  // distribute saturated luminance between channels
-  let sat = saturate(fma(base, R3_3, -R3_3));
-  return base + (sat.x + sat.y + sat.z);
-}
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
   let uv = oct_contract(enc_oct_uv(in.dir), dim.slope, dim.offset);

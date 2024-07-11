@@ -1,6 +1,6 @@
 export default /* wgsl */`
 
-@import math;
+@import math, tonemap;
 
 struct FragInput {
   @builtin(position) position : vec4f,
@@ -46,16 +46,6 @@ fn read_attribute(vert : u32) -> Attributes {
 
 @group(1) @binding(0) var samp: sampler;
 @group(1) @binding(1) var cubemap: texture_cube<f32>;
-
-const R3_3 = vec3f(1./3.);
-fn phoptics_tonemap(L : vec3f, r_nb: f32, r_nits : f32) -> vec3f {
-  // remap luminance to (L-black) / (nits * black)
-  let base = fma(L, vec3f(r_nb), -vec3f(r_nits));
-
-  // distribute saturated luminance between channels
-  let sat = saturate(fma(base, R3_3, -R3_3));
-  return base + (sat.x + sat.y + sat.z);
-}
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
   var dir = in.dir;
