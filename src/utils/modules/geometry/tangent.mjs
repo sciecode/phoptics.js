@@ -69,7 +69,15 @@ class Group {
   }
 }
 
+class SubGroup {
+  constructor() {
+    this.count = 0;
+    this.offset = 0;
+  }
+}
+
 const non_zero = (v) => Math.abs(v) > Number.EPSILON;
+const vec_non_zero = (v) => non_zero(v.x) || non_zero(v.y) || non_zero(v.z);
 
 // assumes no degenerate faces
 export const generate_tangents = (geometry, info) => {
@@ -147,16 +155,65 @@ export const generate_tangents = (geometry, info) => {
   const group_count = build_groups(groups, tri_groups, tri_info, indices, triangle_count);
 
   // create tangent space
-  const tspaces = generate_tspaces(tri_info, groups, tri_groups, indices, group_count, indices_count);
+  const t_spaces = new Array(indices_count);
+  for (let i = 0; i < indices_count; i++) t_spaces[i] = new TSpace();
+
+  {
+    let max_faces = 0;
+    for (let i = 0; i < group_count; i++)
+      if (max_faces < groups[i].count) max_faces = groups[i].count;
+
+    const sub_spaces = new Array(max_faces);
+    const uni_group = new Array(max_faces);
+    const members = new Uint32Array(max_faces);
+    for (let i = 0; i < max_faces; i++) {
+      sub_spaces[i] = new TSpace();
+      uni_group[i] = new SubGroup();
+    }
+
+    let sub = new SubGroup(), mem = 0;
+    const n = new Vec3(), tmp = new Vec3();
+    const s = new Vec3(), t = new Vec3();
+    const s2 = new Vec3(), t2 = new Vec3();
+    for (let i = 0; i < group_count; i++) {
+      let group = groups[i];
+      for (let j = 0; j < group.count; j++) {
+        const f = tri_groups[group.offset + j];
+        let index = 2, info = tri_info[f];
+        if (info.groups[0] == i) index = 0;
+        else if (info.groups[1] == i) index = 1;
+
+        let vert = indices[f * 3 + index];
+        get_normal(vert, n);
+
+        s.copy(info.s).sub(tmp.copy(n).mul_f32(n.dot(info.s)));
+        if (vec_non_zero(s)) s.unit();
+
+        t.copy(info.t).sub(tmp.copy(n).mul_f32(n.dot(info.t)));
+        if (vec_non_zero(t)) t.unit();
+
+        members[mem++] = f;
+
+        // TODO: run-through sub-groups
+      }
+    }
+
+    sub.count = mem;
+    sub.offset = 0;
+
+    // TODO: sort
+
+    // TODO: validate uniqueness
+  }
 };
 
 const get_edge = (indices, idx, i0, i1) => {
   const [id0, id1, id2] = indices.slice(idx, idx + 3);
-	if (id0 == i0 || id0 == i1) {
-		if (id1 == i0 || id1 == i1) return [id0, id1, 0];
-		else return [id2, id0, 2];
-	} else return [id1, id2, 1];
-}
+  if (id0 == i0 || id0 == i1) {
+    if (id1 == i0 || id1 == i1) return [id0, id1, 0];
+    else return [id2, id0, 2];
+  } else return [id1, id2, 1];
+};
 
 const build_neighbours = (info, indices, triangle_count) => {
   const edges = new Array(triangle_count * 3);
@@ -170,45 +227,45 @@ const build_neighbours = (info, indices, triangle_count) => {
   }
 
   RadixSort(edges, { get: (a) => a[0] });
-  
+
   for (let i = 0, s = 0; i < edges.length; i++) {
     if (edges[s][0] != edges[i][0]) {
       const st = s;
-      const len = i-s;
+      const len = i - s;
       s = i;
       if (len > 1) RadixSort(edges, { st, len, get: (a) => a[1] });
     }
   }
-  
+
   for (let i = 0, s = 0; i < edges.length; i++) {
     if (edges[s][0] != edges[i][0] || edges[s][1] != edges[i][1]) {
       const st = s;
-      const len = i-s;
+      const len = i - s;
       s = i;
       if (len > 1) RadixSort(edges, { st, len, get: (a) => a[2] });
     }
   }
 
   for (let i = 0; i < edges.length; i++) {
-		const [i0, i1, f] = edges[i];
-		let [i0_A, i1_A, eA] = get_edge(indices, f * 3, i0, i1);
+    const [i0, i1, f] = edges[i];
+    let [i0_A, i1_A, eA] = get_edge(indices, f * 3, i0, i1);
 
-		if (info[f].neighbours[eA] == -1) {
-			let j = i + 1, found = false;
-			while (j < edges.length && i0 == edges[j][0] && i1 == edges[j][1] && !found) {
-				let [i0_B, i1_B, eB] = get_edge(indices, t * 3, edges[j][0], edges[j][1]), t = edges[j][2];
-				if (i0_A == i0_B && i1_A == i1_B && info[t].neighbours[eB] == -1) found = true;
-				else ++j;
-			}
+    if (info[f].neighbours[eA] == -1) {
+      let j = i + 1, found = false;
+      while (j < edges.length && i0 == edges[j][0] && i1 == edges[j][1] && !found) {
+        let [i0_B, i1_B, eB] = get_edge(indices, t * 3, edges[j][0], edges[j][1]), t = edges[j][2];
+        if (i0_A == i0_B && i1_A == i1_B && info[t].neighbours[eB] == -1) found = true;
+        else ++j;
+      }
 
-			if (found) {
-				const t = edges[j][2];
-				info[f].neighbours[eA] = t;
-				info[t].neighbours[eB] = f;
-			}
-		}
-	}
-}
+      if (found) {
+        const t = edges[j][2];
+        info[f].neighbours[eA] = t;
+        info[t].neighbours[eB] = f;
+      }
+    }
+  }
+};
 
 const add_tri_group = (group, tri_groups, face) => {
   tri_groups[group.offset + group.count++] = face;
@@ -263,9 +320,3 @@ const build_groups = (groups, tri_groups, info, indices, triangle_count) => {
 
   return group_count;
 };
-
-const generate_tspaces = (info, groups, tri_groups, indices, group_count, indices_count) => {
-  const t_spaces = new Array(indices_count);
-  for (let i = 0; i < indices_count; i++)
-    t_spaces[i] = new TSpace();
-}

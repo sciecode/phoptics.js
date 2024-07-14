@@ -19,10 +19,10 @@ export class ShaderLib {
   process(shader) {
     let import_map = {}, pos = shader.indexOf('@import');
     while (pos > -1) {
-      const st = pos;
-      pos += 8;
+      const st = pos; pos += 8;
       const delim = shader.indexOf(';', pos);
       let comma = shader.indexOf(',', pos);
+
       while (comma + 1 && comma < delim) {
         const name = shader.substring(pos, comma).trim();
         shader = this.#append(name, shader, import_map);
@@ -32,8 +32,8 @@ export class ShaderLib {
 
       if (!(delim + 1)) throw `ShaderLib: invalid @import syntax.`;
       const name = shader.substring(pos, delim).trim();
-      shader = this.#append(name, shader, import_map);
       shader = shader.substring(0, st).concat(shader.substring(delim + 1));
+      shader = this.#append(name, shader, import_map);
       pos = shader.indexOf('@import', delim + 1);
     }
     return new Shader({ code: shader });
