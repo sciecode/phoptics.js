@@ -116,7 +116,6 @@ export const generate_tangents = (geometry, info) => {
 
   // create tangent space
   const t_spaces = build_tspaces(tri_info, indices, groups, tri_groups, group_count, indices_count, getters);
-
 };
 
 const init_info = (indices, triangle_count, getters) => {
@@ -194,12 +193,70 @@ const build_tspaces = (tri_info, indices, groups, tri_groups, group_count, indic
 
       if (!found) {
         uni_group[sub_group_count].count = group.count;
-        uni_group[sub_group_count++].members = members;
+        uni_group[sub_group_count].members = members;
+        eval_tspace(sub_spaces[sub_group_count++], members, group.count, tri_info, indices, group.vert, getters);
         members = new Uint32Array(max_faces);
-        // eval 
       }
     }
   }
+}
+
+const eval_tspace = (st, members, member_count, tri_info, indices, vert, getters) => {
+	let angle_sum = 0;
+	st.s.set(0, 0, 0); st.sm = 0;
+	st.t.set(0, 0, 0); st.tm = 0;
+
+  let n = new Vec3(), vs = new Vec3(), vt = new Vec3();
+  let p0 = new Vec3(), p1 = new Vec3(), p2 = new Vec3();
+  let v1 = new Vec3(), v2 = new Vec3(); 
+	for (let i = 0; i < member_count; i++) {
+		const f = members[i], info = tri_info[f];
+
+		if (!info.any) {
+      let i = 2;
+      const f3 = f * 3;
+      if (indices[f3] == vert) i = 0;
+			else if (indices[f3 + 1]) i = 1;
+
+      getters.normal(vert, n);
+      vs.copy(info.s).sub(p0.copy(n).mul_f32(n.dot(info.s)));
+      if (vec_non_zero(vs)) vs.unit();
+      vt.copy(info.t).sub(p0.copy(n).mul_f32(n.dot(info.t)));
+      if (vec_non_zero(vt)) vt.unit();
+
+			let i1 = indices[f3 + i],
+			  i2 = indices[f3 + (i < 2 ? i + 1 : 0)],
+			  i0 = indices[f3 + (i > 0 ? i - 1 : 2)]
+
+      getters.pos(i0, p0);
+      getters.pos(i1, p1);
+      getters.pos(i2, p2);
+      v1.copy(p0).sub(p1);
+      v2.copy(p2).sub(p1);
+
+      v1.sub(p0.copy(n).mul_f32(n.dot(v1)));
+      if (vec_non_zero(v1)) v1.unit();
+      v2.sub(p0.copy(n).mul_f32(n.dot(v2)));
+      if (vec_non_zero(v2)) v2.unit();
+
+			let cos = v1.dot(v2);
+      cos = cos > 1 ? 1 : (cos < -1 ? -1 : cos);
+			let ang = Math.acos(cos);
+
+			st.s.add(vs.mul_f32(ang));
+			st.t.add(vt.mul_f32(ang));
+			st.sm += ang * info.sm;
+			st.tm += ang * info.tm;
+			angle_sum += ang;
+		}
+	}
+
+	if (vec_non_zero(st.s)) st.s.unit();
+	if (vec_non_zero(st.t)) st.t.unit();
+	if (angle_sum > 0) {
+		st.sm /= angle_sum;
+		st.tm /= angle_sum;
+	}
 }
 
 const compare_sub_group = (cur, other) => {
