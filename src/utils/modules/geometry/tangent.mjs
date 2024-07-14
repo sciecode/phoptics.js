@@ -72,7 +72,7 @@ class Group {
 class SubGroup {
   constructor() {
     this.count = 0;
-    this.offset = 0;
+    this.members = null;
   }
 }
 
@@ -83,67 +83,27 @@ const vec_non_zero = (v) => non_zero(v.x) || non_zero(v.y) || non_zero(v.z);
 export const generate_tangents = (geometry, info) => {
   if (!geometry.index) opt_remap(geometry); // make indexed & remove duplicates
 
-  const get_uv = (idx, v) => {
-    const buffer = geometry.attributes.vertices[info.uv.id];
-    v.from(buffer.data, idx * buffer.stride / buffer.data.BYTES_PER_ELEMENT + (info.uv.offset || 0));
-  };
-
-  const get_pos = (idx, v) => {
-    const buffer = geometry.attributes.vertices[info.position.id];
-    v.from(buffer.data, idx * buffer.stride / buffer.data.BYTES_PER_ELEMENT + (info.position.offset || 0));
-  };
-
-  const get_normal = (idx, v) => {
-    const buffer = geometry.attributes.vertices[info.normal.id];
-    v.from(buffer.data, idx * buffer.stride / buffer.data.BYTES_PER_ELEMENT + (info.normal.offset || 0));
+  const getters = {
+    uv: (idx, v) => {
+      const buffer = geometry.attributes.vertices[info.uv.id];
+      v.from(buffer.data, idx * buffer.stride / buffer.data.BYTES_PER_ELEMENT + (info.uv.offset || 0));
+    },
+    pos: (idx, v) => {
+      const buffer = geometry.attributes.vertices[info.position.id];
+      v.from(buffer.data, idx * buffer.stride / buffer.data.BYTES_PER_ELEMENT + (info.position.offset || 0));
+    },
+    normal: (idx, v) => {
+      const buffer = geometry.attributes.vertices[info.normal.id];
+      v.from(buffer.data, idx * buffer.stride / buffer.data.BYTES_PER_ELEMENT + (info.normal.offset || 0));
+    }
   };
 
   const indices = geometry.index.data;
   const triangle_count = (indices.length / 3 | 0);
   const indices_count = triangle_count * 3;
-  const tri_info = new Array(triangle_count);
-
-  for (let i = 0; i < triangle_count; i++)
-    tri_info[i] = new Info();
 
   // initialize triangle list info
-  {
-    const vs = new Vec3(), vt = new Vec3();
-    const v1 = new Vec3(), v2 = new Vec3(), v3 = new Vec3();
-    const t1 = new Vec2(), t2 = new Vec2(), t3 = new Vec2();
-    for (let i = 0; i < triangle_count; i++) {
-      const i3 = i * 3, info = tri_info[i];
-      const idx1 = indices[i3], idx2 = indices[i3 + 1], idx3 = indices[i3 + 2];
-
-      get_uv(idx1, t1), get_uv(idx2, t2), get_uv(idx3, t3);
-      const t21 = t2.sub(t1), t31 = t3.sub(t1);
-      const area = t21.x * t31.y - t21.y * t31.x;
-      info.preserve = area > 0;
-
-      if (non_zero(area)) {
-        get_pos(idx1, v1), get_pos(idx2, v2), get_pos(idx3, v3);
-        const d1 = v2.sub(v1), d2 = v3.sub(v1);
-
-        const lens = vs.copy(d1).mul_f32(t31.y)
-          .sub(v1.copy(d2).mul_f32(t21.y))
-          .length();
-
-        const lent = vt.copy(d1).mul_f32(-t31.x)
-          .add(v1.copy(d2).mul_f32(t21.x))
-          .length();
-
-        const sign = info.preserve ? -1 : 1; // TODO: validate - should be correct for WebGPU tex coords
-        if (non_zero(lens)) info.s.copy(vs).mul_f32(sign / lens);
-        if (non_zero(lent)) info.t.copy(vt).mul_f32(sign / lent);
-
-        const abs_area = Math.abs(area);
-        info.sm = lens / abs_area;
-        info.tm = lent / abs_area;
-
-        if (non_zero(info.sm) && non_zero(info.tm)) info.any = false;
-      }
-    }
-  }
+  const tri_info = init_info(indices, triangle_count, getters);
 
   // initialize neighbour info
   build_neighbours(tri_info, indices, triangle_count);
@@ -155,57 +115,99 @@ export const generate_tangents = (geometry, info) => {
   const group_count = build_groups(groups, tri_groups, tri_info, indices, triangle_count);
 
   // create tangent space
+  const t_spaces = build_tspaces(tri_info, indices, groups, tri_groups, group_count, indices_count, getters);
+
+};
+
+const init_info = (indices, triangle_count, getters) => {
+  const tri_info = new Array(triangle_count);
+  for (let i = 0; i < triangle_count; i++)
+    tri_info[i] = new Info();
+
+  const vs = new Vec3(), vt = new Vec3();
+  const v1 = new Vec3(), v2 = new Vec3(), v3 = new Vec3();
+  const t1 = new Vec2(), t2 = new Vec2(), t3 = new Vec2();
+  for (let i = 0; i < triangle_count; i++) {
+    const i3 = i * 3, info = tri_info[i];
+    const idx1 = indices[i3], idx2 = indices[i3 + 1], idx3 = indices[i3 + 2];
+
+    getters.uv(idx1, t1), getters.uv(idx2, t2), getters.uv(idx3, t3);
+    const t21 = t2.sub(t1), t31 = t3.sub(t1);
+    const area = t21.x * t31.y - t21.y * t31.x;
+    info.preserve = area > 0;
+
+    if (non_zero(area)) {
+      getters.pos(idx1, v1), getters.pos(idx2, v2), getters.pos(idx3, v3);
+      const d1 = v2.sub(v1), d2 = v3.sub(v1);
+
+      const lens = vs.copy(d1).mul_f32(t31.y)
+        .sub(v1.copy(d2).mul_f32(t21.y))
+        .length();
+
+      const lent = vt.copy(d1).mul_f32(-t31.x)
+        .add(v1.copy(d2).mul_f32(t21.x))
+        .length();
+
+      const sign = info.preserve ? -1 : 1; // TODO: validate - should be correct for WebGPU tex coords
+      if (non_zero(lens)) info.s.copy(vs).mul_f32(sign / lens);
+      if (non_zero(lent)) info.t.copy(vt).mul_f32(sign / lent);
+
+      const abs_area = Math.abs(area);
+      info.sm = lens / abs_area;
+      info.tm = lent / abs_area;
+
+      if (non_zero(info.sm) && non_zero(info.tm)) info.any = false;
+    }
+  }
+
+  return tri_info;
+}
+
+const build_tspaces = (tri_info, indices, groups, tri_groups, group_count, indices_count, getters) => {
   const t_spaces = new Array(indices_count);
   for (let i = 0; i < indices_count; i++) t_spaces[i] = new TSpace();
 
-  {
-    let max_faces = 0;
-    for (let i = 0; i < group_count; i++)
-      if (max_faces < groups[i].count) max_faces = groups[i].count;
+  let max_faces = 0;
+  for (let i = 0; i < group_count; i++)
+    if (max_faces < groups[i].count) max_faces = groups[i].count;
 
-    const sub_spaces = new Array(max_faces);
-    const uni_group = new Array(max_faces);
-    const members = new Uint32Array(max_faces);
-    for (let i = 0; i < max_faces; i++) {
-      sub_spaces[i] = new TSpace();
-      uni_group[i] = new SubGroup();
-    }
+  const sub_spaces = new Array(max_faces);
+  const uni_group = new Array(max_faces);
+  let members = new Uint32Array(max_faces);
+  for (let i = 0; i < max_faces; i++) {
+    sub_spaces[i] = new TSpace();
+    uni_group[i] = new SubGroup();
+  }
 
-    let sub = new SubGroup(), mem = 0;
-    const n = new Vec3(), tmp = new Vec3();
-    const s = new Vec3(), t = new Vec3();
-    const s2 = new Vec3(), t2 = new Vec3();
-    for (let i = 0; i < group_count; i++) {
-      let group = groups[i];
-      for (let j = 0; j < group.count; j++) {
-        const f = tri_groups[group.offset + j];
-        let index = 2, info = tri_info[f];
-        if (info.groups[0] == i) index = 0;
-        else if (info.groups[1] == i) index = 1;
+  const tmp_group = new SubGroup();
+  for (let i = 0; i < group_count; i++) {
+    let group = groups[i], sub_group_count = 0;
+    for (let j = 0; j < group.count; j++) {
+      for (let k = 0; k < group.count; k++) members[k] = tri_groups[group.offset + k];
+      if (group.count > 1) RadixSort(members, { st: 0, len: group.count });
 
-        let vert = indices[f * 3 + index];
-        get_normal(vert, n);
+      let found = false, s = 0;
+      tmp_group.count = group.count;
+      tmp_group.members = members;
+      while (s < sub_group_count && !found)
+        found = compare_sub_group(tmp_group, uni_group[s++]);
 
-        s.copy(info.s).sub(tmp.copy(n).mul_f32(n.dot(info.s)));
-        if (vec_non_zero(s)) s.unit();
-
-        t.copy(info.t).sub(tmp.copy(n).mul_f32(n.dot(info.t)));
-        if (vec_non_zero(t)) t.unit();
-
-        members[mem++] = f;
-
-        // TODO: run-through sub-groups
+      if (!found) {
+        uni_group[sub_group_count].count = group.count;
+        uni_group[sub_group_count++].members = members;
+        members = new Uint32Array(max_faces);
+        // eval 
       }
     }
-
-    sub.count = mem;
-    sub.offset = 0;
-
-    // TODO: sort
-
-    // TODO: validate uniqueness
   }
-};
+}
+
+const compare_sub_group = (cur, other) => {
+	if (cur.count != other.count) return false;
+	for (let i = 0; i < cur.count; i++)
+		if (cur.members[i] != other.members[i]) return false;
+	return true;
+}
 
 const get_edge = (indices, idx, i0, i1) => {
   const [id0, id1, id2] = indices.slice(idx, idx + 3);
