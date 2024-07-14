@@ -39,6 +39,14 @@ export const unweld = (geometry) => {
   geometry.index = undefined;
 };
 
+class TSpace {
+  constructor() {
+    this.s = new Vec3().set(1, 0, 0); this.sm = 1;
+    this.t = new Vec3().set(0, 1, 0); this.tm = 1;
+    this.preserve = false;
+  }
+}
+
 class Info {
   constructor() {
     this.neighbours = [-1, -1, -1];
@@ -139,6 +147,7 @@ export const generate_tangents = (geometry, info) => {
   const group_count = build_groups(groups, tri_groups, tri_info, indices, triangle_count);
 
   // create tangent space
+  const tspaces = generate_tspaces(tri_info, groups, tri_groups, indices, group_count, indices_count);
 };
 
 const get_edge = (indices, idx, i0, i1) => {
@@ -188,7 +197,7 @@ const build_neighbours = (info, indices, triangle_count) => {
 			let j = i + 1, found = false;
 			while (j < edges.length && i0 == edges[j][0] && i1 == edges[j][1] && !found) {
 				let [i0_B, i1_B, eB] = get_edge(indices, t * 3, edges[j][0], edges[j][1]), t = edges[j][2];
-				if (i0_A == i0_B && i1_A == i1_B && info[t].neighbours[eb] == -1) found = true;
+				if (i0_A == i0_B && i1_A == i1_B && info[t].neighbours[eB] == -1) found = true;
 				else ++j;
 			}
 
@@ -254,3 +263,9 @@ const build_groups = (groups, tri_groups, info, indices, triangle_count) => {
 
   return group_count;
 };
+
+const generate_tspaces = (info, groups, tri_groups, indices, group_count, indices_count) => {
+  const t_spaces = new Array(indices_count);
+  for (let i = 0; i < indices_count; i++)
+    t_spaces[i] = new TSpace();
+}
