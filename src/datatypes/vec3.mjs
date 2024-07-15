@@ -94,6 +94,10 @@ export class Vec3 extends Float32Array {
     return this[0] * v[0] + this[1] * v[1] + this[2] * v[2];
   }
 
+  equal(v) {
+    return this[0] == v[0] && this[1] == v[1] && this[2] == v[2];
+  }
+
   cross(v) {
     const m = this, n = v;
     const x = m[0], y = m[1], z = m[2];

@@ -182,14 +182,21 @@ const build_tspaces = (tri_info, indices, groups, tri_groups, group_count, indic
   for (let i = 0; i < group_count; i++) {
     let group = groups[i], sub_group_count = 0;
     for (let j = 0; j < group.count; j++) {
+      const f = tri_groups[group.offset + j], info = tri_info[f];
+      let index = 2;
+      if (info.groups[0] == i) index = 0;
+			else if (info.groups[1] == i) index = 1;
+
       for (let k = 0; k < group.count; k++) members[k] = tri_groups[group.offset + k];
       if (group.count > 1) RadixSort(members, { st: 0, len: group.count });
 
       let found = false, s = 0;
       tmp_group.count = group.count;
       tmp_group.members = members;
-      while (s < sub_group_count && !found)
-        found = compare_sub_group(tmp_group, uni_group[s++]);
+      while (s < sub_group_count && !found) {
+        found = compare_sub_group(tmp_group, uni_group[s]);
+        if (!found) s++;
+      }
 
       if (!found) {
         uni_group[sub_group_count].count = group.count;
@@ -197,8 +204,24 @@ const build_tspaces = (tri_info, indices, groups, tri_groups, group_count, indic
         eval_tspace(sub_spaces[sub_group_count++], members, group.count, tri_info, indices, group.vert, getters);
         members = new Uint32Array(max_faces);
       }
+
+      const tangent = avg_tspace(t_spaces[f * 3 + index], sub_spaces[s]);
+      tangent.preserve = group.preserve;
     }
   }
+}
+
+const avg_tspace = (tan, sub) => {
+  if (tan.sm == sub.sm && tan.tm == sub.tm &&
+     tan.s.equal(sub.s)	&& tan.t.equal(sub.t)) return tan;
+
+  tan.sm = 0.5 * (tan.sm + sub.sm);
+  tan.tm = 0.5 * (tan.tm + sub.tm);
+  tan.s.add(sub.s); tan.t.add(sub.t);
+  if (vec_non_zero(tan.s)) tan.s.unit();
+  if (vec_non_zero(tan.t)) tan.t.unit();
+
+  return tan;
 }
 
 const eval_tspace = (st, members, member_count, tri_info, indices, vert, getters) => {
