@@ -45,6 +45,10 @@ class TSpace {
     this.t = new Vec3().set(0, 1, 0); this.tm = 1;
     this.preserve = false;
   }
+  copy(v) {
+    this.s.copy(v.s); this.sm = v.sm;
+    this.t.copy(v.t); this.tm = v.tm;
+  }
 }
 
 class Info {
@@ -116,6 +120,7 @@ export const generate_tangents = (geometry, info) => {
 
   // create tangent space
   const t_spaces = build_tspaces(tri_info, indices, groups, tri_groups, group_count, indices_count, getters);
+  console.log(t_spaces);
 };
 
 const init_info = (indices, triangle_count, getters) => {
@@ -205,23 +210,13 @@ const build_tspaces = (tri_info, indices, groups, tri_groups, group_count, indic
         members = new Uint32Array(max_faces);
       }
 
-      const tangent = avg_tspace(t_spaces[f * 3 + index], sub_spaces[s]);
+      const tangent = t_spaces[f * 3 + index];
+      tangent.copy(sub_spaces[s]);
       tangent.preserve = group.preserve;
     }
   }
-}
 
-const avg_tspace = (tan, sub) => {
-  if (tan.sm == sub.sm && tan.tm == sub.tm &&
-     tan.s.equal(sub.s)	&& tan.t.equal(sub.t)) return tan;
-
-  tan.sm = 0.5 * (tan.sm + sub.sm);
-  tan.tm = 0.5 * (tan.tm + sub.tm);
-  tan.s.add(sub.s); tan.t.add(sub.t);
-  if (vec_non_zero(tan.s)) tan.s.unit();
-  if (vec_non_zero(tan.t)) tan.t.unit();
-
-  return tan;
+  return t_spaces;
 }
 
 const eval_tspace = (st, members, member_count, tri_info, indices, vert, getters) => {
