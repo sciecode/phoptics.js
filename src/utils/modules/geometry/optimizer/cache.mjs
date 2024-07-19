@@ -23,7 +23,7 @@ const score = (pos, links) => WEIGHTS.cache[1 - pos] + WEIGHTS.live[links < 8 ? 
 
 const opt_cache_group = (geometry, output) => {
   const indices = geometry.index.data;
-  const index_count = indices.length;
+  const index_count = (indices.length / 3 | 0) * 3;
   const triangle_count = index_count / 3;
   const attrib = geometry.attributes.vertices[0];
   const vertex_count = attrib.size / attrib.stride;
@@ -156,7 +156,8 @@ const opt_cache_group = (geometry, output) => {
 
 export const opt_cache = (geometry) => {
   const indices = geometry.index.data;
-  const output = new indices.constructor(indices.length + (indices.length & 1));
+  let count = indices.length + (indices.constructor.BYTES_PER_ELEMENT == 2 ? indices & 1 : 0);
+  const output = new indices.constructor(count);
   opt_cache_group(geometry, output);
   geometry.index = new Index({
     data: output,

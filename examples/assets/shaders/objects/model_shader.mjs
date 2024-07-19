@@ -5,6 +5,7 @@ struct FragInput {
   @builtin(position) position : vec4f,
   @location(0) w_pos : vec3f,
   @location(1) w_normal : vec3f,
+  @location(2) w_tangent : vec4f,
 }
 
 struct Globals {
@@ -18,11 +19,13 @@ struct Globals {
 struct Attributes {
   pos: vec3f,
   normal: vec3f,
+  tang: vec4f,
 }
 
 @group(0) @binding(0) var<storage, read> globals: Globals;
 @group(2) @binding(0) var<storage, read> pos: array<f32>;
 @group(2) @binding(1) var<storage, read> norm: array<f32>;
+@group(2) @binding(3) var<storage, read> tang: array<vec4f>;
 @group(3) @binding(0) var<storage, read> world_matrix: mat3x4f;
 
 fn read_attribute(vert : u32) -> Attributes {
@@ -31,6 +34,7 @@ fn read_attribute(vert : u32) -> Attributes {
   let p = vert * 3;
   attrib.pos = vec3f(pos[p], pos[p+1], pos[p+2]);
   attrib.normal = vec3f(norm[p], norm[p+1], norm[p+2]);
+  attrib.tang = tang[vert >> 2];
   return attrib;
 }
 
@@ -41,6 +45,7 @@ fn read_attribute(vert : u32) -> Attributes {
   output.w_pos = mul34(world_matrix, attrib.pos);
   let normal_matrix = mat3x3f(world_matrix[0].xyz, world_matrix[1].xyz, world_matrix[2].xyz);
   output.w_normal = mul33(normal_matrix, attrib.normal);
+  output.w_tangent = vec4f(mul33(normal_matrix, attrib.tang.xyz), attrib.tang.w);
   output.position = mul44(globals.projection_matrix, mul34(globals.view_matrix, output.w_pos));
 
   return output;

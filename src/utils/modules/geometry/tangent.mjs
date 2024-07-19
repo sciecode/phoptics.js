@@ -24,8 +24,15 @@ export const unweld = (geometry) => {
 
   for (let k = 0; k < buffer_count; k++) {
     const out = mem[k], buffer = buffers[k], stride = buffer.stride;
-    for (let i = 0; i < indices.length; i++)
-      memcpy(out, i * stride, buffer.input, indices[i] * stride, stride);
+    for (let i = 0; i < indices.length; i++) {
+      try {
+        memcpy(out, i * stride, buffer.input, indices[i] * stride, stride);
+      } catch(_) {
+        console.log(i, indices[i], indices.length);
+        console.log(out, i * stride, buffer.input, indices[i] * stride, stride);
+        throw 'f';
+      }
+    }
 
     const attrib = geometry.attributes.vertices[k];
     const type = attrib.data.constructor;
@@ -120,7 +127,23 @@ export const generate_tangents = (geometry, info) => {
 
   // create tangent space
   const t_spaces = build_tspaces(tri_info, indices, groups, tri_groups, group_count, indices_count, getters);
-  console.log(t_spaces);
+
+  // populate
+  const tangents = new Float32Array(indices_count * 4);
+  for (let i = 0; i < indices_count; i++) {
+    const i4 = i * 4, frame = t_spaces[i];
+    frame.s.to(tangents, i4);
+    tangents[i4 + 3] = frame.preserve ? 1 : -1;
+  }
+
+  // finalize
+  unweld(geometry);
+  geometry.attributes.vertices.push(
+    new Vertex({
+      stride: 16,
+      data: tangents
+    })
+  )
 };
 
 const init_info = (indices, triangle_count, getters) => {

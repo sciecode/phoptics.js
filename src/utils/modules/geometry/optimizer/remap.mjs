@@ -27,7 +27,7 @@ class Remapper {
     const bucket_count = calculate_bucket_count(vertex_count);
 
     if (index) {
-      index_count = index.data.length;
+      index_count = (index.data.length / 3 | 0) * 3;
       get_index = i => index.data[i];
     } else {
       index_count = vertex_count;
