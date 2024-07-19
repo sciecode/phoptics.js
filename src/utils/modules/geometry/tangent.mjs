@@ -175,7 +175,7 @@ const init_info = (indices, triangle_count, getters) => {
         .add(v1.copy(d2).mul_f32(t21.x))
         .length();
 
-      const sign = info.preserve ? 1 : -1;
+      const sign = info.preserve ? 1 : -1; // TODO: validate
       if (non_zero(lens)) info.s.copy(vs).mul_f32(sign / lens);
       if (non_zero(lent)) info.t.copy(vt).mul_f32(sign / lent);
 

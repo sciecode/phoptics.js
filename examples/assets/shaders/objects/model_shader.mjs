@@ -6,7 +6,8 @@ struct FragInput {
   @location(0) pos : vec3f,
   @location(1) normal : vec3f,
   @location(2) uv : vec2f,
-  @location(3) tangent : vec4f,
+  @location(3) tangent : vec3f,
+  @location(4) @interpolate(flat) b: f32,
 }
 
 struct Globals {
@@ -46,12 +47,13 @@ fn read_attribute(vert : u32) -> Attributes {
   var output : FragInput;
 
   let attrib = read_attribute(vert);
-  output.pos = mul34(world_matrix, attrib.pos);
   output.uv = attrib.uv;
+  output.pos = mul34(world_matrix, attrib.pos);
+  output.position = mul44(globals.projection_matrix, mul34(globals.view_matrix, output.pos));
   let normal_matrix = mat3x3f(world_matrix[0].xyz, world_matrix[1].xyz, world_matrix[2].xyz);
   output.normal = normalize(mul33(normal_matrix, attrib.normal));
-  output.tangent = vec4f(normalize(mul33(normal_matrix, attrib.tang.xyz)), attrib.tang.w);
-  output.position = mul44(globals.projection_matrix, mul34(globals.view_matrix, output.pos));
+  output.tangent = normalize(mul33(normal_matrix, attrib.tang.xyz));
+  output.b = attrib.tang.w;
 
   return output;
 }
@@ -85,14 +87,38 @@ fn point_light(frag : ptr<function, RenderInfo>, l_pos : vec3f, l_color : vec3f,
 @group(1) @binding(0) var samp: sampler;
 @group(1) @binding(1) var t_normal: texture_2d<f32>;
 
+fn tbn_sh(eye : vec3f, norm : vec3f, uv : vec2f, nT : vec3f) -> vec3f {
+	let q0 = dpdx(eye);
+	let q1 = dpdy(eye);
+	let st0 = dpdx(uv);
+	let st1 = dpdy(uv);
+
+	let q1perp = cross(q1, norm);
+	let q0perp = cross(norm, q0);
+
+	let T = q1perp * st0.x + q0perp * st1.x;
+	let B = q1perp * st0.y + q0perp * st1.y;
+
+	let det = max(dot(T,T), dot(B,B));
+	let scale = select(inverseSqrt(det), 0, det == 0);
+
+	return normalize(mat3x3f(T * scale, B * scale, norm) * nT);
+}
+
+fn tbn(N: vec3f, T: vec3f, S: f32, nT: vec3f) -> vec3f {
+  let B = S * cross(N, T);
+  return normalize(nT.x * T + nT.y * B + nT.z * N);
+}
+
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
-  let tangent = in.tangent.xyz;
-  let bitangent = in.tangent.w * cross(in.normal, tangent);
-  let nF = textureSample(t_normal, samp, in.uv).rgb;
   var frag : RenderInfo;
   frag.pos = in.pos;
+  let nT = textureSample(t_normal, samp, in.uv).rgb * 2. - 1.;
   frag.V = normalize(globals.camera_pos - frag.pos);
-  frag.N = normalize(nF.x * tangent + nF.y * bitangent + nF.z * in.normal);
+  frag.N = tbn_sh(frag.V, in.normal, in.uv, nT);
+  // frag.N = tbn(in.normal, in.tangent, in.b, nT);
+  // return vec4f(nT * .5 + .5, 1);
+  // frag.N = normal;
   frag.cosNV = saturate(dot(frag.V, frag.N)) + 1e-5;
 
   frag.Ld_dif += 4; // ambient
