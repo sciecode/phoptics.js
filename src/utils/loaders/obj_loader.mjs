@@ -75,7 +75,7 @@ export class OBJLoader {
         }
         vertices.push(new Vertex(pos));
       }
-      
+
       if (info.normals.length) {
         const norm = { data: new Float32Array(3 * vert_count), stride: 12 };
         for (let i = 0; i < vert_count; i++) {
@@ -92,9 +92,9 @@ export class OBJLoader {
         const uv = { data: new Float32Array(2 * vert_count), stride: 8 };
         for (let i = 0; i < vert_count; i++) {
           let [ipos, iuv, inorm] = info.indices[i];
-          const i3 = i * 3;
-          uv.data[i3] = info.uvs[iuv][0] % 1;
-          uv.data[i3 + 1] = info.uvs[iuv][1] % 1;
+          const i2 = i * 2;
+          uv.data[i2] = info.uvs[iuv][0] % 1;
+          uv.data[i2 + 1] = info.uvs[iuv][1] % 1;
         }
         vertices.push(new Vertex(uv));
       }

@@ -27,7 +27,7 @@ export const unweld = (geometry) => {
     for (let i = 0; i < indices.length; i++) {
       try {
         memcpy(out, i * stride, buffer.input, indices[i] * stride, stride);
-      } catch(_) {
+      } catch (_) {
         console.log(i, indices[i], indices.length);
         console.log(out, i * stride, buffer.input, indices[i] * stride, stride);
         throw 'f';
@@ -143,7 +143,7 @@ export const generate_tangents = (geometry, info) => {
       stride: 16,
       data: tangents
     })
-  )
+  );
 };
 
 const init_info = (indices, triangle_count, getters) => {
@@ -175,7 +175,7 @@ const init_info = (indices, triangle_count, getters) => {
         .add(v1.copy(d2).mul_f32(t21.x))
         .length();
 
-      const sign = info.preserve ? -1 : 1; // TODO: validate - should be correct for WebGPU tex coords
+      const sign = info.preserve ? 1 : -1;
       if (non_zero(lens)) info.s.copy(vs).mul_f32(sign / lens);
       if (non_zero(lent)) info.t.copy(vt).mul_f32(sign / lent);
 
@@ -188,7 +188,7 @@ const init_info = (indices, triangle_count, getters) => {
   }
 
   return tri_info;
-}
+};
 
 const build_tspaces = (tri_info, indices, groups, tri_groups, group_count, indices_count, getters) => {
   const t_spaces = new Array(indices_count);
@@ -213,7 +213,7 @@ const build_tspaces = (tri_info, indices, groups, tri_groups, group_count, indic
       const f = tri_groups[group.offset + j], info = tri_info[f];
       let index = 2;
       if (info.groups[0] == i) index = 0;
-			else if (info.groups[1] == i) index = 1;
+      else if (info.groups[1] == i) index = 1;
 
       for (let k = 0; k < group.count; k++) members[k] = tri_groups[group.offset + k];
       if (group.count > 1) RadixSort(members, { st: 0, len: group.count });
@@ -240,24 +240,24 @@ const build_tspaces = (tri_info, indices, groups, tri_groups, group_count, indic
   }
 
   return t_spaces;
-}
+};
 
 const eval_tspace = (st, members, member_count, tri_info, indices, vert, getters) => {
-	let angle_sum = 0;
-	st.s.set(0, 0, 0); st.sm = 0;
-	st.t.set(0, 0, 0); st.tm = 0;
+  let angle_sum = 0;
+  st.s.set(0, 0, 0); st.sm = 0;
+  st.t.set(0, 0, 0); st.tm = 0;
 
   let n = new Vec3(), vs = new Vec3(), vt = new Vec3();
   let p0 = new Vec3(), p1 = new Vec3(), p2 = new Vec3();
-  let v1 = new Vec3(), v2 = new Vec3(); 
-	for (let i = 0; i < member_count; i++) {
-		const f = members[i], info = tri_info[f];
+  let v1 = new Vec3(), v2 = new Vec3();
+  for (let i = 0; i < member_count; i++) {
+    const f = members[i], info = tri_info[f];
 
-		if (!info.any) {
+    if (!info.any) {
       let i = 2;
       const f3 = f * 3;
       if (indices[f3] == vert) i = 0;
-			else if (indices[f3 + 1]) i = 1;
+      else if (indices[f3 + 1]) i = 1;
 
       getters.normal(vert, n);
       vs.copy(info.s).sub(p0.copy(n).mul_f32(n.dot(info.s)));
@@ -265,9 +265,9 @@ const eval_tspace = (st, members, member_count, tri_info, indices, vert, getters
       vt.copy(info.t).sub(p0.copy(n).mul_f32(n.dot(info.t)));
       if (vec_non_zero(vt)) vt.unit();
 
-			let i1 = indices[f3 + i],
-			  i2 = indices[f3 + (i < 2 ? i + 1 : 0)],
-			  i0 = indices[f3 + (i > 0 ? i - 1 : 2)]
+      let i1 = indices[f3 + i],
+        i2 = indices[f3 + (i < 2 ? i + 1 : 0)],
+        i0 = indices[f3 + (i > 0 ? i - 1 : 2)];
 
       getters.pos(i0, p0);
       getters.pos(i1, p1);
@@ -280,32 +280,32 @@ const eval_tspace = (st, members, member_count, tri_info, indices, vert, getters
       v2.sub(p0.copy(n).mul_f32(n.dot(v2)));
       if (vec_non_zero(v2)) v2.unit();
 
-			let cos = v1.dot(v2);
+      let cos = v1.dot(v2);
       cos = cos > 1 ? 1 : (cos < -1 ? -1 : cos);
-			let ang = Math.acos(cos);
+      let ang = Math.acos(cos);
 
-			st.s.add(vs.mul_f32(ang));
-			st.t.add(vt.mul_f32(ang));
-			st.sm += ang * info.sm;
-			st.tm += ang * info.tm;
-			angle_sum += ang;
-		}
-	}
+      st.s.add(vs.mul_f32(ang));
+      st.t.add(vt.mul_f32(ang));
+      st.sm += ang * info.sm;
+      st.tm += ang * info.tm;
+      angle_sum += ang;
+    }
+  }
 
-	if (vec_non_zero(st.s)) st.s.unit();
-	if (vec_non_zero(st.t)) st.t.unit();
-	if (angle_sum > 0) {
-		st.sm /= angle_sum;
-		st.tm /= angle_sum;
-	}
-}
+  if (vec_non_zero(st.s)) st.s.unit();
+  if (vec_non_zero(st.t)) st.t.unit();
+  if (angle_sum > 0) {
+    st.sm /= angle_sum;
+    st.tm /= angle_sum;
+  }
+};
 
 const compare_sub_group = (cur, other) => {
-	if (cur.count != other.count) return false;
-	for (let i = 0; i < cur.count; i++)
-		if (cur.members[i] != other.members[i]) return false;
-	return true;
-}
+  if (cur.count != other.count) return false;
+  for (let i = 0; i < cur.count; i++)
+    if (cur.members[i] != other.members[i]) return false;
+  return true;
+};
 
 const get_edge = (indices, idx, i0, i1) => {
   const [id0, id1, id2] = indices.slice(idx, idx + 3);
@@ -353,7 +353,7 @@ const build_neighbours = (info, indices, triangle_count) => {
     if (info[f].neighbours[eA] == -1) {
       let j = i + 1, found = false;
       while (j < edges.length && i0 == edges[j][0] && i1 == edges[j][1] && !found) {
-        let [i0_B, i1_B, eB] = get_edge(indices, t * 3, edges[j][0], edges[j][1]), t = edges[j][2];
+        let t = edges[j][2], [i0_B, i1_B, eB] = get_edge(indices, t * 3, edges[j][0], edges[j][1]);
         if (i0_A == i0_B && i1_A == i1_B && info[t].neighbours[eB] == -1) found = true;
         else ++j;
       }

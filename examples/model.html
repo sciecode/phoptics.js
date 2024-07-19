@@ -29,7 +29,7 @@
   <script type="module">
     import {
       Engine, Mesh, Geometry, Vertex, Index, RenderList, Shader, Material, Texture, CanvasTexture,
-      RenderPass, RenderTarget, StructuredBuffer, Format
+      RenderPass, RenderTarget, StructuredBuffer, Format, Sampler
     } from 'phoptics';
     import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
     import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
@@ -42,6 +42,8 @@
 
     import model_shader from './assets/shaders/objects/model_shader.mjs';
     import model_wireframe_shader from './assets/shaders/objects/model_wireframe_shader.mjs';
+
+    const load_bitmap = (url, options) => fetch(url).then(resp => resp.blob()).then(blob => createImageBitmap(blob, options));
 
     const dpr = window.devicePixelRatio;
     let shader_lib = new ShaderLib(builtin);
@@ -107,9 +109,21 @@
         wireframe: model_wireframe_shader,
       });
 
+      const bitmap = await load_bitmap('./assets/textures/cerberus/normal.jpg', { imageOrientation: "flipY" });
+      const normal_map = new Texture({
+        renderable: true,
+        format: Format.RGBA8_UNORM,
+        size: { width: 2048, height: 2048 },
+      });
+      engine.upload_texture(normal_map, bitmap);
+
       const material = new Material({
         shader: shader_lib.get('model'),
         dynamic: [{ name: "world", type: Mat3x4 }],
+        bindings: [
+          { name: "sampler", resource: new Sampler({ filtering: { min: "linear", mag: "linear", mip: "linear" } }) },
+          { name: "normal", resource: normal_map.create_view() },
+        ]
       });
 
       let geo = await new OBJLoader().load('./assets/models/cerberus.obj');
@@ -117,39 +131,13 @@
       // const compressed = compress(geo);
       // geo = uncompress(compressed);
 
-      // TODO: MikkTspace
       generate_tangents(geo, { position: { id: 0 }, normal: { id: 1 }, uv: { id: 2 } });
 
       const mesh = new Mesh(geo, material);
-      // // create wireframe
-      // const face_count = geo.draw.count / 3;
-      // const indices = new Uint32Array(geo.draw.count * 2);
-      // for (let i = 0; i < face_count; i++) {
-      //   const i3 = i * 3, i6 = i * 6;
-      //   indices[i6] = indices[i6 + 5] = geo.index.data[i3];
-      //   indices[i6 + 1] = indices[i6 + 2] = geo.index.data[i3 + 1];
-      //   indices[i6 + 3] = indices[i6 + 4] = geo.index.data[i3 + 2];
-      // }
-      // const geo_wireframe = new Geometry({
-      //   draw: { count: geo.draw.count * 2 },
-      //   index: new Index({ data: indices, stride: 4 }),
-      //   vertices: [new Vertex({
-      //     data: geo.attributes.vertices[0].data,
-      //     stride: geo.attributes.vertices[0].stride
-      //   })]
-      // });
-      // const material_wireframe = new Material({
-      //   shader: shader_lib.get('wireframe'),
-      //   dynamic: [{ name: "world", type: Mat3x4 }],
-      //   graphics: { primitive: 'line-list' }
-      // });
-      // const mesh1 = new Mesh(geo_wireframe, material_wireframe);
-      // renderlist.add(mesh1);
       renderlist.add(mesh);
 
       const q = new Quat().rot_y(Math.PI / 2);
       mesh.dynamic.world.rotate(q);
-      // mesh1.dynamic.world.rotate(q);
 
       animate();
     })();
