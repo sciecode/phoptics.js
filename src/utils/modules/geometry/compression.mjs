@@ -174,7 +174,7 @@ export const uncompress = (buffer) => {
     vertices: info.vertices.map(vert => {
       const out = vert.output;
       const elements = out.byteLength / vert.type.BYTES_PER_ELEMENT;
-      const data = new vert.type(out.buffer, out.byteOffset, elements)
+      const data = new vert.type(out.buffer, out.byteOffset, elements);
       return new Vertex({ data: data, stride: vert.vertex_size });
     }),
   });

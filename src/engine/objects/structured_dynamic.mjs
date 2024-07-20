@@ -10,7 +10,7 @@ export class StructuredDynamic {
     const arr = [];
     const buffer = new ArrayBuffer(parse_struct(this, arr, options));
     this.data = new Uint8Array(buffer);
-    this.blocks = aligned(this.data.length) >> 8; 
+    this.blocks = aligned(this.data.length) >> 8;
 
     let current_offset = 0;
     for (let entry of arr) {

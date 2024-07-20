@@ -37,7 +37,7 @@ export class DynamicManager {
 
     this.data.set(dyn.data, this.offset);
     dyn.set_cache(group_info.group, this.offset);
-    
+
     this.offset += group_info.bytes;
     return ret;
   }
@@ -57,7 +57,7 @@ export class DynamicManager {
             size: bytes
           }]
         }),
-      }
+      };
     }
 
     return this.groups[blocks];

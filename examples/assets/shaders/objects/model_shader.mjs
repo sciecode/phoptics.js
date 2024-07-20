@@ -76,10 +76,7 @@ fn point_light(frag : ptr<function, RenderInfo>, l_pos : vec3f, l_color : vec3f,
   let Ep = Il * l_color / d2;
 
   let L = normalize(l);
-  // let H = normalize((*frag).V + L);
-
   let cosNL = max(dot((*frag).N, L), 0.);
-  // let cosLH = max(dot(L, H), 0.);
 
   (*frag).Ld_dif += Ep * Fd_Lambert() * cosNL;
 }

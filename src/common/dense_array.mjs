@@ -31,11 +31,11 @@ export class DenseArray {
   get(idx) { return this.data[this.offsets[idx]]; }
   delete(idx) {
     const offset = this.offsets[idx];
-    
+
     const end = --this.count;
     const new_idx = this.indices[offset] = this.indices[end];
     this.indices[end] = undefined;
-    
+
     this.offsets[new_idx] = offset;
     this.offsets[idx] = undefined;
 
