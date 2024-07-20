@@ -5,7 +5,7 @@ import { opt_remap } from 'phoptics/utils/modules/geometry/optimizer.mjs';
 import { TYPE } from "./common/type.mjs";
 import { Memory, memcpy } from './common/memory.mjs';
 
-export const unweld = (geometry) => {
+export const unweld = (geometry) => { // TODO: move unweld to transformations
   const indices = geometry.index.data;
   const index_count = (indices.length / 3 | 0) * 3;
   const buffer_count = geometry.attributes.vertices.length;
@@ -24,15 +24,8 @@ export const unweld = (geometry) => {
 
   for (let k = 0; k < buffer_count; k++) {
     const out = mem[k], buffer = buffers[k], stride = buffer.stride;
-    for (let i = 0; i < indices.length; i++) {
-      try {
-        memcpy(out, i * stride, buffer.input, indices[i] * stride, stride);
-      } catch (_) {
-        console.log(i, indices[i], indices.length);
-        console.log(out, i * stride, buffer.input, indices[i] * stride, stride);
-        throw 'f';
-      }
-    }
+    for (let i = 0; i < indices.length; i++)
+      memcpy(out, i * stride, buffer.input, indices[i] * stride, stride);
 
     const attrib = geometry.attributes.vertices[k];
     const type = attrib.data.constructor;
@@ -94,6 +87,10 @@ const vec_non_zero = (v) => non_zero(v.x) || non_zero(v.y) || non_zero(v.z);
 export const generate_tangents = (geometry, info) => {
   if (!geometry.index) opt_remap(geometry); // make indexed & remove duplicates
 
+  const indices = geometry.index.data;
+  const triangle_count = (indices.length / 3 | 0);
+  const indices_count = triangle_count * 3;
+
   const getters = {
     uv: (idx, v) => {
       const buffer = geometry.attributes.vertices[info.uv.id];
@@ -108,10 +105,6 @@ export const generate_tangents = (geometry, info) => {
       v.from(buffer.data, idx * buffer.stride / buffer.data.BYTES_PER_ELEMENT + (info.normal.offset || 0));
     }
   };
-
-  const indices = geometry.index.data;
-  const triangle_count = (indices.length / 3 | 0);
-  const indices_count = triangle_count * 3;
 
   // initialize triangle list info
   const tri_info = init_info(indices, triangle_count, getters);
@@ -175,7 +168,7 @@ const init_info = (indices, triangle_count, getters) => {
         .add(v1.copy(d2).mul_f32(t21.x))
         .length();
 
-      const sign = info.preserve ? 1 : -1; // TODO: validate
+      const sign = info.preserve ? 1 : -1;
       if (non_zero(lens)) info.s.copy(vs).mul_f32(sign / lens);
       if (non_zero(lent)) info.t.copy(vt).mul_f32(sign / lent);
 
@@ -257,7 +250,7 @@ const eval_tspace = (st, members, member_count, tri_info, indices, vert, getters
       let i = 2;
       const f3 = f * 3;
       if (indices[f3] == vert) i = 0;
-      else if (indices[f3 + 1]) i = 1;
+      else if (indices[f3 + 1] == vert) i = 1;
 
       getters.normal(vert, n);
       vs.copy(info.s).sub(p0.copy(n).mul_f32(n.dot(info.s)));
@@ -348,12 +341,13 @@ const build_neighbours = (info, indices, triangle_count) => {
 
   for (let i = 0; i < edges.length; i++) {
     const [i0, i1, f] = edges[i];
-    let [i0_A, i1_A, eA] = get_edge(indices, f * 3, i0, i1);
+    let t, i0_B, i1_B, eB, [i0_A, i1_A, eA] = get_edge(indices, f * 3, i0, i1);
 
     if (info[f].neighbours[eA] == -1) {
       let j = i + 1, found = false;
       while (j < edges.length && i0 == edges[j][0] && i1 == edges[j][1] && !found) {
-        let t = edges[j][2], [i0_B, i1_B, eB] = get_edge(indices, t * 3, edges[j][0], edges[j][1]);
+        t = edges[j][2];
+        [i1_B, i0_B, eB] = get_edge(indices, t * 3, edges[j][0], edges[j][1]);
         if (i0_A == i0_B && i1_A == i1_B && info[t].neighbours[eB] == -1) found = true;
         else ++j;
       }
@@ -378,8 +372,9 @@ const assign = (info, indices, groups, tri_groups, face, group, group_id) => {
 
   if (vert == indices[idx]) i = 0;
   else if (vert == indices[idx + 1]) i = 1;
+
   if (tri.groups[i] == group_id) return true;
-  else if (tri.groups[i] == -1) return false;
+  else if (tri.groups[i] != -1) return false;
 
   if (tri.any && tri.group[0] == -1 && tri.group[1] == -1 && tri.group[2] == -1)
     tri.preserve = group.preserve;
