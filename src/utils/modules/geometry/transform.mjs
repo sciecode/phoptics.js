@@ -21,7 +21,7 @@ export const unweld = (geometry) => {
 
   for (let k = 0; k < buffer_count; k++) {
     const out = mem[k], buffer = buffers[k], stride = buffer.stride;
-    for (let i = 0; i < indices.length; i++)
+    for (let i = 0; i < index_count; i++)
       memcpy(out, i * stride, buffer.input, indices[i] * stride, stride);
 
     const attrib = geometry.attributes.vertices[k];

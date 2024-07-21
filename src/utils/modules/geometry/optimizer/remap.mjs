@@ -101,7 +101,7 @@ class Remapper {
     const has_index = !!geometry.index;
     const get_index = has_index ? i => geometry.index.data[i] : i => i;
     const indices = (this.vertex_count < 65536) ?
-      new Uint16Array(this.index_count) : new Uint32Array(this.index_count);
+      new Uint16Array(this.index_count + (this.index_count & 1)) : new Uint32Array(this.index_count);
 
     for (let i = 0, il = this.index_count; i < il; ++i)
       indices[i] = this.table[get_index(i)];
@@ -111,7 +111,7 @@ class Remapper {
       stride: indices.BYTES_PER_ELEMENT
     });
     geometry.draw.offset = 0;
-    geometry.draw.count = indices.length;
+    geometry.draw.count = (indices.length / 3 | 0) * 3;
   }
 
   remap_vertices(geometry) {

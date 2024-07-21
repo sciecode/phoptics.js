@@ -36,7 +36,7 @@
     import { OBJLoader } from 'phoptics/utils/loaders/obj_loader.mjs';
     import { ShaderLib } from 'phoptics/utils/modules/shaders/shader_lib.mjs';
     import { builtin } from 'phoptics/utils/modules/shaders/builtin.mjs';
-    import { optimize_geometry } from 'phoptics/utils/modules/geometry/optimizer.mjs';
+    import { optimize_geometry, opt_remap } from 'phoptics/utils/modules/geometry/optimizer.mjs';
     import { generate_tangents } from 'phoptics/utils/modules/geometry/tangent.mjs';
     import { compress, uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
 
@@ -98,7 +98,7 @@
 
       orbit = new Orbit(canvas_texture.canvas);
       orbit.target.set(0, 0, 0);
-      orbit.position.set(0, 0, 4);
+      orbit.position.set(0, 0, 2);
       orbit.update();
       const exposure = calc_tonemap(1, 250);
       camera.luma.set(exposure.r_nits, exposure.r_nb);
@@ -109,7 +109,7 @@
         wireframe: model_wireframe_shader,
       });
 
-      const bitmap = await load_bitmap('./assets/textures/box/normals.png', { imageOrientation: "flipY" });
+      const bitmap = await load_bitmap('./assets/textures/cerberus/normal.jpg', { imageOrientation: "flipY" });
       const normal_map = new Texture({
         renderable: true,
         format: Format.RGBA8_UNORM,
@@ -126,7 +126,7 @@
         ]
       });
 
-      let geo = await new OBJLoader().load('./assets/models/box.obj');
+      let geo = await new OBJLoader().load('./assets/models/cerberus.obj');
       // const compressed = compress(geo);
       // geo = uncompress(compressed);
 
@@ -136,8 +136,8 @@
       optimize_geometry(geo);
 
       const mesh = new Mesh(geo, material);
+      mesh.dynamic.world.rotate(new Quat().rot_y(Math.PI / 2));
       renderlist.add(mesh);
-
 
       animate();
     })();

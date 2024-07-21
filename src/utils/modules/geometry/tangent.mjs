@@ -1,5 +1,5 @@
 import { Vertex, RadixSort } from 'phoptics';
-import { Vec3, Vec2 } from 'phoptics/math';
+import { Vec2, Vec3, Vec4 } from 'phoptics/math';
 import { opt_remap } from 'phoptics/utils/modules/geometry/optimizer.mjs';
 import { unweld } from 'phoptics/utils/modules/geometry/transform.mjs';
 
@@ -66,14 +66,19 @@ export const generate_tangents = (geometry, info) => {
   build_tangents(tri_info, indices, groups, tri_groups, group_count, getters);
 
   // populate
+  const base = new Vec4().set(1, 0, 0, 1);
   const tangents = new Float32Array(indices_count * 4);
   for (let f = 0; f < triangle_count; f++) {
     const info = tri_info[f], f3 = f * 3;
     for (let i = 0; i < 3; i++) {
-      const i4 = (f3 + i) * 4;
-      const group = groups[info.groups[i]];
-      group.tangent.to(tangents, i4);
-      tangents[i4 + 3] = group.preserve ? 1 : -1;
+      const i4 = (f3 + i) * 4, group_id = info.groups[i];
+      if (group_id != -1) {
+        const group = groups[info.groups[i]];
+        group.tangent.to(tangents, i4);
+        tangents[i4 + 3] = group.preserve ? 1 : -1;
+      } else {
+        base.to(tangents, i4);
+      }
     }
   }
 
@@ -188,7 +193,7 @@ const build_groups = (groups, tri_groups, info, indices, triangle_count) => {
   const assign = (face, group, group_id) => {
     let i = 2;
     const tri = info[face];
-    const idx = 3 * face, vert = group.vert;
+    const idx = face * 3, vert = group.vert;
 
     if (vert == indices[idx]) i = 0;
     else if (vert == indices[idx + 1]) i = 1;

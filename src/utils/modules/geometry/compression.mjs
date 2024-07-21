@@ -168,8 +168,9 @@ export const uncompress = (buffer) => {
     uncompress_vertices(mem[i], vertex.input, info.vertex_count, vertex.vertex_size);
   }
 
+  const index_count = (indices.length / 3 | 0) * 3;
   const geometry = new Geometry({
-    draw: { count: indices.length },
+    draw: { count: index_count },
     index: new Index({ data: indices, stride: indices.BYTES_PER_ELEMENT }),
     vertices: info.vertices.map(vert => {
       const out = vert.output;
