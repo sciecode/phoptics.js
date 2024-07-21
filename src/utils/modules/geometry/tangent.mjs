@@ -1,66 +1,16 @@
 import { Vertex, RadixSort } from 'phoptics';
 import { Vec3, Vec2 } from 'phoptics/math';
 import { opt_remap } from 'phoptics/utils/modules/geometry/optimizer.mjs';
-
-import { TYPE } from "./common/type.mjs";
-import { Memory, memcpy } from './common/memory.mjs';
-
-export const unweld = (geometry) => { // TODO: move unweld to transformations
-  const indices = geometry.index.data;
-  const index_count = (indices.length / 3 | 0) * 3;
-  const buffer_count = geometry.attributes.vertices.length;
-
-  const buffers = geometry.attributes.vertices.map(vertex => {
-    return {
-      stride: vertex.stride,
-      input: new Uint8Array(vertex.data.buffer, vertex.data.byteOffset, vertex.size),
-    };
-  });
-
-  let mem = [];
-  for (let i = 0; i < buffer_count; ++i)
-    mem.push({ type: TYPE.u8, count: index_count * buffers[i].stride });
-  Memory.allocate_layout(mem);
-
-  for (let k = 0; k < buffer_count; k++) {
-    const out = mem[k], buffer = buffers[k], stride = buffer.stride;
-    for (let i = 0; i < indices.length; i++)
-      memcpy(out, i * stride, buffer.input, indices[i] * stride, stride);
-
-    const attrib = geometry.attributes.vertices[k];
-    const type = attrib.data.constructor;
-    const elements = out.byteLength / type.BYTES_PER_ELEMENT;
-    geometry.attributes.vertices[k] = new Vertex({
-      stride: attrib.stride,
-      data: new type(out.buffer, out.byteOffset, elements),
-    });
-  }
-
-  geometry.index = undefined;
-};
-
-class TSpace {
-  constructor() {
-    this.s = new Vec3().set(1, 0, 0);
-    this.t = new Vec3().set(0, 1, 0);
-    this.preserve = false;
-  }
-  copy(v) {
-    this.s.copy(v.s);
-    this.t.copy(v.t);
-  }
-}
+import { unweld } from 'phoptics/utils/modules/geometry/transform.mjs';
 
 class Info {
   constructor() {
     this.neighbours = [-1, -1, -1];
     this.groups = [-1, -1, -1];
 
-    this.s = new Vec3();
-    this.t = new Vec3();
-
     this.any = true;
     this.preserve = false;
+    this.tangent = new Vec3();
   }
 }
 
@@ -69,14 +19,8 @@ class Group {
     this.count = 0;
     this.offset = 0;
     this.vert = 0;
+    this.tangent = new Vec3();
     this.preserve = false;
-  }
-}
-
-class SubGroup {
-  constructor() {
-    this.count = 0;
-    this.members = null;
   }
 }
 
@@ -85,7 +29,7 @@ const vec_non_zero = (v) => non_zero(v.x) || non_zero(v.y) || non_zero(v.z);
 
 // assumes no degenerate faces
 export const generate_tangents = (geometry, info) => {
-  if (!geometry.index) opt_remap(geometry); // make indexed & remove duplicates
+  if (!geometry.index) opt_remap(geometry);
 
   const indices = geometry.index.data;
   const triangle_count = (indices.length / 3 | 0);
@@ -118,15 +62,19 @@ export const generate_tangents = (geometry, info) => {
   for (let i = 0; i < indices_count; i++) groups[i] = new Group();
   const group_count = build_groups(groups, tri_groups, tri_info, indices, triangle_count);
 
-  // create tangent space
-  const t_spaces = build_tspaces(tri_info, indices, groups, tri_groups, group_count, indices_count, getters);
+  // tangent space
+  build_tangents(tri_info, indices, groups, tri_groups, group_count, getters);
 
   // populate
   const tangents = new Float32Array(indices_count * 4);
-  for (let i = 0; i < indices_count; i++) {
-    const i4 = i * 4, frame = t_spaces[i];
-    frame.s.to(tangents, i4);
-    tangents[i4 + 3] = frame.preserve ? 1 : -1;
+  for (let f = 0; f < triangle_count; f++) {
+    const info = tri_info[f], f3 = f * 3;
+    for (let i = 0; i < 3; i++) {
+      const i4 = (f3 + i) * 4;
+      const group = groups[info.groups[i]];
+      group.tangent.to(tangents, i4);
+      tangents[i4 + 3] = group.preserve ? 1 : -1;
+    }
   }
 
   // finalize
@@ -144,7 +92,7 @@ const init_info = (indices, triangle_count, getters) => {
   for (let i = 0; i < triangle_count; i++)
     tri_info[i] = new Info();
 
-  const vs = new Vec3(), vt = new Vec3();
+  const vs = new Vec3();
   const v1 = new Vec3(), v2 = new Vec3(), v3 = new Vec3();
   const t1 = new Vec2(), t2 = new Vec2(), t3 = new Vec2();
   for (let i = 0; i < triangle_count; i++) {
@@ -164,138 +112,12 @@ const init_info = (indices, triangle_count, getters) => {
       v1.copy(d2).mul_f32(t21.y);
       const lens = vs.sub(v1).length();
 
-      vt.copy(d1).mul_f32(-t31.x);
-      v1.copy(d2).mul_f32(t21.x);
-      const lent = vt.add(v1).length();
-
       const sign = info.preserve ? 1 : -1;
-      if (non_zero(lens)) info.s.copy(vs).mul_f32(sign / lens);
-      if (non_zero(lent)) info.t.copy(vt).mul_f32(sign / lent);
-
-      const abs_area = Math.abs(area);
-      const sm = lens / abs_area;
-      const tm = lent / abs_area;
-
-      if (non_zero(sm) && non_zero(tm)) info.any = false;
+      if (non_zero(lens)) info.tangent.copy(vs).mul_f32(sign / lens);
+      if (non_zero(lens / Math.abs(area))) info.any = false;
     }
   }
-
   return tri_info;
-};
-
-const build_tspaces = (tri_info, indices, groups, tri_groups, group_count, indices_count, getters) => {
-  const t_spaces = new Array(indices_count);
-  for (let i = 0; i < indices_count; i++) t_spaces[i] = new TSpace();
-
-  let max_faces = 0;
-  for (let i = 0; i < group_count; i++)
-    if (max_faces < groups[i].count) max_faces = groups[i].count;
-
-  const sub_spaces = new Array(max_faces);
-  const uni_group = new Array(max_faces);
-  let members = new Uint32Array(max_faces);
-  for (let i = 0; i < max_faces; i++) {
-    sub_spaces[i] = new TSpace();
-    uni_group[i] = new SubGroup();
-  }
-
-  const tmp_group = new SubGroup();
-  for (let i = 0; i < group_count; i++) {
-    let group = groups[i], sub_group_count = 0;
-    for (let j = 0; j < group.count; j++) {
-      const f = tri_groups[group.offset + j], info = tri_info[f];
-      let index = 2;
-      if (info.groups[0] == i) index = 0;
-      else if (info.groups[1] == i) index = 1;
-
-      for (let k = 0; k < group.count; k++) members[k] = tri_groups[group.offset + k];
-      if (group.count > 1) RadixSort(members, { st: 0, len: group.count });
-
-      let found = false, s = 0;
-      tmp_group.count = group.count;
-      tmp_group.members = members;
-      while (s < sub_group_count && !found) {
-        found = compare_sub_group(tmp_group, uni_group[s]);
-        if (!found) s++;
-      }
-
-      if (!found) {
-        uni_group[sub_group_count].count = group.count;
-        uni_group[sub_group_count].members = members;
-        eval_tspace(sub_spaces[sub_group_count++], members, group.count, tri_info, indices, group.vert, getters);
-        members = new Uint32Array(max_faces);
-      }
-
-      const tangent = t_spaces[f * 3 + index];
-      tangent.copy(sub_spaces[s]);
-      tangent.preserve = group.preserve;
-    }
-  }
-
-  return t_spaces;
-};
-
-const eval_tspace = (st, members, member_count, tri_info, indices, vert, getters) => {
-  st.s.set(0, 0, 0);
-  st.t.set(0, 0, 0);
-
-  let n = new Vec3(), vs = new Vec3(), vt = new Vec3();
-  let p0 = new Vec3(), p1 = new Vec3(), p2 = new Vec3();
-  let v1 = new Vec3(), v2 = new Vec3();
-  for (let i = 0; i < member_count; i++) {
-    const f = members[i], f3 = f * 3, info = tri_info[f];
-    getters.normal(vert, n);
-
-    if (!info.any) {
-      let i = 2;
-      if (indices[f3] == vert) i = 0;
-      else if (indices[f3 + 1] == vert) i = 1;
-
-      vs.copy(info.s).sub(p0.copy(n).mul_f32(n.dot(info.s)));
-      if (vec_non_zero(vs)) vs.unit();
-      vt.copy(info.t).sub(p0.copy(n).mul_f32(n.dot(info.t)));
-      if (vec_non_zero(vt)) vt.unit();
-
-      let i0 = indices[f3 + (i > 0 ? i - 1 : 2)];
-      let i2 = indices[f3 + (i < 2 ? i + 1 : 0)];
-
-      getters.pos(i0, p0);
-      getters.pos(vert, p1);
-      getters.pos(i2, p2);
-      v1.copy(p0).sub(p1);
-      v2.copy(p2).sub(p1);
-
-      v1.sub(p0.copy(n).mul_f32(n.dot(v1)));
-      if (vec_non_zero(v1)) v1.unit();
-      v2.sub(p0.copy(n).mul_f32(n.dot(v2)));
-      if (vec_non_zero(v2)) v2.unit();
-
-      let cos = v1.dot(v2);
-      cos = (cos > 1) ? 1 : ((cos < -1) ? -1 : cos);
-      let ang = Math.acos(cos);
-
-      st.s.add(vs.mul_f32(ang));
-      st.t.add(vt.mul_f32(ang));
-    }
-  }
-
-  if (vec_non_zero(st.s)) st.s.unit();
-  if (vec_non_zero(st.t)) st.t.unit();
-};
-
-const compare_sub_group = (cur, other) => {
-  if (cur.count != other.count) return false;
-  for (let i = 0; i < cur.count; i++)
-    if (cur.members[i] != other.members[i]) return false;
-  return true;
-};
-
-const get_edge = (indices, idx, i0, i1) => {
-  const [id0, id1, id2] = indices.slice(idx, idx + 3);
-  if (id0 == i0 || id0 == i1) {
-    if (id1 == i0 || id1 == i1) return [id0, id1, 0];
-    else return [id2, id0, 2];
-  } else return [id1, id2, 1];
 };
 
 const build_neighbours = (info, indices, triangle_count) => {
@@ -329,15 +151,23 @@ const build_neighbours = (info, indices, triangle_count) => {
     }
   }
 
+  const get_edge = (idx, i0, i1) => {
+    const [id0, id1, id2] = indices.slice(idx, idx + 3);
+    if (id0 == i0 || id0 == i1) {
+      if (id1 == i0 || id1 == i1) return [id0, id1, 0];
+      else return [id2, id0, 2];
+    } else return [id1, id2, 1];
+  };
+
   for (let i = 0; i < edges.length; i++) {
     const [i0, i1, f] = edges[i];
-    let t, i0_B, i1_B, eB, [i0_A, i1_A, eA] = get_edge(indices, f * 3, i0, i1);
+    let t, i0_B, i1_B, eB, [i0_A, i1_A, eA] = get_edge(f * 3, i0, i1);
 
     if (info[f].neighbours[eA] == -1) {
       let j = i + 1, found = false;
       while (j < edges.length && i0 == edges[j][0] && i1 == edges[j][1] && !found) {
         t = edges[j][2];
-        [i1_B, i0_B, eB] = get_edge(indices, t * 3, edges[j][0], edges[j][1]);
+        [i1_B, i0_B, eB] = get_edge(t * 3, edges[j][0], edges[j][1]);
         if (i0_A == i0_B && i1_A == i1_B && info[t].neighbours[eB] == -1) found = true;
         else ++j;
       }
@@ -350,35 +180,35 @@ const build_neighbours = (info, indices, triangle_count) => {
   }
 };
 
-const add_tri_group = (group, tri_groups, face) => {
-  tri_groups[group.offset + group.count++] = face;
-};
-
-const assign = (info, indices, groups, tri_groups, face, group, group_id) => {
-  let i = 2;
-  const tri = info[face];
-  const idx = 3 * face, vert = group.vert;
-
-  if (vert == indices[idx]) i = 0;
-  else if (vert == indices[idx + 1]) i = 1;
-
-  if (tri.groups[i] == group_id) return true;
-  else if (tri.groups[i] != -1) return false;
-
-  if (tri.any && tri.groups[0] == -1 && tri.groups[1] == -1 && tri.groups[2] == -1)
-    tri.preserve = group.preserve;
-  if (tri.preserve != group.preserve) return false;
-
-  add_tri_group(group, tri_groups, face);
-  tri.groups[i] = group_id;
-
-  let nl = tri.neighbours[i], nr = tri.neighbours[i > 0 ? (i - 1) : 2];
-  if (nl >= 0) assign(info, indices, groups, tri_groups, nl, group, group_id);
-  if (nr >= 0) assign(info, indices, groups, tri_groups, nr, group, group_id);
-  return true;
-};
-
 const build_groups = (groups, tri_groups, info, indices, triangle_count) => {
+  const add_tri_group = (group, face) => {
+    tri_groups[group.offset + group.count++] = face;
+  };
+
+  const assign = (face, group, group_id) => {
+    let i = 2;
+    const tri = info[face];
+    const idx = 3 * face, vert = group.vert;
+
+    if (vert == indices[idx]) i = 0;
+    else if (vert == indices[idx + 1]) i = 1;
+
+    if (tri.groups[i] == group_id) return true;
+    else if (tri.groups[i] != -1) return false;
+
+    if (tri.any && tri.groups[0] == -1 && tri.groups[1] == -1 && tri.groups[2] == -1)
+      tri.preserve = group.preserve;
+    if (tri.preserve != group.preserve) return false;
+
+    add_tri_group(group, face);
+    tri.groups[i] = group_id;
+
+    let nl = tri.neighbours[i], nr = tri.neighbours[i > 0 ? (i - 1) : 2];
+    if (nl >= 0) assign(nl, group, group_id);
+    if (nr >= 0) assign(nr, group, group_id);
+    return true;
+  };
+
   let group_count = 0, offset = 0;
   for (let f = 0; f < triangle_count; f++) {
     let tri = info[f];
@@ -391,14 +221,67 @@ const build_groups = (groups, tri_groups, info, indices, triangle_count) => {
         group.offset = offset;
         group.preserve = tri.preserve;
 
-        add_tri_group(group, tri_groups, f);
+        add_tri_group(group, f);
 
         let nl = tri.neighbours[i], nr = tri.neighbours[i > 0 ? (i - 1) : 2];
-        if (nl >= 0) assign(info, indices, groups, tri_groups, nl, group, group_id);
-        if (nr >= 0) assign(info, indices, groups, tri_groups, nr, group, group_id);
+        if (nl >= 0) assign(nl, group, group_id);
+        if (nr >= 0) assign(nr, group, group_id);
         offset += group.count;
       }
     }
   }
   return group_count;
+};
+
+const build_tangents = (tri_info, indices, groups, tri_groups, group_count, getters) => {
+  let max_faces = 0;
+  for (let i = 0; i < group_count; i++)
+    if (max_faces < groups[i].count) max_faces = groups[i].count;
+
+  for (let i = 0; i < group_count; i++) {
+    const group = groups[i];
+    const vert = group.vert, tangent = group.tangent;
+    const s = group.offset, t = s + group.count;
+
+    let n = new Vec3(), vs = new Vec3();
+    let p0 = new Vec3(), p1 = new Vec3(), p2 = new Vec3();
+    let v1 = new Vec3(), v2 = new Vec3();
+
+    tangent.set(0, 0, 0);
+    for (let i = s, il = t; i < il; i++) {
+      const f = tri_groups[i], f3 = f * 3, info = tri_info[f];
+      getters.normal(vert, n);
+
+      if (!info.any) {
+        let i = 2;
+        if (indices[f3] == vert) i = 0;
+        else if (indices[f3 + 1] == vert) i = 1;
+
+        vs.copy(info.tangent);
+        p0.copy(n).mul_f32(n.dot(info.tangent));
+        vs.sub(p0);
+        if (vec_non_zero(vs)) vs.unit();
+
+        let i0 = indices[f3 + (i > 0 ? i - 1 : 2)];
+        let i2 = indices[f3 + (i < 2 ? i + 1 : 0)];
+        getters.pos(i0, p0);
+        getters.pos(vert, p1);
+        getters.pos(i2, p2);
+        v1.copy(p0).sub(p1);
+        v2.copy(p2).sub(p1);
+
+        v1.sub(p0.copy(n).mul_f32(n.dot(v1)));
+        if (vec_non_zero(v1)) v1.unit();
+        v2.sub(p0.copy(n).mul_f32(n.dot(v2)));
+        if (vec_non_zero(v2)) v2.unit();
+
+        let cos = v1.dot(v2);
+        let ang = Math.acos(cos);
+
+        tangent.add(vs.mul_f32(ang));
+      }
+    }
+
+    if (vec_non_zero(tangent)) tangent.unit();
+  }
 };
