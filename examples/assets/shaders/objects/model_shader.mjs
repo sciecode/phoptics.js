@@ -39,7 +39,7 @@ fn read_attribute(vert : u32) -> Attributes {
   attrib.pos = vec3f(pos[p], pos[p+1], pos[p+2]);
   attrib.normal = vec3f(norm[p], norm[p+1], norm[p+2]);
   attrib.uv = vec2f(uvs[vert * 2], uvs[vert * 2 + 1]);
-  attrib.tang = tang[vert >> 2];
+  attrib.tang = tang[vert];
   return attrib;
 }
 
@@ -84,24 +84,6 @@ fn point_light(frag : ptr<function, RenderInfo>, l_pos : vec3f, l_color : vec3f,
 @group(1) @binding(0) var samp: sampler;
 @group(1) @binding(1) var t_normal: texture_2d<f32>;
 
-fn tbn_sh(eye : vec3f, norm : vec3f, uv : vec2f, nT : vec3f) -> vec3f {
-	let q0 = dpdx(eye);
-	let q1 = dpdy(eye);
-	let st0 = dpdx(uv);
-	let st1 = dpdy(uv);
-
-	let q1perp = cross(q1, norm);
-	let q0perp = cross(norm, q0);
-
-	let T = q1perp * st0.x + q0perp * st1.x;
-	let B = q1perp * st0.y + q0perp * st1.y;
-
-	let det = max(dot(T,T), dot(B,B));
-	let scale = select(inverseSqrt(det), 0, det == 0);
-
-	return normalize(mat3x3f(T * scale, B * scale, norm) * nT);
-}
-
 fn tbn(N: vec3f, T: vec3f, S: f32, nT: vec3f) -> vec3f {
   let B = S * cross(N, T);
   return normalize(nT.x * T + nT.y * B + nT.z * N);
@@ -112,10 +94,7 @@ fn tbn(N: vec3f, T: vec3f, S: f32, nT: vec3f) -> vec3f {
   frag.pos = in.pos;
   let nT = textureSample(t_normal, samp, in.uv).rgb * 2. - 1.;
   frag.V = normalize(globals.camera_pos - frag.pos);
-  frag.N = tbn_sh(frag.V, in.normal, in.uv, nT);
-  // frag.N = tbn(in.normal, in.tangent, in.b, nT);
-  // return vec4f(nT * .5 + .5, 1);
-  // frag.N = normal;
+  frag.N = tbn(in.normal, in.tangent, in.b, nT);
   frag.cosNV = saturate(dot(frag.V, frag.N)) + 1e-5;
 
   frag.Ld_dif += 4; // ambient

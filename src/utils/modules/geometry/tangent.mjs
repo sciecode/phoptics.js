@@ -41,13 +41,13 @@ export const unweld = (geometry) => { // TODO: move unweld to transformations
 
 class TSpace {
   constructor() {
-    this.s = new Vec3().set(1, 0, 0); this.sm = 1;
-    this.t = new Vec3().set(0, 1, 0); this.tm = 1;
+    this.s = new Vec3().set(1, 0, 0);
+    this.t = new Vec3().set(0, 1, 0);
     this.preserve = false;
   }
   copy(v) {
-    this.s.copy(v.s); this.sm = v.sm;
-    this.t.copy(v.t); this.tm = v.tm;
+    this.s.copy(v.s);
+    this.t.copy(v.t);
   }
 }
 
@@ -56,8 +56,8 @@ class Info {
     this.neighbours = [-1, -1, -1];
     this.groups = [-1, -1, -1];
 
-    this.s = new Vec3(); this.sm = 0;
-    this.t = new Vec3(); this.tm = 0;
+    this.s = new Vec3();
+    this.t = new Vec3();
 
     this.any = true;
     this.preserve = false;
@@ -160,23 +160,23 @@ const init_info = (indices, triangle_count, getters) => {
       getters.pos(idx1, v1), getters.pos(idx2, v2), getters.pos(idx3, v3);
       const d1 = v2.sub(v1), d2 = v3.sub(v1);
 
-      const lens = vs.copy(d1).mul_f32(t31.y)
-        .sub(v1.copy(d2).mul_f32(t21.y))
-        .length();
+      vs.copy(d1).mul_f32(t31.y);
+      v1.copy(d2).mul_f32(t21.y);
+      const lens = vs.sub(v1).length();
 
-      const lent = vt.copy(d1).mul_f32(-t31.x)
-        .add(v1.copy(d2).mul_f32(t21.x))
-        .length();
+      vt.copy(d1).mul_f32(-t31.x);
+      v1.copy(d2).mul_f32(t21.x);
+      const lent = vt.add(v1).length();
 
       const sign = info.preserve ? 1 : -1;
       if (non_zero(lens)) info.s.copy(vs).mul_f32(sign / lens);
       if (non_zero(lent)) info.t.copy(vt).mul_f32(sign / lent);
 
       const abs_area = Math.abs(area);
-      info.sm = lens / abs_area;
-      info.tm = lent / abs_area;
+      const sm = lens / abs_area;
+      const tm = lent / abs_area;
 
-      if (non_zero(info.sm) && non_zero(info.tm)) info.any = false;
+      if (non_zero(sm) && non_zero(tm)) info.any = false;
     }
   }
 
@@ -236,34 +236,31 @@ const build_tspaces = (tri_info, indices, groups, tri_groups, group_count, indic
 };
 
 const eval_tspace = (st, members, member_count, tri_info, indices, vert, getters) => {
-  let angle_sum = 0;
-  st.s.set(0, 0, 0); st.sm = 0;
-  st.t.set(0, 0, 0); st.tm = 0;
+  st.s.set(0, 0, 0);
+  st.t.set(0, 0, 0);
 
   let n = new Vec3(), vs = new Vec3(), vt = new Vec3();
   let p0 = new Vec3(), p1 = new Vec3(), p2 = new Vec3();
   let v1 = new Vec3(), v2 = new Vec3();
   for (let i = 0; i < member_count; i++) {
-    const f = members[i], info = tri_info[f];
+    const f = members[i], f3 = f * 3, info = tri_info[f];
+    getters.normal(vert, n);
 
     if (!info.any) {
       let i = 2;
-      const f3 = f * 3;
       if (indices[f3] == vert) i = 0;
       else if (indices[f3 + 1] == vert) i = 1;
 
-      getters.normal(vert, n);
       vs.copy(info.s).sub(p0.copy(n).mul_f32(n.dot(info.s)));
       if (vec_non_zero(vs)) vs.unit();
       vt.copy(info.t).sub(p0.copy(n).mul_f32(n.dot(info.t)));
       if (vec_non_zero(vt)) vt.unit();
 
-      let i1 = indices[f3 + i],
-        i2 = indices[f3 + (i < 2 ? i + 1 : 0)],
-        i0 = indices[f3 + (i > 0 ? i - 1 : 2)];
+      let i0 = indices[f3 + (i > 0 ? i - 1 : 2)];
+      let i2 = indices[f3 + (i < 2 ? i + 1 : 0)];
 
       getters.pos(i0, p0);
-      getters.pos(i1, p1);
+      getters.pos(vert, p1);
       getters.pos(i2, p2);
       v1.copy(p0).sub(p1);
       v2.copy(p2).sub(p1);
@@ -274,23 +271,16 @@ const eval_tspace = (st, members, member_count, tri_info, indices, vert, getters
       if (vec_non_zero(v2)) v2.unit();
 
       let cos = v1.dot(v2);
-      cos = cos > 1 ? 1 : (cos < -1 ? -1 : cos);
+      cos = (cos > 1) ? 1 : ((cos < -1) ? -1 : cos);
       let ang = Math.acos(cos);
 
       st.s.add(vs.mul_f32(ang));
       st.t.add(vt.mul_f32(ang));
-      st.sm += ang * info.sm;
-      st.tm += ang * info.tm;
-      angle_sum += ang;
     }
   }
 
   if (vec_non_zero(st.s)) st.s.unit();
   if (vec_non_zero(st.t)) st.t.unit();
-  if (angle_sum > 0) {
-    st.sm /= angle_sum;
-    st.tm /= angle_sum;
-  }
 };
 
 const compare_sub_group = (cur, other) => {
@@ -353,7 +343,6 @@ const build_neighbours = (info, indices, triangle_count) => {
       }
 
       if (found) {
-        const t = edges[j][2];
         info[f].neighbours[eA] = t;
         info[t].neighbours[eB] = f;
       }
@@ -376,7 +365,7 @@ const assign = (info, indices, groups, tri_groups, face, group, group_id) => {
   if (tri.groups[i] == group_id) return true;
   else if (tri.groups[i] != -1) return false;
 
-  if (tri.any && tri.group[0] == -1 && tri.group[1] == -1 && tri.group[2] == -1)
+  if (tri.any && tri.groups[0] == -1 && tri.groups[1] == -1 && tri.groups[2] == -1)
     tri.preserve = group.preserve;
   if (tri.preserve != group.preserve) return false;
 
@@ -386,7 +375,6 @@ const assign = (info, indices, groups, tri_groups, face, group, group_id) => {
   let nl = tri.neighbours[i], nr = tri.neighbours[i > 0 ? (i - 1) : 2];
   if (nl >= 0) assign(info, indices, groups, tri_groups, nl, group, group_id);
   if (nr >= 0) assign(info, indices, groups, tri_groups, nr, group, group_id);
-
   return true;
 };
 
@@ -412,6 +400,5 @@ const build_groups = (groups, tri_groups, info, indices, triangle_count) => {
       }
     }
   }
-
   return group_count;
 };

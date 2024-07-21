@@ -127,12 +127,11 @@
       });
 
       let geo = await new OBJLoader().load('./assets/models/box.obj');
-      optimize_geometry(geo);
       // const compressed = compress(geo);
       // geo = uncompress(compressed);
 
       generate_tangents(geo, { position: { id: 0 }, normal: { id: 1 }, uv: { id: 2 } });
-      console.log(geo);
+      optimize_geometry(geo);
 
       const mesh = new Mesh(geo, material);
       renderlist.add(mesh);
