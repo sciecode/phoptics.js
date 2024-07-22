@@ -1,5 +1,6 @@
 import Keys from "./keys.mjs";
 import { DynamicManager } from "./dynamic_manager.mjs";
+import { UNINITIALIZED } from "../constants.mjs";
 
 export class RenderState {
   constructor(cache, backend) {
@@ -41,8 +42,11 @@ export class RenderState {
       this.cache.get_index(entry.mesh.geometry.index);
     this.cache.buffer_manager.dispatch_indices();
 
-    for (let entry of list)
+    for (let entry of list) {
+      if (entry.mesh.geometry.attributes.get_bid() == UNINITIALIZED)
+        entry.mesh.material.update();
       this.cache.get_attributes(entry.mesh.geometry.attributes);
+    }
     this.cache.buffer_manager.dispatch_attributes();
 
     for (let entry of list)
@@ -73,6 +77,8 @@ export class RenderState {
   preload(pass, mesh) {
     this.set_pass(pass);
     this.cache.get_index(mesh.geometry.index);
+    if (mesh.geometry.attributes.get_bid() == UNINITIALIZED)
+      mesh.material.update();
     this.cache.get_attributes(mesh.geometry.attributes);
     this.cache.get_material_binding(mesh.material);
     this.set_layouts(mesh);

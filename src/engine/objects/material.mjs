@@ -32,6 +32,7 @@ export class Material {
   get_transparent() { return this.#transparent; }
   get_binding() { return this.#binding; }
   set_binding(bid) { this.#binding = bid; }
+  update() { this.#version = (this.#version + 1) & UNINITIALIZED; } // TODO: update transparent property
   initialize(id, free) { if (this.#id == UNINITIALIZED) { this.#id = id; this.#free = free; } }
   destroy() {
     this.shader.destroy();
@@ -40,7 +41,6 @@ export class Material {
     this.#id = -1;
     this.#free = () => {};
   }
-  update() { this.#version = (this.#version + 1) & UNINITIALIZED; } // TODO: update transparent property
 }
 
 const parse_blending = (blend) => {
