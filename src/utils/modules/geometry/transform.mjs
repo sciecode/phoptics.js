@@ -35,4 +35,6 @@ export const unweld = (geometry) => {
   }
   geometry.index = undefined;
   geometry.attributes = new Attributes(vertices);
+
+  return geometry;
 };

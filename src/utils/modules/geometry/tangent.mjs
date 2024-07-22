@@ -1,4 +1,4 @@
-import { Vertex, RadixSort } from 'phoptics';
+import { Vertex, Attributes, RadixSort } from 'phoptics';
 import { Vec2, Vec3, Vec4 } from 'phoptics/math';
 import { opt_remap } from 'phoptics/utils/modules/geometry/optimizer.mjs';
 import { unweld } from 'phoptics/utils/modules/geometry/transform.mjs';
@@ -83,13 +83,14 @@ export const generate_tangents = (geometry, info) => {
   }
 
   // finalize
-  unweld(geometry);
-  geometry.attributes.add_vertex(
+  const vertices = unweld(geometry).attributes.vertices;
+  vertices.push(
     new Vertex({
       stride: 16,
       data: tangents
     })
   );
+  geometry.attributes = new Attributes(vertices);
 };
 
 const init_info = (indices, triangle_count, getters) => {

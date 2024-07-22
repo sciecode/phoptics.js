@@ -22,12 +22,7 @@ export class VertexHeaps {
   }
 
   get_attributes(attributes) {
-    let bid = attributes.get_bid(), free_bid;
-
-    if (attributes.has_update() && bid != UNINITIALIZED) {
-      free_bid = bid;
-      bid = UNINITIALIZED;
-    }
+    let bid = attributes.get_bid();
 
     if (bid == UNINITIALIZED) {
       const { vertices, instances } = this.format_hash(attributes);
@@ -105,8 +100,6 @@ export class VertexHeaps {
         this.update_backing(heap, offset, update, instance.stride, i);
       }
     }
-
-    if (free_bid != undefined) this.free_attributes(free_bid);
   }
 
   update_backing(heap, offset, update, stride, idx) {
