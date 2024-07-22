@@ -4,7 +4,7 @@ import { Memory, memcpy } from './common/memory.mjs';
 
 export const unweld = (geometry) => {
   const indices = geometry.index.data;
-  const index_count = (indices.length / 3 | 0) * 3;
+  const index_count = geometry.index.count;
   const buffer_count = geometry.attributes.vertices.length;
 
   const buffers = geometry.attributes.vertices.map(vertex => {
@@ -31,6 +31,7 @@ export const unweld = (geometry) => {
       stride: attrib.stride,
       data: new type(out.buffer, out.byteOffset, elements),
     });
+    if (k == 0) geometry.attributes.elements = geometry.attributes.vertices[k].count;
   }
   geometry.index = undefined;
 };

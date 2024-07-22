@@ -200,8 +200,7 @@ export const compress_vertices = (geometry) => {
     };
   });
 
-  const attrib = geometry.attributes.vertices[0];
-  const vertex_count = attrib.size / attrib.stride;
+  const vertex_count = geometry.attributes.elements;
 
   const mem = buffers.map(entry => {
     return {

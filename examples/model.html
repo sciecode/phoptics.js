@@ -127,16 +127,15 @@
       });
 
       let geo = await new OBJLoader().load('./assets/models/plane.obj');
-      // const compressed = compress(geo);
-      // geo = uncompress(compressed);
 
       console.time("tangents");
       generate_tangents(geo, { position: { id: 0 }, normal: { id: 1 }, uv: { id: 2 } });
       console.timeEnd("tangents");
       optimize_geometry(geo);
+      const compressed = compress(geo);
+      geo = uncompress(compressed);
 
       const mesh = new Mesh(geo, material);
-      // mesh.dynamic.world.rotate(new Quat().rot_x(Math.PI / 2));
       renderlist.add(mesh);
 
       animate();

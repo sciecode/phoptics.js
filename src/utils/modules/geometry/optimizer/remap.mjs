@@ -21,13 +21,12 @@ const calculate_bucket_count = (count) => 1 << Math.ceil(Math.log2(count * 1.25)
 class Remapper {
   constructor(geometry) {
     let get_index, index_count, next_vertex = 0;
-    const attrib = geometry.attributes.vertices[0];
     const index = geometry.index;
-    const vertex_count = attrib.size / attrib.stride;
+    const vertex_count = geometry.attributes.elements;
     const bucket_count = calculate_bucket_count(vertex_count);
 
     if (index) {
-      index_count = (index.data.length / 3 | 0) * 3;
+      index_count = index.count;
       get_index = i => index.data[i];
     } else {
       index_count = vertex_count;
@@ -111,7 +110,7 @@ class Remapper {
       stride: indices.BYTES_PER_ELEMENT
     });
     geometry.draw.offset = 0;
-    geometry.draw.count = (indices.length / 3 | 0) * 3;
+    geometry.draw.count = geometry.index.count;
   }
 
   remap_vertices(geometry) {
@@ -135,6 +134,7 @@ class Remapper {
         stride: attrib.stride,
         data: new type(new_buffer.buffer, new_buffer.byteOffset, elements),
       });
+      if (k == 0) geometry.attributes.elements = geometry.attributes.vertices[k].count;
     }
   }
 }

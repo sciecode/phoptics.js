@@ -5,6 +5,7 @@ class GeometryBinding {
   constructor(options) {
     this.data = options.data;
     this.stride = options.stride || 4;
+    this.count = options.count || (this.data.byteLength / this.stride) | 0;
     this.size = options.size || this.data.byteLength;
     if (this.data) this.update();
   }
@@ -34,6 +35,10 @@ export class Index extends GeometryBinding {
   #bid = UNINITIALIZED;
   #index_offset = 0;
   #free = () => {};
+  constructor(options) {
+    super(options);
+    this.count = options.count || ((this.data.byteLength / this.stride / 3) | 0) * 3;
+  }
   get_id() { return this.#id; }
   get_bid() { return this.#bid; }
   get_index_offset() { return this.#index_offset; }

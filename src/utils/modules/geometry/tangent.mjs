@@ -32,8 +32,8 @@ export const generate_tangents = (geometry, info) => {
   if (!geometry.index) opt_remap(geometry);
 
   const indices = geometry.index.data;
-  const triangle_count = (indices.length / 3 | 0);
-  const indices_count = triangle_count * 3;
+  const indices_count = geometry.index.count;
+  const triangle_count = indices_count / 3;
 
   const getters = {
     uv: (idx, v) => {

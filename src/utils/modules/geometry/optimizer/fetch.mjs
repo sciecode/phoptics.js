@@ -16,9 +16,8 @@ const EMPTY32 = 0xffff_ffff;
 
 export const opt_fetch = (geometry) => {
   const indices = geometry.index.data;
-  const index_count = (indices.length / 3 | 0) * 3;
-  const attrib = geometry.attributes.vertices[0];
-  const vertex_count = attrib.size / attrib.stride;
+  const index_count = geometry.index.count;
+  const vertex_count = geometry.attributes.elements;
   const buffer_count = geometry.attributes.vertices.length;
 
   const buffers = geometry.attributes.vertices.map(vertex => {
@@ -57,5 +56,6 @@ export const opt_fetch = (geometry) => {
       stride: attrib.stride,
       data: new type(entry.output.buffer, entry.output.byteOffset, elements),
     });
+    if (j == 0) geometry.attributes.elements = geometry.attributes.vertices[j].count;
   }
 }; 

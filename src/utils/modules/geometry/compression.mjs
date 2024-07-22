@@ -42,14 +42,13 @@ const calculate_buffer_size = (geometry, indices, vertices) => {
 const populate = (output, geometry, indices, vertices) => {
   let offset = 0;
   const dv = new DataView(output.buffer);
-  const attrib = geometry.attributes.vertices[0];
-  const vertex_count = attrib.size / attrib.stride;
+  const vertex_count = geometry.attributes.elements;
 
   // = FIXED HEADER =
   dv.setUint32(offset, FORMAT_ID); offset += 4;
   dv.setUint8(offset++, vertices.length);
   dv.setUint32(offset, vertex_count), offset += 4;
-  dv.setUint32(offset, geometry.index.data.length); offset += 4;
+  dv.setUint32(offset, geometry.index.count); offset += 4;
   const index_type = geometry.index.data.BYTES_PER_ELEMENT == 4 ? 1 : 0;
   dv.setUint32(offset, indices.size | index_type << 31); offset += 4;
 
@@ -157,20 +156,18 @@ export const uncompress = (buffer) => {
 
   buffers.push({
     type: info.indices.type,
-    count: info.indices.count + (info.indices.count & 1),
+    count: info.indices.count + (info.indices.type.bytes == 2 ? info.indices.count & 1 : 0),
   });
 
   const mem = Memory.allocate_layout(buffers);
-  const indices = uncompress_indices(mem[info.vertices.length], info.indices.buffer);
+  const indices = uncompress_indices(mem[info.vertices.length], info.indices.buffer, info.indices.count);
   for (let i in info.vertices) {
     const vertex = info.vertices[i];
     vertex.output = mem[i];
     uncompress_vertices(mem[i], vertex.input, info.vertex_count, vertex.vertex_size);
   }
 
-  const index_count = (indices.length / 3 | 0) * 3;
   const geometry = new Geometry({
-    draw: { count: index_count },
     index: new Index({ data: indices, stride: indices.BYTES_PER_ELEMENT }),
     vertices: info.vertices.map(vert => {
       const out = vert.output;

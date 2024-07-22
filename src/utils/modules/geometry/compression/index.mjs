@@ -241,9 +241,8 @@ export const encode_indices = (output, indices, index_count) => {
 };
 
 export const compress_indices = (geometry) => {
-  const index_count = (geometry.index.data.length / 3 | 0) * 3;
-  const attrib = geometry.attributes.vertices[0];
-  const vertex_count = attrib.size / attrib.stride;
+  const index_count = geometry.index.count;
+  const vertex_count = geometry.attributes.elements;
 
   const output = {
     size: null,
@@ -255,13 +254,11 @@ export const compress_indices = (geometry) => {
   return output;
 };
 
-const decode_indices = (output, input, index_count) => {
+export const uncompress_indices = (output, input, index_count) => {
   const mem = {
     edge_fifo: { type: TYPE.u32, count: 32 },
     vertex_fifo: { type: TYPE.u32, count: 16 },
   };
-
-  index_count = (index_count / 3 | 0) * 3;
 
   const info = Memory.allocate_layout(mem);
 
@@ -402,8 +399,4 @@ const decode_indices = (output, input, index_count) => {
   }
 
   return output;
-};
-
-export const uncompress_indices = (output, input) => {
-  return decode_indices(output, input, output.length);
 };

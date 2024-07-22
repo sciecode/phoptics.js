@@ -12,6 +12,7 @@ export class Attributes {
   constructor(vertices, instances) {
     this.vertices = vertices;
     this.instances = instances;
+    this.elements = this.vertices.length && this.vertices[0].count || 0;
   }
 
   initialize(bid, binding, layout, vert_offset, inst_offset, free) {
