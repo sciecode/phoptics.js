@@ -1,5 +1,5 @@
 import { TYPE } from "./common/type.mjs";
-import { Vertex } from 'phoptics';
+import { Vertex, Attributes } from 'phoptics';
 import { Memory, memcpy } from './common/memory.mjs';
 
 export const unweld = (geometry) => {
@@ -19,6 +19,7 @@ export const unweld = (geometry) => {
     mem.push({ type: TYPE.u8, count: index_count * buffers[i].stride });
   Memory.allocate_layout(mem);
 
+  const vertices = new Array(buffer_count);
   for (let k = 0; k < buffer_count; k++) {
     const out = mem[k], buffer = buffers[k], stride = buffer.stride;
     for (let i = 0; i < index_count; i++)
@@ -27,11 +28,11 @@ export const unweld = (geometry) => {
     const attrib = geometry.attributes.vertices[k];
     const type = attrib.data.constructor;
     const elements = out.byteLength / type.BYTES_PER_ELEMENT;
-    geometry.attributes.vertices[k] = new Vertex({
+    vertices[k] = new Vertex({
       stride: attrib.stride,
       data: new type(out.buffer, out.byteOffset, elements),
     });
-    if (k == 0) geometry.attributes.elements = geometry.attributes.vertices[k].count;
   }
   geometry.index = undefined;
+  geometry.attributes = new Attributes(vertices);
 };

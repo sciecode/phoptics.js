@@ -112,7 +112,7 @@
         vec.set(Math.random(), Math.random(), Math.random()).to(instanced_dynamic, i + 12);
       }
 
-      geo.attributes.instances.push(new Instance({ data: instanced_dynamic, stride: 16 }));
+      geo.attributes.add(new Instance({ data: instanced_dynamic, stride: 16 }));
       geo.draw.instance_count = count;
 
       const mesh = new Mesh(geo, material);

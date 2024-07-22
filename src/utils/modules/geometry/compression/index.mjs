@@ -260,6 +260,8 @@ export const uncompress_indices = (output, input, index_count) => {
     vertex_fifo: { type: TYPE.u32, count: 16 },
   };
 
+  index_count = (index_count / 3 | 0) * 3; //TODO: remove after updating .phg files
+
   const info = Memory.allocate_layout(mem);
 
   info.edge_fifo.fill(-1);

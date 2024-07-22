@@ -8,7 +8,7 @@
  * 
 **/
 
-import { Vertex } from 'phoptics';
+import { Vertex, Attributes } from 'phoptics';
 import { TYPE } from "../common/type.mjs";
 import { Memory, memcpy } from '../common/memory.mjs';
 
@@ -45,6 +45,7 @@ export const opt_fetch = (geometry) => {
     indices[i] = table[index];
   }
 
+  const vertices = new Array(buffer_count);
   for (let j = 0; j < buffer_count; ++j) {
     const entry = buffers[j], stride = entry.stride;
     for (let i = 0, il = table.length; i < il; ++i)
@@ -52,10 +53,10 @@ export const opt_fetch = (geometry) => {
     const attrib = geometry.attributes.vertices[j];
     const type = attrib.data.constructor;
     const elements = entry.output.byteLength / type.BYTES_PER_ELEMENT;
-    geometry.attributes.vertices[j] = new Vertex({
+    vertices[j] = new Vertex({
       stride: attrib.stride,
       data: new type(entry.output.buffer, entry.output.byteOffset, elements),
     });
-    if (j == 0) geometry.attributes.elements = geometry.attributes.vertices[j].count;
   }
+  geometry.attributes = new Attributes(vertices);
 }; 

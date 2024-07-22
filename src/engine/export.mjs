@@ -6,6 +6,7 @@ import { Texture } from "./objects/texture.mjs";
 import { Material } from "./objects/material.mjs";
 import { Geometry } from "./objects/geometry.mjs";
 import { Bindings } from "./objects/bindings.mjs";
+import { Attributes } from "./objects/attributes.mjs";
 import { Vertex, Index, Instance } from "./objects/geometry_bindings.mjs";
 import { RenderPass } from "./objects/render_pass.mjs";
 import { TextureView } from "./objects/texture_view.mjs";
@@ -22,6 +23,6 @@ import RadixSort from "../common/radix_sort.mjs";
 export {
   Format, ResourceType, RadixSort,
   Engine, Mesh, RenderList, Shader, Sampler, Texture, Material, Geometry, Bindings,
-  Vertex, Index, Instance, RenderPass, TextureView, RenderTarget, CanvasTexture,
+  Vertex, Index, Instance, Attributes, RenderPass, TextureView, RenderTarget, CanvasTexture,
   StructuredBuffer, StructuredDynamic
 };

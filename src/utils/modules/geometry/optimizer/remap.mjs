@@ -9,7 +9,7 @@
  * 
 **/
 
-import { Index, Vertex } from 'phoptics';
+import { Index, Vertex, Attributes } from 'phoptics';
 import { TYPE } from "../common/type.mjs";
 import { Hash32 } from "../common/hash.mjs";
 import { Memory, memcpy } from '../common/memory.mjs';
@@ -119,6 +119,7 @@ class Remapper {
       mem.push({ type: TYPE.u8, count: this.vertex_count * this.buffers[k].stride });
 
     Memory.allocate_layout(mem);
+    const vertices = new Array(this.buffers.length);
     for (let k = 0; k < this.buffers.length; ++k) {
       const new_buffer = mem[k];
       const { buffer, stride } = this.buffers[k];
@@ -130,12 +131,13 @@ class Remapper {
       const attrib = geometry.attributes.vertices[k];
       const type = attrib.data.constructor;
       const elements = new_buffer.byteLength / type.BYTES_PER_ELEMENT;
-      geometry.attributes.vertices[k] = new Vertex({
+      vertices[k] = new Vertex({
         stride: attrib.stride,
         data: new type(new_buffer.buffer, new_buffer.byteOffset, elements),
       });
-      if (k == 0) geometry.attributes.elements = geometry.attributes.vertices[k].count;
     }
+    // TODO: dispose of previous attributes
+    geometry.attributes = new Attributes(vertices);
   }
 }
 

@@ -12,6 +12,9 @@ export class Geometry {
     this.attributes = new Attributes(options.vertices || [], options.instances || []);
   }
 
+  // TODO: attribute setter that automatically handles cache deletion
+  // TODO: make objects deletion resistant to double invocation
+
   get_index_offset() { return this.index ? this.index.get_index_offset() + this.draw.offset : -1; }
   get_vertex_offset() { return this.attributes.get_vertex_offset() + (this.index ? 0 : this.draw.offset); }
   get_instance_offset() { return this.attributes.get_instance_offset() + this.draw.instance_offset; }
