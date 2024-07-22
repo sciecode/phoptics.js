@@ -1,11 +1,10 @@
 import { UNINITIALIZED } from "../constants.mjs";
-import { Vertex, Instance } from "./geometry_bindings.mjs";
 
-// TODO: handle attributes update
 export class Attributes {
   #bid = UNINITIALIZED;
   #binding = 0;
   #layout = 0;
+  #updated = false;
   #vertex_offset = 0;
   #instance_offset = 0;
   #free = () => {};
@@ -24,22 +23,40 @@ export class Attributes {
   get instances() { return this.#instances?.slice(); }
   get elements() { return this.#elements; }
 
-  add(binding) { // TODO: handle elements update
-    if (binding instanceof Vertex) this.#vertices.push(binding);
-    else if (binding instanceof Instance) this.#instances.push(binding);
+  add_vertex(binding) {
+    this.#updated = true;
+    this.#vertices.push(binding);
+    if (this.#vertices.length == 1) this.#elements = this.#vertices[0].count;
+  }
+
+  add_instance(binding) {
+    this.#updated = true;
+    this.#instances.push(binding);
+  }
+
+  remove_vertex(id) {
+    this.#updated = true;
+    this.#vertices.splice(id, 1);
+  }
+
+  remove_instance(id) {
+    this.#updated = true;
+    this.#instances.splice(id, 1);
   }
 
   initialize(bid, binding, layout, vert_offset, inst_offset, free) {
-    if (this.#bid == UNINITIALIZED) {
+    if (this.#bid == UNINITIALIZED || this.#updated) {
       this.#bid = bid;
       this.#binding = binding;
       this.#layout = layout;
       this.#vertex_offset = vert_offset;
       this.#instance_offset = inst_offset;
       this.#free = free;
+      this.#updated = false;
     }
   }
   get_bid() { return this.#bid; }
+  has_update() { return this.#updated; }
   get_binding() { return this.#binding; }
   get_layout() { return this.#layout; }
   get_vertex_offset() { return this.#vertex_offset; }
@@ -51,5 +68,6 @@ export class Attributes {
   destroy() {
     this.#free(this.#bid);
     this.#bid = -1;
+    this.#free = () => {};
   }
 }

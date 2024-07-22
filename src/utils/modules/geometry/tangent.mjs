@@ -84,7 +84,7 @@ export const generate_tangents = (geometry, info) => {
 
   // finalize
   unweld(geometry);
-  geometry.attributes.add(
+  geometry.attributes.add_vertex(
     new Vertex({
       stride: 16,
       data: tangents

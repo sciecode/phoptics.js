@@ -38,6 +38,7 @@ export class Material {
     this.bindings?.destroy();
     this.#free(this.#id);
     this.#id = -1;
+    this.#free = () => {};
   }
   update() { this.#version = (this.#version + 1) & UNINITIALIZED; } // TODO: update transparent property
 }

@@ -1,5 +1,6 @@
 import { UNINITIALIZED } from "../constants.mjs";
 
+// TODO: handle multiple update ranges
 class GeometryBinding {
   #update = undefined;
   constructor(options) {
@@ -42,7 +43,7 @@ export class Index extends GeometryBinding {
   get_id() { return this.#id; }
   get_bid() { return this.#bid; }
   get_index_offset() { return this.#index_offset; }
-  destroy() { this.#free(this.#id); this.#id = -1; }
+  destroy() { this.#free(this.#id); this.#id = -1; this.#free = () => {}; }
   initialize(id, bid, index_offset, free) {
     if (this.#id == UNINITIALIZED) {
       this.#id = id;

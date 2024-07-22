@@ -40,7 +40,7 @@ export class Texture {
   get_id() { return this.#id; }
   get_version() { return this.#version; }
   initialize(id, free) { if (this.#id == UNINITIALIZED) { this.#id = id; this.#free = free; } }
-  destroy() { this.#free(this.#id); this.#id = -1; }
+  destroy() { this.#free(this.#id); this.#id = -1; this.#free = () => {}; }
   #update() { this.#version = (this.#version + 1) & UNINITIALIZED; }
 
   static max_mip_levels(width = 1, height = 1, format = Format.RGBA32_FLOAT) {

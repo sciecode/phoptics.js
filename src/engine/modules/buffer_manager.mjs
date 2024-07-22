@@ -1,5 +1,4 @@
 import { IndexPool } from "./index_pool.mjs";
-// import { VertexPool } from "./vertex_pool.mjs";
 import { VertexHeaps } from "./vertex_heaps.mjs";
 import { UniformPool } from "./uniform_pool.mjs";
 

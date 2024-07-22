@@ -15,6 +15,7 @@ export class Shader {
   destroy() {
     this.#free(this.#id);
     this.#id = -1;
+    this.#free = () => {};
   }
 
 }

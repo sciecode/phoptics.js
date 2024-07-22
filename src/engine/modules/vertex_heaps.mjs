@@ -22,7 +22,12 @@ export class VertexHeaps {
   }
 
   get_attributes(attributes) {
-    let bid = attributes.get_bid();
+    let bid = attributes.get_bid(), free_bid;
+
+    if (attributes.has_update() && bid != UNINITIALIZED) {
+      free_bid = bid;
+      bid = UNINITIALIZED;
+    }
 
     if (bid == UNINITIALIZED) {
       const { vertices, instances } = this.format_hash(attributes);
@@ -100,6 +105,8 @@ export class VertexHeaps {
         this.update_backing(heap, offset, update, instance.stride, i);
       }
     }
+
+    if (free_bid != undefined) this.free_attributes(free_bid);
   }
 
   update_backing(heap, offset, update, stride, idx) {
@@ -222,11 +229,11 @@ export class VertexHeaps {
 
     const format = this.formats.get(heap.fid);
     if (heap.allocator.free_storage == format.elements) {
-      this.backend.resources.destroy_buffer(heap.buffer);
+      this.backend.resources.destroy_buffer(heap.bid);
       heap.allocator = heap.backing = null;
-      this.heaps.delete(hip);
+      this.heaps.delete(hid);
 
-      format.heaps.splice(format.heaps.findIndex(hip), 1);
+      format.heaps.splice(format.heaps.findIndex(e => e == hid), 1);
       if (!format.heaps.length)
         this.formats.delete(heap.fid);
     }
