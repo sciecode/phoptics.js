@@ -8,19 +8,11 @@ export class Attributes {
   #instance_offset = 0;
   #free = () => {};
 
-  #vertices = null;
-  #instances = null;
-  #elements = null;
-
   constructor(vertices = [], instances = []) {
-    this.#vertices = vertices.slice();
-    this.#instances = instances.slice();
-    this.#elements = this.#vertices?.length && this.#vertices[0].count || 0;
+    this.vertices = vertices.slice();
+    this.instances = instances.slice();
+    this.elements = this.vertices?.length && this.vertices[0].count || 0;
   }
-
-  get vertices() { return this.#vertices?.slice(); }
-  get instances() { return this.#instances?.slice(); }
-  get elements() { return this.#elements; }
 
   initialize(bid, binding, layout, vert_offset, inst_offset, free) {
     if (this.#bid == UNINITIALIZED) {
@@ -38,8 +30,8 @@ export class Attributes {
   get_vertex_offset() { return this.#vertex_offset; }
   get_instance_offset() { return this.#instance_offset; }
   free_storage() {
-    for (let vert of this.#vertices) vert.free_storage();
-    for (let inst of this.#instances) inst.free_storage();
+    for (let vert of this.vertices) vert.free_storage();
+    for (let inst of this.instances) inst.free_storage();
   }
   destroy() {
     this.#free(this.#bid);

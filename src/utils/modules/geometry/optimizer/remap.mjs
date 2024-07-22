@@ -136,7 +136,6 @@ class Remapper {
         data: new type(new_buffer.buffer, new_buffer.byteOffset, elements),
       });
     }
-    // TODO: dispose of previous attributes
     geometry.attributes = new Attributes(vertices);
   }
 }
