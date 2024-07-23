@@ -5,14 +5,14 @@ export class Geometry {
   #attributes = undefined;
 
   constructor(options) {
+    this.#index = options.index;
+    this.#attributes = new Attributes(options.vertices || [], options.instances || []);
     this.draw = {
       offset: options.draw?.offset || 0,
-      count: options.draw?.count || options.index?.count || options.attributes.elements || 0,
+      count: options.draw?.count || options.index?.count || this.attributes.elements || 0,
       instance_count: options.draw?.instance_count || 1,
       instance_offset: options.draw?.instance_offset || 0,
     };
-    this.#index = options.index;
-    this.#attributes = new Attributes(options.vertices || [], options.instances || []);
   }
 
   get index() { return this.#index; }

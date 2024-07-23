@@ -241,6 +241,8 @@ export const encode_indices = (output, indices, index_count) => {
 };
 
 export const compress_indices = (geometry) => {
+  if (!geometry.index) return undefined;
+
   const index_count = geometry.index.count;
   const vertex_count = geometry.attributes.elements;
 
@@ -259,8 +261,6 @@ export const uncompress_indices = (output, input, index_count) => {
     edge_fifo: { type: TYPE.u32, count: 32 },
     vertex_fifo: { type: TYPE.u32, count: 16 },
   };
-
-  index_count = (index_count / 3 | 0) * 3; //TODO: remove after updating .phg files
 
   const info = Memory.allocate_layout(mem);
 

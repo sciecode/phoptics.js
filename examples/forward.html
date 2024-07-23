@@ -28,14 +28,17 @@
 <body>
   <script type="module">
     import {
-      Engine, Mesh, RenderList, Shader, Material, Texture, CanvasTexture,
-      RenderPass, RenderTarget, StructuredBuffer, Format
+      Engine, Mesh, Vertex, RenderList, Shader, Material, Texture, Attributes,
+      CanvasTexture, RenderPass, RenderTarget, StructuredBuffer, Format
     } from 'phoptics';
     import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
     import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
     import { ShaderLib } from 'phoptics/utils/modules/shaders/shader_lib.mjs';
+    import { OBJLoader } from 'phoptics/utils/loaders/obj_loader.mjs';
     import { builtin } from 'phoptics/utils/modules/shaders/builtin.mjs';
-    import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
+    import { uncompress, compress } from 'phoptics/utils/modules/geometry/compression.mjs';
+    import { encode_f16, encode_oct16 } from 'phoptics/utils/data/encoder.mjs';
+    import { optimize_geometry } from 'phoptics/utils/modules/geometry/optimizer.mjs';
 
     import forward_shader from "./assets/shaders/objects/forward_shader.mjs";
 
@@ -109,24 +112,66 @@
         dynamic: transform_layout,
       });
 
-      const query = await fetch('./assets/models/walt.phg');
-      const compressed = new Uint8Array(await query.arrayBuffer());
-      const geo = uncompress(compressed).set_static();
+      // const walt = await encode_geometry();
+      // const compressed = compress(walt);
+      // const { geometry } = uncompress(compressed);
+      // export_PHG(compressed);
+      const model = await fetch('./assets/models/walt.phg');
+      const { geometry } = uncompress(await model.arrayBuffer());
 
       scene = [];
-      mesh1 = new Mesh(geo, material);
+      mesh1 = new Mesh(geometry, material);
       scene.push(mesh1);
 
-      mesh2 = new Mesh(geo, material);
+      mesh2 = new Mesh(geometry, material);
       scene.push(mesh2);
 
-      mesh3 = new Mesh(geo, material);
+      mesh3 = new Mesh(geometry, material);
       scene.push(mesh3);
 
       engine.preload(render_pass, mesh1);
 
       animate();
     })();
+
+    const export_PHG = (compressed) => {
+      const blob = new Blob([compressed], { type: 'application/octet-stream' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'walt.phg';
+      document.body.appendChild(a)
+      a.click();
+      URL.revokeObjectURL(a.href);
+      document.body.removeChild(a)
+      console.log("clicked");
+    }
+
+    const encode_geometry = async () => {
+      let walt = await new OBJLoader().load('./assets/models/walt.obj');
+      optimize_geometry(walt);
+
+      const attributes = walt.attributes;
+      const elements = attributes.elements;
+      const vertices = attributes.vertices;
+
+      const v4 = new Vec4();
+      const positions = new Uint8Array(8 * elements);
+      let dv = new DataView(positions.buffer);
+      for (let i = 0, offset = 0; i < walt.attributes.elements; i++) {
+        const i3 = i * 3;
+        v4.from(vertices[0].data, i3);
+        dv.setUint16(offset, encode_f16(v4.x / 35.), true); offset += 2; // x
+        dv.setUint16(offset, encode_f16(v4.y / 35.), true); offset += 2; // y
+        dv.setUint16(offset, encode_f16(v4.z / 35.), true); offset += 2; // z
+        dv.setUint16(offset, encode_oct16(v4.from(vertices[1].data, i3)), true); offset += 2;  // normal 
+      }
+
+      walt.attributes = new Attributes([
+        new Vertex({ data: positions, stride: 8 }),
+      ]);
+
+      return walt;
+    }
 
     const calc_tonemap = (ev2, nits) => {
       let r_nits = 1 / nits;

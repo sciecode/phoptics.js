@@ -7,12 +7,14 @@ import { compress_indices, uncompress_indices } from './compression/index.mjs';
 
 // == HEADER ==
 // 0x00 - (4B) - format ID
-// 0x01 - (1B) - vertex buffer count
-// 0x03 - (4B) - vertex count
-// 0x07 - (4B) - index count
-// 0x0B - (4B) - index type (1b) / index compressed (31b)
+// 0x04 - (1B) - vertex buffer count
+// 0x05 - (4B) - vertex count
+// 0x09 - (4B) - index count
+// 0x0D - (4B) - index type (1b) / index compressed (31b)
+// 0x11 - (1B) - size of user data buffer
 //
 // == VARIABLE HEADER ==
+// 0x12 - (xB) - user data buffer
 // ----------------------------------
 // -- (1B) - stride                 |
 // -- (1B) - type                   |
@@ -26,11 +28,11 @@ import { compress_indices, uncompress_indices } from './compression/index.mjs';
 
 const FORMAT_ID = 0xAA289;
 
-const calculate_buffer_size = (geometry, indices, vertices) => {
+const calculate_buffer_size = (geometry, indices, vertices, user_data) => {
   const V = geometry.attributes.vertices.length;
-  const fixed_header = 17;
-  const variable_header = V * 6;
-  const compressed_index_size = indices.size;
+  const fixed_header = 18;
+  const variable_header = (user_data?.byteLength || 0) + V * 6;
+  const compressed_index_size = indices?.size || 0;
 
   let compressed_vertex_size = 0;
   for (let entry of vertices)
@@ -39,7 +41,7 @@ const calculate_buffer_size = (geometry, indices, vertices) => {
   return fixed_header + variable_header + compressed_index_size + compressed_vertex_size;
 };
 
-const populate = (output, geometry, indices, vertices) => {
+const populate = (output, geometry, indices, vertices, user_data) => {
   let offset = 0;
   const dv = new DataView(output.buffer);
   const vertex_count = geometry.attributes.elements;
@@ -48,11 +50,13 @@ const populate = (output, geometry, indices, vertices) => {
   dv.setUint32(offset, FORMAT_ID); offset += 4;
   dv.setUint8(offset++, vertices.length);
   dv.setUint32(offset, vertex_count), offset += 4;
-  dv.setUint32(offset, geometry.index.count); offset += 4;
-  const index_type = geometry.index.data.BYTES_PER_ELEMENT == 4 ? 1 : 0;
-  dv.setUint32(offset, indices.size | index_type << 31); offset += 4;
+  dv.setUint32(offset, geometry.index?.count || 0); offset += 4;
+  const index_type = geometry.index?.data.BYTES_PER_ELEMENT == 4 ? 1 : 0;
+  dv.setUint32(offset, indices ? indices.size | index_type << 31 : 0); offset += 4;
+  dv.setUint8(offset++, user_data?.byteLength || 0);
 
   // = VARIABLE HEADER =
+  if (user_data) output.set(user_data, offset), offset += user_data.byteLength;
 
   // vertex info
   for (let i = 0; i < vertices.length; i++) {
@@ -66,8 +70,10 @@ const populate = (output, geometry, indices, vertices) => {
   // = COMPRESSED DATA =
 
   // compressed index buffer
-  memcpy(output, offset, indices.buffer, 0, indices.size);
-  offset += indices.size;
+  if (indices) {
+    memcpy(output, offset, indices.buffer, 0, indices.size);
+    offset += indices.size;
+  }
 
   // compressed vertex buffers
   for (let entry of vertices) {
@@ -76,13 +82,13 @@ const populate = (output, geometry, indices, vertices) => {
   }
 };
 
-export const compress = (geometry) => {
+export const compress = (geometry, user_data) => {
   const indices = compress_indices(geometry);
   const vertices = compress_vertices(geometry);
 
-  const size = calculate_buffer_size(geometry, indices, vertices);
+  const size = calculate_buffer_size(geometry, indices, vertices, user_data);
   const output = new Uint8Array(size);
-  populate(output, geometry, indices, vertices);
+  populate(output, geometry, indices, vertices, user_data);
 
   return output;
 };
@@ -103,6 +109,14 @@ const read_file_info = (compressed) => {
   const index_info = dv.getUint32(offset); offset += 4;
   const index_type = index_info & (1 << 31);
   const index_compressed_size = index_info & ~(1 << 31);
+  const user_size = dv.getUint8(offset++);
+
+  // == VARIABLE HEADER =
+  let user_data;
+  if (user_size) {
+    user_data = compressed.slice(offset, offset + user_size);
+    offset += user_size;
+  }
 
   const info = {
     indices: {
@@ -112,9 +126,8 @@ const read_file_info = (compressed) => {
     },
     vertex_count: vertex_count,
     vertices: new Array(vertex_buffers_count),
+    user_data: user_data,
   };
-
-  // == VARIABLE HEADER =
 
   // vertex info
   for (let i = 0; i < vertex_buffers_count; ++i) {
@@ -134,8 +147,10 @@ const read_file_info = (compressed) => {
   // == COMPRESSED DATA =
 
   // compressed index buffer
-  info.indices.buffer = new Uint8Array(compressed.buffer, offset, index_compressed_size);
-  offset += index_compressed_size;
+  if (index_compressed_size) {
+    info.indices.buffer = new Uint8Array(compressed.buffer, offset, index_compressed_size);
+    offset += index_compressed_size;
+  }
 
   // compressed vertex buffers
   for (let i = 0; i < vertex_buffers_count; ++i) {
@@ -157,13 +172,17 @@ export const uncompress = (buffer) => {
     return { type: TYPE.u8, count: entry.original_size };
   });
 
-  buffers.push({
-    type: info.indices.type,
-    count: info.indices.count + (info.indices.type.bytes == 2 ? info.indices.count & 1 : 0),
-  });
+  if (info.indices.count) {
+    buffers.push({
+      type: info.indices.type,
+      count: info.indices.count + (info.indices.type.bytes == 2 ? info.indices.count & 1 : 0),
+    });
+  }
 
+  let indices;
   const mem = Memory.allocate_layout(buffers);
-  const indices = uncompress_indices(mem[info.vertices.length], info.indices.buffer, info.indices.count);
+  if (info.indices.count)
+    indices = uncompress_indices(mem[info.vertices.length], info.indices.buffer, info.indices.count);
   for (let i in info.vertices) {
     const vertex = info.vertices[i];
     vertex.output = mem[i];
@@ -171,7 +190,7 @@ export const uncompress = (buffer) => {
   }
 
   const geometry = new Geometry({
-    index: new Index({ data: indices, stride: indices.BYTES_PER_ELEMENT }),
+    index: indices ? new Index({ data: indices, stride: indices.BYTES_PER_ELEMENT }) : undefined,
     vertices: info.vertices.map(vert => {
       const out = vert.output;
       const elements = out.byteLength / vert.type.BYTES_PER_ELEMENT;
@@ -180,5 +199,5 @@ export const uncompress = (buffer) => {
     }),
   });
 
-  return geometry;
+  return { geometry, user_data: info.user_data };
 };

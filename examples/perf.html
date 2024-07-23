@@ -28,8 +28,8 @@
 <body>
   <script type="module">
     import {
-      Engine, Mesh, Vertex, Instance, RenderList, Shader, Material, Texture, CanvasTexture,
-      RenderPass, RenderTarget, StructuredBuffer, Format
+      Engine, Mesh, Vertex, Instance, RenderList, Shader, Material, Texture, Attributes,
+      CanvasTexture, RenderPass, RenderTarget, StructuredBuffer, Format
     } from 'phoptics';
     import { Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
     import { ShaderLib } from 'phoptics/utils/modules/shaders/shader_lib.mjs';
@@ -100,7 +100,7 @@
 
       const query = await fetch('./assets/models/walt.phg');
       const compressed = new Uint8Array(await query.arrayBuffer());
-      const geo = uncompress(compressed);
+      const { geometry } = uncompress(compressed);
 
       const count = 4000;
       const mat = new Mat3x4(), vec = new Vec4(), q = new Quat();
@@ -112,10 +112,14 @@
         vec.set(Math.random(), Math.random(), Math.random()).to(instanced_dynamic, i + 12);
       }
 
-      geo.attributes.add(new Instance({ data: instanced_dynamic, stride: 16 }));
-      geo.draw.instance_count = count;
+      const attribs = new Attributes(
+        geometry.attributes.vertices,
+        [new Instance({ data: instanced_dynamic, stride: 16 })]
+      );
+      geometry.attributes = attribs;
+      geometry.draw.instance_count = count;
 
-      const mesh = new Mesh(geo, material);
+      const mesh = new Mesh(geometry, material);
       renderlist.add(mesh);
 
       requestAnimationFrame(animate);

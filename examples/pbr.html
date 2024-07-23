@@ -349,20 +349,23 @@
         ],
       });
 
-      // const model = await fetch('./assets/models/cerberus.phg');
-      // const geo = uncompress(await model.arrayBuffer());
+      // const cerberus = await encode_geometry();
+      // const compressed = compress(cerberus);
+      // const { geometry } = uncompress(compressed);
+      // export_PHG(compressed);
 
-      const geo = await encode_geometry();
+      const model = await fetch('./assets/models/cerberus.phg');
+      const { geometry } = uncompress(await model.arrayBuffer());
 
       scene = new RenderList();
       const quat = new Quat(), pos = new Vec3();
-      const mesh = new Mesh(geo, material);
+      const mesh = new Mesh(geometry, material);
       pos.set(.5, 0, 0);
       quat.rot_y(Math.PI / 2);
       mesh.dynamic.world.rigid(pos, quat);
       scene.add(mesh);
 
-      const mesh2 = new Mesh(geo, material);
+      const mesh2 = new Mesh(geometry, material);
       pos.set(-.5, .6, 0);
       quat.rot_y(- Math.PI);
       mesh2.dynamic.world.rigid(pos, quat);
@@ -385,11 +388,22 @@
       requestAnimationFrame(animate);
     })();
 
+    const export_PHG = (compressed) => {
+      const blob = new Blob([compressed], { type: 'application/octet-stream' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'cerberus.phg';
+      document.body.appendChild(a)
+      a.click();
+      URL.revokeObjectURL(a.href);
+      document.body.removeChild(a)
+      console.log("clicked");
+    }
+
     const encode_geometry = async () => {
       let cerberus = await new OBJLoader().load('./assets/models/cerberus.obj');
       generate_tangents(cerberus, { position: { id: 0 }, normal: { id: 1 }, uv: { id: 2 } });
       optimize_geometry(cerberus);
-
 
       const attributes = cerberus.attributes;
       const elements = attributes.elements;
