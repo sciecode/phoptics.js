@@ -148,6 +148,9 @@ const read_file_info = (compressed) => {
 };
 
 export const uncompress = (buffer) => {
+  if (buffer instanceof ArrayBuffer)
+    buffer = new Uint8Array(buffer);
+
   const info = read_file_info(buffer);
 
   const buffers = info.vertices.map(entry => {

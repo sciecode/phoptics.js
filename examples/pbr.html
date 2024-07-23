@@ -28,16 +28,20 @@
 <body>
   <script type="module">
     import {
-      Engine, Mesh, RenderList, Shader, Sampler, Material, Geometry, Texture, CanvasTexture,
-      RenderPass, RenderTarget, StructuredBuffer, Format
+      Engine, Vertex, Mesh, RenderList, Shader, Sampler, Material, Geometry, Texture, Attributes,
+      CanvasTexture, RenderPass, RenderTarget, StructuredBuffer, Format
     } from 'phoptics';
     import { Vec2, Vec3, Vec4, Quat, Mat3x4, Mat4x4 } from 'phoptics/math';
     import { Orbit } from 'phoptics/utils/modules/controls/orbit.mjs';
     import { SkyboxGeometry } from 'phoptics/utils/objects/skybox.mjs';
     import { KTXLoader } from 'phoptics/utils/loaders/ktx_loader.mjs';
+    import { OBJLoader } from 'phoptics/utils/loaders/obj_loader.mjs';
     import { ShaderLib } from 'phoptics/utils/modules/shaders/shader_lib.mjs';
     import { builtin } from 'phoptics/utils/modules/shaders/builtin.mjs';
-    import { uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
+    import { optimize_geometry } from 'phoptics/utils/modules/geometry/optimizer.mjs';
+    import { generate_tangents } from 'phoptics/utils/modules/geometry/tangent.mjs';
+    import { compress, uncompress } from 'phoptics/utils/modules/geometry/compression.mjs';
+    import { encode_f16, encode_oct16 } from 'phoptics/utils/data/encoder.mjs';
 
     import mipmap_shader from "./assets/shaders/process/mipmap_shader.mjs";
     import filtering_shader from "./assets/shaders/process/filtering_shader.mjs";
@@ -345,9 +349,10 @@
         ],
       });
 
-      const model = await fetch('./assets/models/cerberus.phg');
-      const compressed = new Uint8Array(await model.arrayBuffer());
-      const geo = uncompress(compressed).set_static();
+      // const model = await fetch('./assets/models/cerberus.phg');
+      // const geo = uncompress(await model.arrayBuffer());
+
+      const geo = await encode_geometry();
 
       scene = new RenderList();
       const quat = new Quat(), pos = new Vec3();
@@ -376,8 +381,52 @@
       );
       scene.add(skybox);
 
+
       requestAnimationFrame(animate);
     })();
+
+    const encode_geometry = async () => {
+      let cerberus = await new OBJLoader().load('./assets/models/cerberus.obj');
+      generate_tangents(cerberus, { position: { id: 0 }, normal: { id: 1 }, uv: { id: 2 } });
+      optimize_geometry(cerberus);
+
+
+      const attributes = cerberus.attributes;
+      const elements = attributes.elements;
+      const vertices = attributes.vertices;
+
+      const v4 = new Vec4();
+      const positions = new Uint8Array(8 * elements);
+      let dv = new DataView(positions.buffer);
+      for (let i = 0, offset = 0; i < cerberus.attributes.elements; i++) {
+        const i3 = i * 3, i4 = i * 4;
+        v4.from(vertices[0].data, i3);
+        dv.setUint16(offset, encode_f16(v4.x), true); offset += 2; // x
+        dv.setUint16(offset, encode_f16(v4.y), true); offset += 2; // y
+        dv.setUint16(offset, encode_f16(v4.z), true); offset += 2; // z
+        dv.setUint16(offset, vertices[3].data[i4 + 3] == -1 ? 0 : 1, true); offset += 2;  // bitangent sign
+      }
+
+      const extras = new Uint8Array(8 * elements);
+      dv = new DataView(extras.buffer);
+      for (let i = 0, offset = 0; i < cerberus.attributes.elements; i++) {
+        const i2 = i * 2, i3 = i * 3, i4 = i * 4;
+        v4.from(vertices[1].data, i3);
+        dv.setUint16(offset, encode_oct16(v4), true); offset += 2; // normal
+        v4.from(vertices[3].data, i4);
+        dv.setUint16(offset, encode_oct16(v4), true); offset += 2; // tangent
+        v4.from(vertices[2].data, i2);
+        dv.setUint16(offset, encode_f16(v4.x), true); offset += 2; // u
+        dv.setUint16(offset, encode_f16(v4.y), true); offset += 2; // v
+      }
+
+      cerberus.attributes = new Attributes([
+        new Vertex({ data: positions, stride: 8 }),
+        new Vertex({ data: extras, stride: 8 }),
+      ]);
+
+      return cerberus;
+    };
 
     const calc_tonemap = (ev2, nits) => {
       let r_nits = 1 / nits;

@@ -4,9 +4,11 @@ enable f16;
 
 struct FragInput {
   @builtin(position) position : vec4f,
-  @location(0) w_pos : vec3f,
-  @location(1) w_normal : vec3f,
-  @location(2) uv : vec2f,
+  @location(0) pos : vec3f,
+  @location(1) normal : vec3f,
+  @location(2) tangent : vec3f,
+  @location(3) @interpolate(flat) sign : f32,
+  @location(4) uv : vec2f,
 }
 
 struct Globals {
@@ -20,6 +22,8 @@ struct Globals {
 struct Attributes {
   pos : vec3f,
   normal : vec3f,
+  tangent : vec3f,
+  sign : f32,
   uv : vec2f,
 }
 
@@ -27,16 +31,20 @@ struct Attributes {
 @group(0) @binding(1) var gsamp: sampler;
 @group(0) @binding(2) var lut: texture_2d<f32>;
 @group(0) @binding(3) var cubemap: texture_cube<f32>;
-@group(2) @binding(0) var<storage, read> attributes: array<u32>;
+@group(2) @binding(0) var<storage, read> positions: array<vec2u>;
+@group(2) @binding(1) var<storage, read> extras: array<vec2u>;
 @group(3) @binding(0) var<storage, read> world_matrix: mat3x4f;
 
 fn read_attribute(vert : u32) -> Attributes {
   var attrib : Attributes;
 
-  let p = vert * 3;
-  attrib.pos = vec3f(bitcast<vec4h>(vec2u(attributes[p], attributes[p+1])).xyz);
-  attrib.normal = dec_oct16(attributes[p+1] >> 16);
-  attrib.uv = vec2f(bitcast<vec2h>(attributes[p+2]));
+  let f = positions[vert];
+  attrib.pos = vec3f(bitcast<vec4h>(f).xyz);
+  attrib.sign = select(1., -1., (f.y >> 16) == 0);
+  let e = extras[vert];
+  attrib.normal = dec_oct16(e.x & 65535);
+  attrib.tangent = dec_oct16(e.x >> 16);
+  attrib.uv = vec2f(bitcast<vec2h>(e.y));
   return attrib;
 }
 
@@ -49,11 +57,13 @@ fn normal_rg(v : vec2f) -> vec3f { // TODO: rename & move to encoding
   var output : FragInput;
 
   let attrib = read_attribute(vert);
-  output.w_pos = mul34(world_matrix, attrib.pos);
-  let normal_matrix = mat3x3f(world_matrix[0].xyz, world_matrix[1].xyz, world_matrix[2].xyz);
-  output.w_normal = mul33(normal_matrix, attrib.normal);
-  output.position = mul44(globals.projection_matrix, mul34(globals.view_matrix, output.w_pos));
   output.uv = attrib.uv;
+  output.sign = attrib.sign;
+  output.pos = mul34(world_matrix, attrib.pos);
+  output.position = mul44(globals.projection_matrix, mul34(globals.view_matrix, output.pos));
+  let normal_matrix = mat3x3f(world_matrix[0].xyz, world_matrix[1].xyz, world_matrix[2].xyz);
+  output.normal = mul33(normal_matrix, attrib.normal);
+  output.tangent = mul33(normal_matrix, attrib.tangent);
 
   return output;
 }
@@ -133,35 +143,22 @@ fn indirect(frag : ptr<function, RenderInfo>, r : f32) {
 @group(1) @binding(2) var t_metallic: texture_2d<f32>;
 @group(1) @binding(3) var t_normal: texture_2d<f32>;
 
-fn tbn_mat(eye : vec3f, norm : vec3f, uv : vec2f) -> mat3x3f {
-	let q0 = dpdx(eye);
-	let q1 = dpdy(eye);
-	let st0 = dpdx(uv);
-	let st1 = dpdy(uv);
-
-	let q1perp = cross(q1, norm);
-	let q0perp = cross(norm, q0);
-
-	let T = q1perp * st0.x + q0perp * st1.x;
-	let B = q1perp * st0.y + q0perp * st1.y;
-
-	let det = max(dot(T,T), dot(B,B));
-	let scale = select(inverseSqrt(det), 0, det == 0);
-
-	return mat3x3f(T * scale, B * scale, norm);
+fn tbn(N: vec3f, T: vec3f, S: f32, nT: vec3f) -> vec3f {
+  let B = S * cross(N, T);
+  return normalize(nT.x * T + nT.y * B + nT.z * N);
 }
 
 @fragment fn fs(in : FragInput) -> @location(0) vec4f {
   let metalness = textureSample(t_metallic, samp, in.uv).r;
-  let tbn_normal = normal_rg(textureSample(t_normal, samp, in.uv).rg * 2 - 1);
+  let nT = normal_rg(textureSample(t_normal, samp, in.uv).rg * 2 - 1);
 
   const perceptual_roughness = .35;
   let a = max(perceptual_roughness * perceptual_roughness, 0.089);
 
   var frag : RenderInfo;
-  frag.pos = in.w_pos;
+  frag.pos = in.pos;
   frag.V = normalize(globals.camera_pos - frag.pos);
-  frag.N = normalize(tbn_mat(frag.V, normalize(in.w_normal), in.uv) * tbn_normal);
+  frag.N = tbn(in.normal, in.tangent, in.sign, nT);
   frag.cosNV = saturate(dot(frag.V, frag.N)) + 1e-5;
   frag.a2 = a * a;
 

@@ -34,7 +34,7 @@ export class Vec4 extends Float32Array {
 
   from(buf, offset) {
     this[0] = buf[offset]; this[1] = buf[offset + 1];
-    this[2] = buf[offset + 2]; this[2] = buf[offset + 3];
+    this[2] = buf[offset + 2]; this[3] = buf[offset + 3];
     return this;
   }
 
