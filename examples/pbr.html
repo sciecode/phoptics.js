@@ -100,38 +100,44 @@
       for (let i = 0; i < 6; i++) {
         globals.info.set(i, 0); // face / lod
         globals.update();
-        render_target.color[0].view = cubemap.create_view({
+        const mip_view = cubemap.create_view({
           dimension: "2d",
           arrayLayerCount: 1,
           mipLevelCount: 1,
           baseArrayLayer: i,
           baseMipLevel: 0,
         });
+        render_target.color[0].view = mip_view;
 
         engine.render(render_pass, scene);
+        mip_view.destroy();
       }
 
       // mips
       for (let m = 1; m < mips; m++) {
-        render_pass.bindings.cube = cubemap.create_view({
+        const cubemap_view = cubemap.create_view({
           dimension: "cube",
           mipLevelCount: 1,
           baseMipLevel: m - 1,
         });
+        render_pass.bindings.cube = cubemap_view;
         render_pass.bindings.update();
         for (let i = 0; i < 6; i++) {
           globals.info.set(i, m - 1); // face / lod
           globals.update();
-          render_target.color[0].view = cubemap.create_view({
+          const slice_view = cubemap.create_view({
             dimension: "2d",
             arrayLayerCount: 1,
             mipLevelCount: 1,
             baseArrayLayer: i,
             baseMipLevel: m,
           });
+          render_target.color[0].view = slice_view;
 
           engine.render(render_pass, scene);
+          slice_view.destroy();
         }
+        cubemap_view.destroy();
       }
 
       quad.geometry.destroy();
@@ -176,21 +182,25 @@
       // mips
       for (let m = 0; m < mips; m++) {
         const roughness = m / (mips - 1);
-        render_pass.bindings.cube = cubemap.create_view({ dimension: "cube" });
+        const cubemap_view = cubemap.create_view({ dimension: "cube" });
+        render_pass.bindings.cube = cubemap_view;
         render_pass.bindings.update();
         for (let i = 0; i < 6; i++) {
           globals.info.set(i, roughness, sample_count, tex_size); // face / lod
           globals.update();
-          render_target.color[0].view = pmlm.create_view({
+          const slice_view = pmlm.create_view({
             dimension: "2d",
             arrayLayerCount: 1,
             mipLevelCount: 1,
             baseArrayLayer: i,
             baseMipLevel: m,
           });
+          render_target.color[0].view = slice_view;
 
           engine.render(render_pass, scene);
+          slice_view.destroy();
         }
+        cubemap_view.destroy();
       }
 
       quad.geometry.destroy();
@@ -393,12 +403,12 @@
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'cerberus.phg';
-      document.body.appendChild(a)
+      document.body.appendChild(a);
       a.click();
       URL.revokeObjectURL(a.href);
-      document.body.removeChild(a)
+      document.body.removeChild(a);
       console.log("clicked");
-    }
+    };
 
     const encode_geometry = async () => {
       let cerberus = await new OBJLoader().load('./assets/models/cerberus.obj');

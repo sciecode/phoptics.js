@@ -23,6 +23,7 @@ export class RenderCache {
 
     this.texture_callback = this.free_texture.bind(this);
     this.bindings_callback = this.free_binding.bind(this);
+    this.texture_view_callback = this.free_texture_view.bind(this);
   }
 
   get_target(target_obj) {
@@ -55,13 +56,14 @@ export class RenderCache {
 
     if (id == UNINITIALIZED) {
       cache = {
+        tex: view_obj.texture.get_id(),
         view: this.backend.resources.get_texture(cache_texture.bid).get_view(view_obj.info),
         version: cache_texture.version,
       };
       id = this.views.allocate(cache);
 
       cache_texture.views.push(id);
-      view_obj.initialize(id);
+      view_obj.initialize(id, this.texture_view_callback);
     } else {
       cache = this.views.get(id);
       if (cache.version != cache_texture.version) {
@@ -288,5 +290,14 @@ export class RenderCache {
     this.backend.resources.destroy_texture(cache.bid);
     for (let idx of cache.views) this.views.delete(idx);
     this.textures.delete(id);
+  }
+
+  free_texture_view(id) {
+    const cache = this.views.get(id);
+    this.views.delete(id);
+    // this sucks, please think of a better way to do it
+    const tex_cache = this.textures.get(cache.tex);
+    const idx = tex_cache.views.findIndex(e => e == id);
+    tex_cache.views.splice(idx, 1);
   }
 }
