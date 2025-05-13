@@ -94,15 +94,17 @@
         for (let i = 0; i < 6; i++) {
           globals.info.set(i, roughness, sample_count, tex_size); // face / lod
           globals.update();
-          render_target.color[0].view = pmlm.create_view({
+          let slice_view = pmlm.create_view({
             dimension: "2d",
             arrayLayerCount: 1,
             mipLevelCount: 1,
             baseArrayLayer: i,
             baseMipLevel: m,
           });
+          render_target.color[0].view = slice_view;
 
           engine.render(render_pass, scene);
+          slice_view.destroy();
         }
       }
 
