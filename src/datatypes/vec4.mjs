@@ -102,12 +102,12 @@ export class Vec4 extends Float32Array {
     return this;
   }
 
-  length() {
+  mag() {
     return Math.sqrt(this[0] * this[0] + this[1] * this[1] + this[2] * this[2] + this[3] * this[3]);
   }
 
   unit() {
-    return this.mul_f32(1 / this.length());
+    return this.mul_f32(1 / this.mag());
   }
 
   project(mat) {

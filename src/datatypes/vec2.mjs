@@ -91,12 +91,12 @@ export class Vec2 extends Float32Array {
     return this;
   }
 
-  length() {
+  mag() {
     return Math.sqrt(this[0] * this[0] + this[1] * this[1]);
   }
 
   unit() {
-    return this.mul_f32(1 / this.length());
+    return this.mul_f32(1 / this.mag());
   }
 
   dot(v) {

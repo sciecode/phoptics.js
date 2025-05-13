@@ -116,7 +116,7 @@ const init_info = (indices, triangle_count, getters) => {
 
       vs.copy(d1).mul_f32(t31.y);
       v1.copy(d2).mul_f32(t21.y);
-      const lens = vs.sub(v1).length();
+      const lens = vs.sub(v1).mag();
 
       const sign = info.preserve ? 1 : -1;
       if (non_zero(lens)) info.tangent.copy(vs).mul_f32(sign / lens);

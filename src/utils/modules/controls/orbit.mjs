@@ -31,7 +31,7 @@ export class Orbit {
   update() {
     // update rotation
     this.position.sub(this.target);
-    let radius = this.position.length();
+    let radius = this.position.mag();
     this.sphr.theta = Math.atan2(this.position.x, this.position.z);
     this.sphr.phi = Math.acos(Math.min(Math.max(this.position.y / radius, -1), 1));
     this.sphr.add(this.sphr_delta);

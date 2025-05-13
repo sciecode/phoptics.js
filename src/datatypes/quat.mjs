@@ -107,12 +107,12 @@ export class Quat extends Float32Array {
     return this;
   }
 
-  length() {
+  mag() {
     return Math.sqrt(this[0] * this[0] + this[1] * this[1] + this[2] * this[2] + this[3] * this[3]);
   }
 
   unit() {
-    const scl = 1 / this.length();
+    const scl = 1 / this.mag();
     this[0] *= scl; this[1] *= scl;
     this[2] *= scl; this[3] *= scl;
     return this;
